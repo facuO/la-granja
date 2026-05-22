@@ -56,32 +56,51 @@ function renderExplanation(c) {
 }
 
 function renderPhrase(phrase) {
+  // Split into lines by BR markers (one line = one table row of cells)
+  const lines = [[]];
+  for (const unit of phrase) {
+    if (unit && unit.break) {
+      lines.push([]);
+    } else if (unit && typeof unit.word === "string") {
+      lines[lines.length - 1].push(unit);
+    }
+  }
+
   const wrap = document.createElement("div");
   wrap.className = "phrase";
-  phrase.forEach((unit) => {
-    if (unit && unit.break) {
-      const br = document.createElement("div");
-      br.className = "phrase-break";
-      wrap.appendChild(br);
-      return;
+
+  for (const line of lines) {
+    if (line.length === 0) continue;
+    const lineEl = document.createElement("div");
+    lineEl.className = "phrase-line";
+    lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(0, 1fr))`;
+
+    for (const unit of line) {
+      const cell = document.createElement("div");
+      cell.className = "phrase-cell" + (unit.pic ? "" : " no-pic");
+
+      const picCell = document.createElement("div");
+      picCell.className = "phrase-pic-cell";
+      if (unit.pic) {
+        const img = document.createElement("img");
+        img.src = `https://static.arasaac.org/pictograms/${unit.pic}/${unit.pic}_300.png`;
+        img.alt = unit.word;
+        img.loading = "lazy";
+        img.className = "phrase-pic";
+        picCell.appendChild(img);
+      }
+      cell.appendChild(picCell);
+
+      const wordCell = document.createElement("div");
+      wordCell.className = "phrase-word-cell";
+      wordCell.textContent = unit.word;
+      cell.appendChild(wordCell);
+
+      lineEl.appendChild(cell);
     }
-    if (!unit || typeof unit.word !== "string") return;
-    const cell = document.createElement("div");
-    cell.className = "phrase-cell" + (unit.pic ? "" : " no-pic");
-    if (unit.pic) {
-      const img = document.createElement("img");
-      img.src = `https://static.arasaac.org/pictograms/${unit.pic}/${unit.pic}_300.png`;
-      img.alt = unit.word;
-      img.loading = "lazy";
-      img.className = "phrase-pic";
-      cell.appendChild(img);
-    }
-    const w = document.createElement("span");
-    w.className = "phrase-word";
-    w.textContent = unit.word;
-    cell.appendChild(w);
-    wrap.appendChild(cell);
-  });
+    wrap.appendChild(lineEl);
+  }
+
   blockEl.appendChild(wrap);
 }
 

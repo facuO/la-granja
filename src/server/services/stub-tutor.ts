@@ -28,8 +28,10 @@ export type StubBlock =
 // null = no good pictogram, render word without image.
 const ARASAAC: Record<string, number | null> = {
   argentina: 8030,
-  pais: 35431,
-  paises: 35431,
+  // Para Sofi "país" implica Argentina (su país). Usamos el pictograma de
+  // Argentina (silueta con bandera celeste-blanca) para que sea más concreto.
+  pais: 8030,
+  paises: 8030,
   limitrofe: 8483,
   limitrofes: 8483,
   vecino: 26529,
@@ -168,20 +170,33 @@ const fb = (text: string, tone: "positive" | "redirect" = "positive"): StubBlock
 
 // ----- Topic 1: Países limítrofes con Argentina -----
 const PAISES_LIMITROFES: StubBlock[] = [
-  ep(tw`Hola, Sofi. Hoy vamos a ver los países limítrofes con Argentina.`),
-  ep(tw`Un país limítrofe es un país que está al lado del nuestro.`),
+  ep(tw`Hola, Sofi.
+Hoy vamos a ver los países
+limítrofes con Argentina.`),
+  ep(tw`Un país limítrofe es un país
+que está al lado del nuestro.`),
   ep(tw`También se le dice país vecino.`),
-  ep(tw`Argentina está al sur de América del Sur.`),
-  ep(tw`Está rodeada por otros países y por el océano Atlántico.`),
+  ep(tw`Argentina está al sur
+de América del Sur.`),
+  ep(tw`Está rodeada por otros países
+y por el océano Atlántico.`),
   v("argentina_map", "Argentina y los países vecinos que la rodean.", ["neighbors"]),
-  ep(tw`Argentina tiene 5 países limítrofes. Los vamos a ver uno por uno.`),
-  ep(tw`Al norte, Argentina toca con Bolivia. Bolivia queda arriba.`),
-  ep(tw`Al noreste, Argentina toca con Paraguay y con Brasil.`),
-  ep(tw`Brasil es el país más grande de Sudamérica.`),
-  ep(tw`Al este, separados por un río, está Uruguay.`),
-  ep(tw`El río que separa Argentina de Uruguay se llama Río de la Plata.`),
-  ep(tw`Al oeste, a lo largo de toda la Cordillera de los Andes, está Chile.`),
-  ep(tw`Repasemos los 5: Bolivia, Paraguay, Brasil, Uruguay y Chile.`),
+  ep(tw`Argentina tiene 5 países limítrofes.
+Los vamos a ver uno por uno.`),
+  ep(tw`Al norte, Argentina toca con Bolivia.
+Bolivia queda arriba.`),
+  ep(tw`Al noreste, Argentina toca
+con Paraguay y con Brasil.`),
+  ep(tw`Brasil es el país más grande
+de Sudamérica.`),
+  ep(tw`Al este, separados por un río,
+está Uruguay.`),
+  ep(tw`El río que separa Argentina
+de Uruguay se llama Río de la Plata.`),
+  ep(tw`Al oeste, a lo largo de toda la
+Cordillera de los Andes, está Chile.`),
+  ep(tw`Repasemos los 5: Bolivia, Paraguay,
+Brasil, Uruguay y Chile.`),
   {
     block_kind: "question",
     content: {

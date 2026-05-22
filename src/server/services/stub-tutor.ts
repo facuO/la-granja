@@ -18,9 +18,17 @@ export type PhraseUnit =
   | { word: string; pic?: number }
   | { break: true };
 
+export interface VisualContent {
+  visual_kind: string;
+  caption: string;
+  show?: string[];
+  image_src?: string;
+  image_alt?: string;
+}
+
 export type StubBlock =
   | { block_kind: "explanation"; content: { text: string; phrase?: PhraseUnit[] } }
-  | { block_kind: "visual"; content: { visual_kind: string; caption: string; show?: string[] } }
+  | { block_kind: "visual"; content: VisualContent }
   | { block_kind: "question"; content: QuestionContent }
   | { block_kind: "feedback"; content: { text: string; tone: "positive" | "redirect"; phrase?: PhraseUnit[] } };
 
@@ -159,6 +167,17 @@ const v = (visual_kind: string, caption: string, show?: string[]): StubBlock => 
   block_kind: "visual",
   content: show && show.length ? { visual_kind, caption, show } : { visual_kind, caption },
 });
+
+// Image-based visual block (e.g. Wikimedia map). The src is fetched
+// directly by the browser. width param keeps download size sensible.
+const vimg = (src: string, alt: string, caption: string): StubBlock => ({
+  block_kind: "visual",
+  content: { visual_kind: "image", caption, image_src: src, image_alt: alt },
+});
+
+// Wikimedia Commons file URL with a reasonable thumb width.
+const wm = (file: string, width = 720): string =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${width}`;
 const fb = (text: string, tone: "positive" | "redirect" = "positive"): StubBlock => ({
   block_kind: "feedback",
   content: { text, tone },
@@ -234,9 +253,19 @@ const PROVINCIAS_ANDES: StubBlock[] = [
   ep(tw`Funcionan como una pared natural muy alta entre los dos países.`),
   v("argentina_map", "La Cordillera está pegada al borde izquierdo de Argentina, en el oeste.", ["cordillera"]),
   ep(tw`Hay varias provincias argentinas que tocan con los Andes.`),
+  vimg(
+    wm("Argentina politico.svg", 720),
+    "Mapa político de Argentina con todas las provincias",
+    "Mapa político de Argentina. Cada provincia tiene su nombre. Las que están al oeste tocan con la Cordillera."
+  ),
   ep(tw`Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja.`),
   ep(tw`Las del centro: San Juan y Mendoza.`),
   ep(tw`Las del sur: Neuquén, Río Negro, Chubut y Santa Cruz.`),
+  vimg(
+    wm("Mapas escolares del Instituto Geográfico Nacional (Argentina) - Provincia de Córdoba - Político (2016).jpg", 720),
+    "Mapa político escolar de la provincia de Córdoba",
+    "Esta es Córdoba, tu provincia. Está en el centro de Argentina."
+  ),
   ep(tw`Ahora vamos a ver la lista de tu cuaderno.`),
   {
     block_kind: "question",

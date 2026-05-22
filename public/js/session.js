@@ -3,10 +3,20 @@ import { api } from "./api.js";
 const params = new URLSearchParams(window.location.search);
 const sessionId = params.get("id");
 const stepsTotal = Number(params.get("total")) || 0;
+const subjectId = params.get("subject_id");
+const subjectName = params.get("subject_name");
 
 const blockEl = document.getElementById("block");
 const trailEl = document.getElementById("trail");
 const advanceEl = document.getElementById("advance");
+
+// Wire the "← Materia" back link if we know which subject we came from.
+const trailBackEl = document.getElementById("trail-back");
+if (trailBackEl && subjectId && subjectName) {
+  trailBackEl.href = `/materia.html?id=${encodeURIComponent(subjectId)}`;
+  trailBackEl.textContent = `← ${subjectName}`;
+  trailBackEl.style.display = "";
+}
 
 // -------- Navigation history --------
 // Each entry: { block, stepIndex, questionState?: { selected: number[], validated: boolean } }
@@ -146,6 +156,24 @@ fetch("/maps/argentina.svg")
   .catch(() => {});
 
 function renderVisual(c) {
+  if (c.visual_kind === "image" && c.image_src) {
+    const wrap = document.createElement("div");
+    wrap.className = "map-card";
+    const img = document.createElement("img");
+    img.src = c.image_src;
+    img.alt = c.image_alt || c.caption || "";
+    img.className = "wikimedia-image";
+    img.loading = "lazy";
+    wrap.appendChild(img);
+    if (c.caption) {
+      const caption = document.createElement("p");
+      caption.className = "block-text visual-caption";
+      caption.textContent = c.caption;
+      wrap.appendChild(caption);
+    }
+    blockEl.appendChild(wrap);
+    return;
+  }
   if (c.visual_kind === "argentina_map") {
     const wrap = document.createElement("div");
     wrap.className = "map-card";

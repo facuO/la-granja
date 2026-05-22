@@ -161,6 +161,11 @@ button.subtle {
 .trail-progress {
   /* default styling inherited */
 }
+.trail-nav {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
 .trail-home {
   color: var(--text-soft);
   text-decoration: none;
@@ -205,6 +210,15 @@ button.subtle {
   width: 100%;
 }
 .argentina-map svg { width: 100%; height: auto; }
+.wikimedia-image {
+  max-width: 100%;
+  max-height: 520px;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  padding: 4px;
+}
 .phrase {
   margin: var(--space-3) 0;
   display: flex;

@@ -13,6 +13,8 @@ const subjectId = params.get("id");
 const headerEl = document.getElementById("materia-header");
 const topicsEl = document.getElementById("topics");
 
+let subjectName = "";
+
 async function init() {
   if (!subjectId) {
     topicsEl.textContent = "Falta el id de la materia.";
@@ -25,6 +27,7 @@ async function init() {
       topicsEl.textContent = "No encontramos esa materia.";
       return;
     }
+    subjectName = subject.name;
 
     // Header
     const picId = SUBJECT_ICONS[subject.name];
@@ -70,7 +73,10 @@ async function startSession(topicId) {
       body: { topic_id: topicId },
     });
     const total = steps_planned ?? 0;
-    window.location.href = `/session.html?id=${session_id}&total=${total}`;
+    const subjQs = subjectId
+      ? `&subject_id=${encodeURIComponent(subjectId)}&subject_name=${encodeURIComponent(subjectName)}`
+      : "";
+    window.location.href = `/session.html?id=${session_id}&total=${total}${subjQs}`;
   } catch (err) {
     alert("No se pudo empezar. Probá de nuevo.");
     console.error(err);

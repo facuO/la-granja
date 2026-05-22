@@ -19,6 +19,26 @@ export async function buildApp() {
 
   await app.register(cookie, { secret: config.cookieSecret });
 
+  // Accept POSTs with content-type: application/json and an empty body.
+  // Fastify's default JSON parser rejects them, but browsers can send that
+  // shape on body-less POSTs. Treat empty body as `undefined`.
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_req, body, done) => {
+      const raw = (body as string) ?? "";
+      if (raw === "") {
+        done(null, undefined);
+        return;
+      }
+      try {
+        done(null, JSON.parse(raw));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  );
+
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const publicDir = path.resolve(__dirname, "../../public");
   await app.register(staticPlugin, { root: publicDir, prefix: "/" });

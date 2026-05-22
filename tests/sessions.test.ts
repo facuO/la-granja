@@ -44,6 +44,29 @@ describe("session lifecycle", () => {
     await closeTestPool();
   });
 
+  it("next-block accepts POST with empty body and application/json", async () => {
+    // Regression: browsers may send POSTs with content-type: application/json
+    // and an empty body. Fastify's default JSON parser rejects those, but we
+    // override it to treat empty body as undefined.
+    const cookie = await getSofiCookie(app);
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/sofi/sessions",
+      headers: { cookie, "content-type": "application/json" },
+      payload: { topic_id: FEATURED_TOPIC_ID },
+    });
+    const sessionId = start.json().session_id;
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/sofi/sessions/${sessionId}/next-block`,
+      headers: { cookie, "content-type": "application/json", "content-length": "0" },
+      payload: "",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().block).toBeDefined();
+  });
+
   it("starts a session, fetches all blocks, finishes", async () => {
     const cookie = await getSofiCookie(app);
 

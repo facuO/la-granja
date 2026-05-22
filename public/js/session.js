@@ -344,9 +344,9 @@ function renderQuestion(c, savedState, saveState) {
         secondary: { label: "Cambiar mi respuesta", handler: reset },
       });
     } else if (selected.size > 0) {
-      renderAdvanceBar({ primary: { label: "Listo", handler: validateAndShow } });
+      renderAdvanceBar({ primary: { label: "Siguiente", handler: validateAndShow } });
     } else {
-      renderAdvanceBar({ primary: { label: "Listo", disabled: true } });
+      renderAdvanceBar({ primary: { label: "Siguiente", disabled: true } });
     }
   }
 
@@ -382,17 +382,17 @@ function renderBlock(entry) {
   const block = entry.block;
   if (block.block_kind === "explanation") {
     renderExplanation(block.content);
-    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   } else if (block.block_kind === "visual") {
     renderVisual(block.content);
-    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   } else if (block.block_kind === "question") {
     renderQuestion(block.content, entry.questionState, (state) => {
       entry.questionState = state;
     });
   } else if (block.block_kind === "feedback") {
     renderFeedback(block.content);
-    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   }
 }
 

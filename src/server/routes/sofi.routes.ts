@@ -4,6 +4,7 @@ import { setSofiCookie } from "../auth/cookies.js";
 import { requireSofi } from "../auth/middleware.js";
 import { getSubjectsForSofi } from "../services/subjects.js";
 import { startSession, nextBlock, finishSession } from "../services/sessions.js";
+import { askTutor, type ChatMessage } from "../services/real-chat.js";
 
 export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
@@ -97,6 +98,49 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
     async (req, reply) => {
       const result = await finishSession(req.params.id);
       return reply.send(result);
+    }
+  );
+
+  // Chat conversacional con el tutor. Acepta history (turnos previos) + el
+  // mensaje nuevo. Devuelve { text, phrase } con la respuesta tokenizada y
+  // con pictogramas ARASAAC asignados.
+  fastify.post<{ Body: { history?: ChatMessage[]; message: string } }>(
+    "/api/sofi/chat",
+    {
+      preHandler: requireSofi,
+      schema: {
+        body: {
+          type: "object",
+          required: ["message"],
+          properties: {
+            message: { type: "string", minLength: 1, maxLength: 1000 },
+            history: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["role", "content"],
+                properties: {
+                  role: { type: "string", enum: ["user", "assistant"] },
+                  content: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const result = await askTutor({
+          history: req.body.history ?? [],
+          message: req.body.message,
+        });
+        return reply.send(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "unknown";
+        req.log.error({ err }, "chat failed");
+        return reply.code(500).send({ ok: false, reason: msg });
+      }
     }
   );
 };

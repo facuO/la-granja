@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversar con el tutor</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body class="chat-body">
+  <div class="app chat-app">
+    <div class="trail">
+      <span class="trail-progress">Conversar con el tutor</span>
+      <div class="trail-nav">
+        <a href="/recursos.html" class="trail-home">📚 Recursos</a>
+        <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
+      </div>
+    </div>
+
+    <div id="conversation" class="conversation">
+      <div class="chat-intro">
+        <p>Hola, Sofi. Podés preguntarle al tutor lo que quieras.</p>
+        <p class="suggestions-label">Para empezar, podés probar con:</p>
+        <div class="suggestions">
+          <button class="suggestion" data-q="¿Qué es una provincia?">¿Qué es una provincia?</button>
+          <button class="suggestion" data-q="¿Por qué los ríos son importantes?">¿Por qué los ríos son importantes?</button>
+          <button class="suggestion" data-q="¿Cómo se llaman las provincias del sur?">¿Cómo se llaman las provincias del sur?</button>
+          <button class="suggestion" data-q="¿Qué animales viven en la Patagonia?">¿Qué animales viven en la Patagonia?</button>
+        </div>
+      </div>
+    </div>
+
+    <form id="chat-form" class="chat-form">
+      <input
+        type="text"
+        id="chat-input"
+        class="chat-input"
+        placeholder="Escribí tu pregunta..."
+        autocomplete="off"
+        maxlength="500"
+      />
+      <button type="submit" id="chat-send" class="chat-send">Enviar</button>
+    </form>
+  </div>
+
+  <script type="module" src="/js/chat.js"></script>
+</body>
+</html>

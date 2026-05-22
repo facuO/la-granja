@@ -1,12 +1,11 @@
 import Fastify from "fastify";
 import { healthRoutes } from "./routes/health.routes.js";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { config } from "./config.js";
+import { closePool } from "./db.js";
 
 export async function buildApp() {
   const app = Fastify({
-    logger: process.env.NODE_ENV === "development"
+    logger: config.nodeEnv === "development"
       ? { transport: { target: "pino-pretty" } }
       : true,
   });
@@ -18,9 +17,24 @@ export async function buildApp() {
 
 async function start() {
   const app = await buildApp();
-  const port = Number(process.env.PORT ?? 3000);
+
+  const shutdown = async (signal: string) => {
+    app.log.info({ signal }, "shutting down");
+    try {
+      await app.close();
+      await closePool();
+      process.exit(0);
+    } catch (err) {
+      app.log.error(err);
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+
   try {
-    await app.listen({ port, host: "0.0.0.0" });
+    await app.listen({ port: config.port, host: "0.0.0.0" });
   } catch (err) {
     app.log.error(err);
     process.exit(1);

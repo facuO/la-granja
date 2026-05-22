@@ -1,7 +1,12 @@
 import pg from "pg";
 
 function testDatabaseUrl(): string {
-  const base = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/sofi_tutor";
+  const base = process.env.DATABASE_URL;
+  if (!base) {
+    throw new Error(
+      "DATABASE_URL must be set for tests (e.g. postgres://postgres:postgres@localhost:5433/sofi_tutor_test)"
+    );
+  }
   return base.replace(/\/[^/]+$/, "/sofi_tutor_test");
 }
 

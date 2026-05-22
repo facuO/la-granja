@@ -1,11 +1,44 @@
 import type { FastifyPluginAsync } from "fastify";
 import { requireParent } from "../auth/middleware.js";
+import { setParentCookie } from "../auth/cookies.js";
 import { query } from "../db.js";
 import { sofiToken } from "../lib/ids.js";
 import { config } from "../config.js";
 import { generateTopicBlocks } from "../services/real-tutor.js";
 
 export const adminRoutes: FastifyPluginAsync = async (fastify) => {
+  // Login simple por password (single-tenant). Si match, levanta el user
+  // de Papá (creado en la primera magic link) y setea el cookie igual
+  // que el flow de magic link.
+  fastify.post<{ Body: { password: string } }>(
+    "/api/admin/password-login",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["password"],
+          properties: { password: { type: "string", minLength: 1, maxLength: 100 } },
+        },
+      },
+    },
+    async (req, reply) => {
+      if (req.body.password !== config.adminPassword) {
+        return reply.code(401).send({ ok: false, reason: "bad_password" });
+      }
+      // Single-tenant: el user de Papá es el que tiene PARENT_EMAIL.
+      // Si no existe (nunca pidió magic link), lo creamos al vuelo.
+      const { rows } = await query<{ id: string }>(
+        `INSERT INTO users (email, role) VALUES ($1, 'parent')
+         ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+         RETURNING id`,
+        [config.parentEmail],
+      );
+      const userId = rows[0].id;
+      setParentCookie(reply, userId);
+      return reply.send({ ok: true });
+    },
+  );
+
   fastify.post<{ Body: { device_name: string } }>(
     "/api/admin/sofi-tokens",
     {

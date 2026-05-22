@@ -12,42 +12,95 @@
       <span class="trail-progress">Panel de control</span>
       <div class="trail-nav">
         <a href="/sofi.html" class="trail-home">Ver app</a>
-        <button id="logout" class="trail-home" style="border:1px solid var(--border);background:white;cursor:pointer;">Cerrar sesión</button>
+        <button id="logout" class="trail-home" style="border:1px solid var(--border);background:white;cursor:pointer;display:none;">Cerrar sesión</button>
       </div>
     </div>
 
-    <div class="card">
-      <h2 class="admin-section-title">Contenido por LLM</h2>
-      <p style="color: var(--text-soft); margin-bottom: 1rem;">
-        Cada topic puede tener su contenido generado por LLM (Groq) basado en su título y descripción.
-        El contenido generado se renderiza con el mismo formato SAAC que el contenido hand-crafted.
-      </p>
-      <div id="topics-list"></div>
+    <div id="login-card" class="card" style="display:none">
+      <h2 class="admin-section-title">Acceso de Papá</h2>
+      <form id="login-form" class="login-form">
+        <input id="login-pw" type="password" placeholder="Contraseña" autocomplete="current-password" />
+        <button type="submit">Entrar</button>
+      </form>
+      <p id="login-err" class="login-err" style="display:none">Contraseña incorrecta.</p>
     </div>
 
-    <div class="card">
-      <h2 class="admin-section-title">Tokens de Sofi</h2>
-      <p style="color: var(--text-soft); margin-bottom: 1rem;">
-        Cada token autoriza un dispositivo. Por ahora se crea desde la consola del navegador.
-      </p>
-      <pre style="background: var(--bg); padding: 1rem; border-radius: 8px; overflow:auto; font-size:0.85rem;">fetch('/api/admin/sofi-tokens', {
+    <div id="admin-content" style="display:none">
+      <div class="card">
+        <h2 class="admin-section-title">Contenido por LLM</h2>
+        <p style="color: var(--text-soft); margin-bottom: 1rem;">
+          Cada topic puede tener su contenido generado por LLM (Groq) basado en su título y descripción.
+          El contenido generado se renderiza con el mismo formato SAAC que el contenido hand-crafted.
+        </p>
+        <div id="topics-list"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="admin-section-title">Tokens de Sofi</h2>
+        <p style="color: var(--text-soft); margin-bottom: 1rem;">
+          Cada token autoriza un dispositivo. Por ahora se crea desde la consola del navegador.
+        </p>
+        <pre style="background: var(--bg); padding: 1rem; border-radius: 8px; overflow:auto; font-size:0.85rem;">fetch('/api/admin/sofi-tokens', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ device_name: 'Laptop personal' }),
   credentials: 'include'
 }).then(r =&gt; r.json()).then(console.log)</pre>
+      </div>
     </div>
   </div>
 
   <script type="module">
-    import { api } from "/js/api.js";
+    import { api, NoAccessError } from "/js/api.js";
 
-    document.getElementById("logout").addEventListener("click", async () => {
-      await api("/api/auth/logout", { method: "POST" });
-      window.location.href = "/login.html";
+    const loginCard = document.getElementById("login-card");
+    const loginForm = document.getElementById("login-form");
+    const loginPw = document.getElementById("login-pw");
+    const loginErr = document.getElementById("login-err");
+    const adminContent = document.getElementById("admin-content");
+    const logoutBtn = document.getElementById("logout");
+    const list = document.getElementById("topics-list");
+
+    function showLogin() {
+      loginCard.style.display = "";
+      adminContent.style.display = "none";
+      logoutBtn.style.display = "none";
+      setTimeout(() => loginPw.focus(), 0);
+    }
+    function showAdmin() {
+      loginCard.style.display = "none";
+      adminContent.style.display = "";
+      logoutBtn.style.display = "";
+      load();
+    }
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loginErr.style.display = "none";
+      try {
+        const res = await fetch("/api/admin/password-login", {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ password: loginPw.value }),
+        });
+        if (!res.ok) {
+          loginErr.style.display = "";
+          loginPw.value = "";
+          loginPw.focus();
+          return;
+        }
+        showAdmin();
+      } catch (err) {
+        loginErr.textContent = "Error de red. Probá de nuevo.";
+        loginErr.style.display = "";
+      }
     });
 
-    const list = document.getElementById("topics-list");
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      window.location.href = "/sofi.html";
+    });
 
     function formatDate(iso) {
       if (!iso) return "";
@@ -60,6 +113,10 @@
         return `${t.block_count} bloques · ${formatDate(t.generated_at)} · ${t.generated_by_model || "—"}`;
       }
       return "contenido por defecto (stub)";
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
 
     async function load() {
@@ -96,12 +153,12 @@
           list.appendChild(row);
         }
       } catch (err) {
-        list.innerHTML = `<p style='color:var(--text-soft)'>Error: ${err.message}</p>`;
+        if (err instanceof NoAccessError) {
+          showLogin();
+        } else {
+          list.innerHTML = `<p style='color:var(--text-soft)'>Error: ${err.message}</p>`;
+        }
       }
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
 
     list.addEventListener("click", async (e) => {
@@ -133,7 +190,20 @@
       }
     });
 
-    load();
+    // Initial: probe /api/admin/topics. Si 401 → mostrar login. Si OK → mostrar admin.
+    async function init() {
+      try {
+        await api("/api/admin/topics");
+        showAdmin();
+      } catch (err) {
+        if (err instanceof NoAccessError) {
+          showLogin();
+        } else {
+          showLogin();
+        }
+      }
+    }
+    init();
   </script>
 </body>
 </html>

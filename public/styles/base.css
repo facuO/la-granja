@@ -243,6 +243,50 @@ button.subtle {
   letter-spacing: 0.02em;
   font-size: 1.1rem;
 }
+.home-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+  padding: var(--space-2) 0;
+}
+.admin-link {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.admin-link:hover {
+  border-color: var(--border);
+  color: var(--text);
+}
+.login-form {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.login-form input {
+  flex: 1;
+  font: inherit;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--text);
+}
+.login-form input:focus {
+  outline: none;
+  border-color: var(--accent-strong);
+}
+.login-form button { padding: 10px 20px; }
+.login-err {
+  color: #c62828;
+  margin-top: var(--space-2);
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
 .admin-subject-header {
   margin: var(--space-3) 0 var(--space-2);
   padding-bottom: 4px;

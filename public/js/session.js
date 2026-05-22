@@ -45,10 +45,44 @@ function renderAdvance(label, handler, opts = {}) {
 // -------- Block renderers --------
 
 function renderExplanation(c) {
-  const p = document.createElement("p");
-  p.className = "block-text";
-  p.textContent = c.text;
-  blockEl.appendChild(p);
+  if (Array.isArray(c.phrase) && c.phrase.length > 0) {
+    renderPhrase(c.phrase);
+  } else {
+    const p = document.createElement("p");
+    p.className = "block-text";
+    p.textContent = c.text;
+    blockEl.appendChild(p);
+  }
+}
+
+function renderPhrase(phrase) {
+  const wrap = document.createElement("div");
+  wrap.className = "phrase";
+  phrase.forEach((unit) => {
+    if (unit && unit.break) {
+      const br = document.createElement("div");
+      br.className = "phrase-break";
+      wrap.appendChild(br);
+      return;
+    }
+    if (!unit || typeof unit.word !== "string") return;
+    const cell = document.createElement("div");
+    cell.className = "phrase-cell" + (unit.pic ? "" : " no-pic");
+    if (unit.pic) {
+      const img = document.createElement("img");
+      img.src = `https://static.arasaac.org/pictograms/${unit.pic}/${unit.pic}_300.png`;
+      img.alt = unit.word;
+      img.loading = "lazy";
+      img.className = "phrase-pic";
+      cell.appendChild(img);
+    }
+    const w = document.createElement("span");
+    w.className = "phrase-word";
+    w.textContent = unit.word;
+    cell.appendChild(w);
+    wrap.appendChild(cell);
+  });
+  blockEl.appendChild(wrap);
 }
 
 function renderVisual(c) {

@@ -3,13 +3,139 @@ export type QuestionContent =
   | { kind: "multi_select"; text: string; options: string[]; correct_indices: number[] }
   | { kind: "true_false"; text: string; correct: boolean };
 
+// Pictogram-supported phrase: a sequence of words, each optionally backed by
+// an ARASAAC pictogram id. {break:true} forces a line break in the grid.
+export type PhraseUnit =
+  | { word: string; pic?: number }
+  | { break: true };
+
 export type StubBlock =
-  | { block_kind: "explanation"; content: { text: string } }
+  | { block_kind: "explanation"; content: { text: string; phrase?: PhraseUnit[] } }
   | { block_kind: "visual"; content: { visual_kind: string; caption: string } }
   | { block_kind: "question"; content: QuestionContent }
-  | { block_kind: "feedback"; content: { text: string; tone: "positive" | "redirect" } };
+  | { block_kind: "feedback"; content: { text: string; tone: "positive" | "redirect"; phrase?: PhraseUnit[] } };
 
+// ARASAAC pictogram IDs by normalized keyword (lowercase, no accents, no punct).
+// null = no good pictogram, render word without image.
+const ARASAAC: Record<string, number | null> = {
+  argentina: 8030,
+  pais: 35431,
+  paises: 35431,
+  limitrofe: 8483,
+  limitrofes: 8483,
+  vecino: 26529,
+  sur: 8228,
+  norte: 8178,
+  este: 7095,
+  oeste: 8179,
+  america: 5377,
+  mapa: 5505,
+  cuaderno: 2359,
+  mirar: 6564,
+  mira: 6564,
+  miras: 6564,
+  ver: 6564,
+  leer: 7141,
+  escribir: 2380,
+  pensar: 38796,
+  contar: 2714,
+  oceano: 2925,
+  atlantico: 32699,
+  pacifico: 2925,
+  mar: 2925,
+  rio: 2811,
+  montana: 34155,
+  montanas: 34155,
+  cordillera: 23975,
+  andes: 23975,
+  provincia: 9858,
+  provincias: 9858,
+  bolivia: 29594,
+  paraguay: 8181,
+  brasil: 8044,
+  uruguay: 8244,
+  chile: 8071,
+  verdadero: 8715,
+  falso: null,
+  si: 5584,
+  no: 5526,
+  nieve: 7172,
+  sol: 7252,
+  lluvia: 7148,
+  nube: 2883,
+  arbol: 3057,
+  bosque: 2666,
+  calor: 35561,
+  frio: 4652,
+  mojarse: 32464,
+  paraguas: 2500,
+  esquiar: 16701,
+  gente: 7117,
+  poblacion: 2823,
+  gobierno: 21906,
+  territorio: 35431,
+  presidente: 15326,
+  hola: 6522,
+  hoy: 7131,
+  listo: 17004,
+  continuar: 24998,
+  cambiar: 37360,
+  marcar: 4691,
+  todos: 5596,
+  todas: 5596,
+  preguntar: 9847,
+  respuesta: 39692,
+  repasar: 15475,
+  repasemos: 15475,
+  ejercicio: 11263,
+  clase: 9815,
+  grande: 4658,
+  arriba: 5388,
+  abajo: 5355,
+};
+
+function normalize(word: string): string {
+  return word
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[.,;:!?¡¿"']/g, "");
+}
+
+// W("Argentina") -> auto-lookup pictogram by word. W("foo", 1234) -> explicit pic.
+const W = (word: string, pic?: number): PhraseUnit => {
+  if (pic !== undefined) return { word, pic };
+  const found = ARASAAC[normalize(word)];
+  return found ? { word, pic: found } : { word };
+};
+const BR: PhraseUnit = { break: true };
+
+// Tagged template literal: tw`Argentina está en América.` -> auto-tokenizes and
+// looks up pictograms. Newlines become BR (line breaks in the grid).
+const tw = (strings: TemplateStringsArray): PhraseUnit[] => {
+  const text = strings.join("");
+  const units: PhraseUnit[] = [];
+  text.split("\n").forEach((line, idx) => {
+    if (idx > 0) units.push(BR);
+    line.trim().split(/\s+/).forEach((token) => {
+      if (token) units.push(W(token));
+    });
+  });
+  return units;
+};
+
+// Plain text explanation (no pictograms).
 const e = (text: string): StubBlock => ({ block_kind: "explanation", content: { text } });
+
+// Pictogram-supported explanation. Pass tw`...` template result.
+const ep = (phrase: PhraseUnit[]): StubBlock => {
+  const text = phrase
+    .filter((u): u is { word: string; pic?: number } => "word" in u)
+    .map((u) => u.word)
+    .join(" ");
+  return { block_kind: "explanation", content: { text, phrase } };
+};
+
 const v = (visual_kind: string, caption: string): StubBlock => ({
   block_kind: "visual",
   content: { visual_kind, caption },
@@ -25,20 +151,20 @@ const fb = (text: string, tone: "positive" | "redirect" = "positive"): StubBlock
 
 // ----- Topic 1: Países limítrofes con Argentina -----
 const PAISES_LIMITROFES: StubBlock[] = [
-  e("Hola, Sofi. Hoy vamos a ver los países limítrofes con Argentina."),
-  e("Un país limítrofe es un país que está al lado del nuestro."),
-  e("También se le dice país vecino."),
-  e("Argentina está al sur de América del Sur."),
-  e("Está rodeada por otros países y por el océano Atlántico."),
+  ep(tw`Hola, Sofi. Hoy vamos a ver los países limítrofes con Argentina.`),
+  ep(tw`Un país limítrofe es un país que está al lado del nuestro.`),
+  ep(tw`También se le dice país vecino.`),
+  ep(tw`Argentina está al sur de América del Sur.`),
+  ep(tw`Está rodeada por otros países y por el océano Atlántico.`),
   v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. Mirá la forma del país y los países que la rodean."),
-  e("Argentina tiene 5 países limítrofes. Los vamos a ver uno por uno."),
-  e("Al norte, Argentina toca con Bolivia. Bolivia queda arriba."),
-  e("Al noreste, Argentina toca con Paraguay y con Brasil."),
-  e("Brasil es el país más grande de Sudamérica."),
-  e("Al este, separados por un río, está Uruguay."),
-  e("El río que separa Argentina de Uruguay se llama Río de la Plata."),
-  e("Al oeste, a lo largo de toda la Cordillera de los Andes, está Chile."),
-  e("Repasemos los 5: Bolivia, Paraguay, Brasil, Uruguay y Chile."),
+  ep(tw`Argentina tiene 5 países limítrofes. Los vamos a ver uno por uno.`),
+  ep(tw`Al norte, Argentina toca con Bolivia. Bolivia queda arriba.`),
+  ep(tw`Al noreste, Argentina toca con Paraguay y con Brasil.`),
+  ep(tw`Brasil es el país más grande de Sudamérica.`),
+  ep(tw`Al este, separados por un río, está Uruguay.`),
+  ep(tw`El río que separa Argentina de Uruguay se llama Río de la Plata.`),
+  ep(tw`Al oeste, a lo largo de toda la Cordillera de los Andes, está Chile.`),
+  ep(tw`Repasemos los 5: Bolivia, Paraguay, Brasil, Uruguay y Chile.`),
   {
     block_kind: "question",
     content: {
@@ -65,21 +191,21 @@ const PAISES_LIMITROFES: StubBlock[] = [
 
 // ----- Topic 2: Provincias con la Cordillera de los Andes -----
 const PROVINCIAS_ANDES: StubBlock[] = [
-  e("Ahora vamos a hablar de la Cordillera de los Andes."),
-  e("Una cordillera es una cadena de montañas, una al lado de la otra."),
-  e("Como una pared larga hecha de muchas montañas."),
-  e("La Cordillera de los Andes es muy larga."),
-  e("Recorre casi toda América del Sur, de norte a sur."),
-  e("En Argentina, los Andes están en el oeste del país."),
-  e("El oeste es el lado izquierdo cuando mirás el mapa."),
-  e("Los Andes separan a Argentina de Chile."),
-  e("Funcionan como una pared natural muy alta entre los dos países."),
+  ep(tw`Ahora vamos a hablar de la Cordillera de los Andes.`),
+  ep(tw`Una cordillera es una cadena de montañas, una al lado de la otra.`),
+  ep(tw`Como una pared larga hecha de muchas montañas.`),
+  ep(tw`La Cordillera de los Andes es muy larga.`),
+  ep(tw`Recorre casi toda América del Sur, de norte a sur.`),
+  ep(tw`En Argentina, los Andes están en el oeste del país.`),
+  ep(tw`El oeste es el lado izquierdo cuando mirás el mapa.`),
+  ep(tw`Los Andes separan a Argentina de Chile.`),
+  ep(tw`Funcionan como una pared natural muy alta entre los dos países.`),
   v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa. La Cordillera está pegada al borde izquierdo de Argentina."),
-  e("Hay varias provincias argentinas que tocan con los Andes."),
-  e("Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja."),
-  e("Las del centro: San Juan y Mendoza."),
-  e("Las del sur: Neuquén, Río Negro, Chubut y Santa Cruz."),
-  e("Ahora vamos a ver la lista de tu cuaderno."),
+  ep(tw`Hay varias provincias argentinas que tocan con los Andes.`),
+  ep(tw`Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja.`),
+  ep(tw`Las del centro: San Juan y Mendoza.`),
+  ep(tw`Las del sur: Neuquén, Río Negro, Chubut y Santa Cruz.`),
+  ep(tw`Ahora vamos a ver la lista de tu cuaderno.`),
   {
     block_kind: "question",
     content: {
@@ -106,14 +232,14 @@ const PROVINCIAS_ANDES: StubBlock[] = [
 
 // ----- Topic 3: Verdadero o falso geográfico -----
 const VF_GEOGRAFICO: StubBlock[] = [
-  e("Vamos a pensar dos frases. En cada una decís si es verdadera o falsa."),
-  e("Tomate tu tiempo. No hay apuro."),
-  e("Primera frase. Pensemos en los mares y océanos."),
-  e("Argentina tiene mucha costa al este, al lado del océano Atlántico."),
-  e("La parte del Atlántico que toca con Argentina se llama Mar Argentino."),
-  e("Las provincias que tienen costa al Mar Argentino son cinco."),
-  e("Son: Buenos Aires, Río Negro, Chubut, Santa Cruz y Tierra del Fuego."),
-  e("Las nombramos otra vez: Buenos Aires, Río Negro, Chubut, Santa Cruz, Tierra del Fuego. Cinco."),
+  ep(tw`Vamos a pensar dos frases. En cada una decís si es verdadera o falsa.`),
+  ep(tw`Tomate tu tiempo. No hay apuro.`),
+  ep(tw`Primera frase. Pensemos en los mares y océanos.`),
+  ep(tw`Argentina tiene mucha costa al este, al lado del océano Atlántico.`),
+  ep(tw`La parte del Atlántico que toca con Argentina se llama Mar Argentino.`),
+  ep(tw`Las provincias que tienen costa al Mar Argentino son cinco.`),
+  ep(tw`Son: Buenos Aires, Río Negro, Chubut, Santa Cruz y Tierra del Fuego.`),
+  ep(tw`Las nombramos otra vez: Buenos Aires, Río Negro, Chubut, Santa Cruz, Tierra del Fuego. Cinco.`),
   {
     block_kind: "question",
     content: {
@@ -125,11 +251,11 @@ const VF_GEOGRAFICO: StubBlock[] = [
   fb(
     "Es falso. Son cinco provincias con costa al Mar Argentino: Buenos Aires, Río Negro, Chubut, Santa Cruz y Tierra del Fuego.",
   ),
-  e("Segunda frase. Ahora vamos al otro océano."),
-  e("El océano Pacífico está del otro lado de Sudamérica, al oeste."),
-  e("Pero entre Argentina y el Pacífico hay otro país: Chile."),
-  e("Chile bloquea el paso al Pacífico para Argentina."),
-  e("Por eso, ninguna provincia argentina llega al océano Pacífico."),
+  ep(tw`Segunda frase. Ahora vamos al otro océano.`),
+  ep(tw`El océano Pacífico está del otro lado de Sudamérica, al oeste.`),
+  ep(tw`Pero entre Argentina y el Pacífico hay otro país: Chile.`),
+  ep(tw`Chile bloquea el paso al Pacífico para Argentina.`),
+  ep(tw`Por eso, ninguna provincia argentina llega al océano Pacífico.`),
   {
     block_kind: "question",
     content: {
@@ -145,16 +271,16 @@ const VF_GEOGRAFICO: StubBlock[] = [
 
 // ----- Topic 4: Territorio, población y autoridades -----
 const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
-  e("Hoy vamos a aprender tres palabras importantes sobre un país."),
-  e("Esas palabras son: territorio, población y autoridades de gobierno."),
-  e("Cada una nos dice algo distinto del país."),
-  e("Vamos a verlas una por una."),
+  ep(tw`Hoy vamos a aprender tres palabras importantes sobre un país.`),
+  ep(tw`Esas palabras son: territorio, población y autoridades de gobierno.`),
+  ep(tw`Cada una nos dice algo distinto del país.`),
+  ep(tw`Vamos a verlas una por una.`),
 
-  e("Primera palabra: TERRITORIO."),
-  e("El territorio es el espacio donde está el país."),
-  e("Es el suelo, los ríos, los lagos, las montañas, las costas."),
-  e("También es el cielo que está arriba del país."),
-  e("Argentina tiene un territorio grande, con montañas, pampa, ríos y costa."),
+  ep(tw`Primera palabra: TERRITORIO.`),
+  ep(tw`El territorio es el espacio donde está el país.`),
+  ep(tw`Es el suelo, los ríos, los lagos, las montañas, las costas.`),
+  ep(tw`También es el cielo que está arriba del país.`),
+  ep(tw`Argentina tiene un territorio grande, con montañas, pampa, ríos y costa.`),
   {
     block_kind: "question",
     content: {
@@ -170,10 +296,10 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
   },
   fb("Bien. El territorio es el espacio físico donde está el país."),
 
-  e("Segunda palabra: POBLACIÓN."),
-  e("La población son las personas que viven en un lugar."),
-  e("La población de Argentina son todos los que viven en Argentina."),
-  e("Hombres, mujeres, niños y niñas, abuelos y abuelas. Todos."),
+  ep(tw`Segunda palabra: POBLACIÓN.`),
+  ep(tw`La población son las personas que viven en un lugar.`),
+  ep(tw`La población de Argentina son todos los que viven en Argentina.`),
+  ep(tw`Hombres, mujeres, niños y niñas, abuelos y abuelas. Todos.`),
   {
     block_kind: "question",
     content: {
@@ -189,11 +315,11 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
   },
   fb("Bien. La población son las personas que viven en el país."),
 
-  e("Tercera palabra: AUTORIDADES DE GOBIERNO."),
-  e("Las autoridades son las personas que dirigen y deciden cosas para el país."),
-  e("En Argentina, la persona principal del gobierno se llama Presidente."),
-  e("También hay gobernadores, que dirigen cada provincia."),
-  e("Y hay intendentes, que dirigen cada ciudad."),
+  ep(tw`Tercera palabra: AUTORIDADES DE GOBIERNO.`),
+  ep(tw`Las autoridades son las personas que dirigen y deciden cosas para el país.`),
+  ep(tw`En Argentina, la persona principal del gobierno se llama Presidente.`),
+  ep(tw`También hay gobernadores, que dirigen cada provincia.`),
+  ep(tw`Y hay intendentes, que dirigen cada ciudad.`),
   {
     block_kind: "question",
     content: {
@@ -214,20 +340,20 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
 
 // ----- Topic 5: Leer mapas con símbolos -----
 const MAPAS_SIMBOLOS: StubBlock[] = [
-  e("Hoy vamos a aprender a leer mapas con símbolos."),
-  e("Los mapas usan dibujos chiquitos llamados símbolos o referencias."),
-  e("Cada símbolo nos cuenta algo de ese lugar."),
-  e("Mirá los símbolos que usamos hoy:"),
-  e("🏔️ una montañita significa que hay montañas."),
-  e("❄️ un copito de nieve significa que ahí hay nieve."),
-  e("☀️ un sol significa que ahí hace calor."),
-  e("🌧️ una nube con lluvia significa que llueve mucho."),
-  e("🌲 un árbol significa que hay bosque."),
-  e("Ahora vamos a usar estos símbolos para responder algunas preguntas."),
+  ep(tw`Hoy vamos a aprender a leer mapas con símbolos.`),
+  ep(tw`Los mapas usan dibujos chiquitos llamados símbolos o referencias.`),
+  ep(tw`Cada símbolo nos cuenta algo de ese lugar.`),
+  ep(tw`Mirá los símbolos que usamos hoy:`),
+  ep(tw`🏔️ una montañita significa que hay montañas.`),
+  ep(tw`❄️ un copito de nieve significa que ahí hay nieve.`),
+  ep(tw`☀️ un sol significa que ahí hace calor.`),
+  ep(tw`🌧️ una nube con lluvia significa que llueve mucho.`),
+  ep(tw`🌲 un árbol significa que hay bosque.`),
+  ep(tw`Ahora vamos a usar estos símbolos para responder algunas preguntas.`),
 
-  e("Primera pregunta."),
-  e("Quiero estrenar mis esquíes nuevos."),
-  e("Para esquiar, necesito nieve."),
+  ep(tw`Primera pregunta.`),
+  ep(tw`Quiero estrenar mis esquíes nuevos.`),
+  ep(tw`Para esquiar, necesito nieve.`),
   {
     block_kind: "question",
     content: {
@@ -239,10 +365,10 @@ const MAPAS_SIMBOLOS: StubBlock[] = [
   },
   fb("Bien. Para esquiar necesitás nieve. Vas al lugar con el símbolo de nieve."),
 
-  e("Segunda pregunta."),
-  e("Quiero estrenar mi paraguas nuevo."),
-  e("Pero hoy no quiero mojarme."),
-  e("Si NO quiero mojarme, ¿adónde NO voy?"),
+  ep(tw`Segunda pregunta.`),
+  ep(tw`Quiero estrenar mi paraguas nuevo.`),
+  ep(tw`Pero hoy no quiero mojarme.`),
+  ep(tw`Si NO quiero mojarme, ¿adónde NO voy?`),
   {
     block_kind: "question",
     content: {
@@ -254,9 +380,9 @@ const MAPAS_SIMBOLOS: StubBlock[] = [
   },
   fb("Bien. La lluvia te moja, así que evitás el lugar con la nube de lluvia."),
 
-  e("Tercera pregunta."),
-  e("Tengo mucho calor y quiero sacarme el pulóver."),
-  e("Necesito un lugar donde haga calor."),
+  ep(tw`Tercera pregunta.`),
+  ep(tw`Tengo mucho calor y quiero sacarme el pulóver.`),
+  ep(tw`Necesito un lugar donde haga calor.`),
   {
     block_kind: "question",
     content: {
@@ -282,7 +408,7 @@ const TOPIC_BLOCKS: Record<string, StubBlock[]> = {
 };
 
 const DEFAULT_BLOCKS: StubBlock[] = [
-  e("Las provincias se agrupan en regiones. Hoy vamos a ver el Noroeste argentino, el NOA."),
+  ep(tw`Las provincias se agrupan en regiones. Hoy vamos a ver el Noroeste argentino, el NOA.`),
   v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. El NOA es la zona del norte, arriba a la izquierda."),
   {
     block_kind: "question",

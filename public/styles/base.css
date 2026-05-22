@@ -116,6 +116,16 @@ button.subtle {
   padding: var(--space-3) var(--space-4);
   margin: var(--space-3) 0;
 }
+.map-card {
+  margin: var(--space-3) 0;
+  text-align: center;
+}
+.argentina-map {
+  display: inline-block;
+  max-width: 260px;
+  width: 100%;
+}
+.argentina-map svg { width: 100%; height: auto; }
 .phrase {
   display: flex;
   flex-wrap: wrap;
@@ -186,6 +196,21 @@ button.subtle {
   cursor: pointer;
   text-align: left;
   font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.option.has-image .option-image {
+  width: 56px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fafafa;
+}
+.option-label {
+  flex: 1;
 }
 .option.selected { border-color: var(--accent-strong); background: #f5f9f3; }
 .option.correct {

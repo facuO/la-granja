@@ -1,7 +1,16 @@
+// An option can be a bare label, or an object with a visual (image url + alt).
+export type QuestionOption = string | { label: string; image?: { src: string; alt: string } };
+
 export type QuestionContent =
-  | { kind: "multiple_choice"; text: string; options: string[]; correct_index: number }
-  | { kind: "multi_select"; text: string; options: string[]; correct_indices: number[] }
+  | { kind: "multiple_choice"; text: string; options: QuestionOption[]; correct_index: number }
+  | { kind: "multi_select"; text: string; options: QuestionOption[]; correct_indices: number[] }
   | { kind: "true_false"; text: string; correct: boolean };
+
+// Wikimedia flag URL helper. Country names in English (Wikimedia convention).
+export const flag = (country: string): { src: string; alt: string } => ({
+  src: `https://commons.wikimedia.org/wiki/Special:FilePath/Flag_of_${country}.svg`,
+  alt: `Bandera de ${country}`,
+});
 
 // Pictogram-supported phrase: a sequence of words, each optionally backed by
 // an ARASAAC pictogram id. {break:true} forces a line break in the grid.
@@ -11,7 +20,7 @@ export type PhraseUnit =
 
 export type StubBlock =
   | { block_kind: "explanation"; content: { text: string; phrase?: PhraseUnit[] } }
-  | { block_kind: "visual"; content: { visual_kind: string; caption: string } }
+  | { block_kind: "visual"; content: { visual_kind: string; caption: string; show?: string[] } }
   | { block_kind: "question"; content: QuestionContent }
   | { block_kind: "feedback"; content: { text: string; tone: "positive" | "redirect"; phrase?: PhraseUnit[] } };
 
@@ -144,9 +153,9 @@ const ep = (phrase: PhraseUnit[]): StubBlock => {
   return { block_kind: "explanation", content: { text, phrase } };
 };
 
-const v = (visual_kind: string, caption: string): StubBlock => ({
+const v = (visual_kind: string, caption: string, show?: string[]): StubBlock => ({
   block_kind: "visual",
-  content: { visual_kind, caption },
+  content: show && show.length ? { visual_kind, caption, show } : { visual_kind, caption },
 });
 const fb = (text: string, tone: "positive" | "redirect" = "positive"): StubBlock => ({
   block_kind: "feedback",
@@ -164,7 +173,7 @@ const PAISES_LIMITROFES: StubBlock[] = [
   ep(tw`También se le dice país vecino.`),
   ep(tw`Argentina está al sur de América del Sur.`),
   ep(tw`Está rodeada por otros países y por el océano Atlántico.`),
-  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. Mirá la forma del país y los países que la rodean."),
+  v("argentina_map", "Argentina y los países vecinos que la rodean.", ["neighbors"]),
   ep(tw`Argentina tiene 5 países limítrofes. Los vamos a ver uno por uno.`),
   ep(tw`Al norte, Argentina toca con Bolivia. Bolivia queda arriba.`),
   ep(tw`Al noreste, Argentina toca con Paraguay y con Brasil.`),
@@ -179,15 +188,15 @@ const PAISES_LIMITROFES: StubBlock[] = [
       kind: "multi_select",
       text: "Marcá todos los países que son limítrofes con Argentina.",
       options: [
-        "Ecuador",
-        "Perú",
-        "Colombia",
-        "Bolivia",
-        "Paraguay",
-        "Brasil",
-        "Venezuela",
-        "Uruguay",
-        "Chile",
+        { label: "Ecuador", image: flag("Ecuador") },
+        { label: "Perú", image: flag("Peru") },
+        { label: "Colombia", image: flag("Colombia") },
+        { label: "Bolivia", image: flag("Bolivia") },
+        { label: "Paraguay", image: flag("Paraguay") },
+        { label: "Brasil", image: flag("Brazil") },
+        { label: "Venezuela", image: flag("Venezuela") },
+        { label: "Uruguay", image: flag("Uruguay") },
+        { label: "Chile", image: flag("Chile") },
       ],
       correct_indices: [3, 4, 5, 7, 8],
     },
@@ -208,7 +217,7 @@ const PROVINCIAS_ANDES: StubBlock[] = [
   ep(tw`El oeste es el lado izquierdo cuando mirás el mapa.`),
   ep(tw`Los Andes separan a Argentina de Chile.`),
   ep(tw`Funcionan como una pared natural muy alta entre los dos países.`),
-  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa. La Cordillera está pegada al borde izquierdo de Argentina."),
+  v("argentina_map", "La Cordillera está pegada al borde izquierdo de Argentina, en el oeste.", ["cordillera"]),
   ep(tw`Hay varias provincias argentinas que tocan con los Andes.`),
   ep(tw`Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja.`),
   ep(tw`Las del centro: San Juan y Mendoza.`),

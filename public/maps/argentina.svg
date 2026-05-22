@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 480" role="img" aria-label="Mapa simplificado de Argentina">
+  <defs>
+    <style>
+      .water { fill: #d6e8f0; }
+      .country { fill: #f5ecd6; stroke: #7d5b2e; stroke-width: 2; stroke-linejoin: round; }
+      .compass { font-family: system-ui, sans-serif; font-size: 12px; font-weight: 600; fill: #7d5b2e; text-anchor: middle; }
+      .neighbor-label { font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600; fill: #5d4037; text-anchor: middle; }
+      .highlight {
+        fill: #8db580;
+        fill-opacity: 0.55;
+        stroke: #6b9e60;
+        stroke-width: 1.5;
+      }
+      .overlay { display: none; }
+      .show-cordillera .cordillera-overlay,
+      .show-neighbors .neighbors-overlay { display: block; }
+    </style>
+  </defs>
+
+  <!-- Background (Atlantic + surrounding land) -->
+  <rect class="water" width="220" height="480"/>
+
+  <!-- Argentina silhouette -->
+  <path
+    id="argentina-shape"
+    class="country"
+    d="
+      M 60,20
+      L 110,15
+      L 130,20
+      L 152,30
+      L 175,42
+      L 188,58
+      L 175,82
+      L 158,105
+      L 158,138
+      L 165,170
+      L 160,210
+      L 152,255
+      L 140,300
+      L 128,340
+      L 112,372
+      L 95,398
+      L 80,415
+      L 70,422
+      L 62,418
+      L 58,400
+      L 60,365
+      L 56,320
+      L 50,275
+      L 44,230
+      L 40,185
+      L 38,140
+      L 38,100
+      L 42,65
+      L 50,38
+      Z
+    "
+  />
+
+  <!-- Cordillera overlay (west strip) -->
+  <g class="cordillera-overlay overlay">
+    <path class="highlight" d="
+      M 60,20
+      L 50,38 L 42,65 L 38,100 L 38,140 L 40,185 L 44,230 L 50,275 L 56,320 L 60,365 L 58,400 L 62,418 L 70,422 L 80,415
+      L 75,360 L 70,300 L 62,240 L 55,180 L 52,125 L 58,75 L 70,38
+      Z
+    "/>
+    <text x="50" y="200" class="neighbor-label" transform="rotate(-90 50 200)" style="fill:#2e7d32">CORDILLERA DE LOS ANDES</text>
+  </g>
+
+  <!-- Neighbor country labels overlay -->
+  <g class="neighbors-overlay overlay">
+    <text x="100" y="8" class="neighbor-label">BOLIVIA</text>
+    <text x="195" y="22" class="neighbor-label">PARAGUAY</text>
+    <text x="208" y="65" class="neighbor-label">BRASIL</text>
+    <text x="200" y="115" class="neighbor-label">URUGUAY</text>
+    <text x="14" y="180" class="neighbor-label" transform="rotate(-90 14 180)">CHILE</text>
+    <text x="180" y="270" class="neighbor-label">OCÉANO</text>
+    <text x="180" y="285" class="neighbor-label">ATLÁNTICO</text>
+  </g>
+
+  <!-- Compass -->
+  <text x="110" y="12" class="compass">↑ NORTE</text>
+  <text x="60" y="455" class="compass">SUR ↓</text>
+</svg>

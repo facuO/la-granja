@@ -85,7 +85,36 @@ function renderPhrase(phrase) {
   blockEl.appendChild(wrap);
 }
 
+// Preload the Argentina map SVG once.
+let argentinaMapSvg = "";
+fetch("/maps/argentina.svg")
+  .then((r) => (r.ok ? r.text() : ""))
+  .then((s) => { argentinaMapSvg = s; })
+  .catch(() => {});
+
 function renderVisual(c) {
+  if (c.visual_kind === "argentina_map") {
+    const wrap = document.createElement("div");
+    wrap.className = "map-card";
+    const mapHolder = document.createElement("div");
+    const showClasses = (c.show || []).map((s) => `show-${s}`).join(" ");
+    mapHolder.className = `argentina-map ${showClasses}`.trim();
+    if (argentinaMapSvg) {
+      mapHolder.innerHTML = argentinaMapSvg;
+    } else {
+      mapHolder.textContent = "Cargando mapa...";
+    }
+    wrap.appendChild(mapHolder);
+    if (c.caption) {
+      const caption = document.createElement("p");
+      caption.className = "block-text visual-caption";
+      caption.textContent = c.caption;
+      wrap.appendChild(caption);
+    }
+    blockEl.appendChild(wrap);
+    return;
+  }
+  // Default: cuaderno-style framing
   const wrap = document.createElement("div");
   wrap.className = "visual-card";
   const header = document.createElement("div");
@@ -161,7 +190,12 @@ function renderQuestion(c) {
   feedbackEl.className = "inline-feedback";
   blockEl.appendChild(feedbackEl);
 
-  const labels = c.kind === "true_false" ? ["Verdadero", "Falso"] : c.options;
+  // Normalize options to { label, image? } shape. true_false uses fixed labels.
+  const rawOptions = c.kind === "true_false" ? ["Verdadero", "Falso"] : c.options;
+  const options = rawOptions.map((o) =>
+    typeof o === "string" ? { label: o } : { label: o.label, image: o.image }
+  );
+  const labels = options.map((o) => o.label);
   const isMulti = c.kind === "multi_select";
   let selected = new Set();
   let validated = false;
@@ -182,10 +216,21 @@ function renderQuestion(c) {
     });
   }
 
-  labels.forEach((label, idx) => {
+  options.forEach((opt, idx) => {
     const btn = document.createElement("button");
-    btn.className = "option";
-    btn.textContent = label;
+    btn.className = "option" + (opt.image ? " has-image" : "");
+    if (opt.image) {
+      const img = document.createElement("img");
+      img.src = opt.image.src;
+      img.alt = opt.image.alt || opt.label;
+      img.className = "option-image";
+      img.loading = "lazy";
+      btn.appendChild(img);
+    }
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "option-label";
+    labelSpan.textContent = opt.label;
+    btn.appendChild(labelSpan);
     btn.addEventListener("click", () => {
       if (validated) return;
       if (isMulti) {

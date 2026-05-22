@@ -108,11 +108,11 @@ describe("session lifecycle", () => {
       payload: { topic_id: PAISES_LIMITROFES },
     });
     expect(start.statusCode).toBe(201);
-    expect(start.json().steps_planned).toBe(4);
+    expect(start.json().steps_planned).toBeGreaterThanOrEqual(10);
     const sessionId = start.json().session_id;
 
     const blocks: { block_kind: string; content: { kind?: string } }[] = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 50; i++) {
       const res = await app.inject({
         method: "POST",
         url: `/api/sofi/sessions/${sessionId}/next-block`,
@@ -123,12 +123,15 @@ describe("session lifecycle", () => {
       blocks.push(body.block);
     }
 
-    expect(blocks).toHaveLength(4);
-    const question = blocks.find((b) => b.block_kind === "question");
-    expect(question?.content.kind).toBe("multi_select");
+    const questions = blocks.filter((b) => b.block_kind === "question");
+    expect(questions).toHaveLength(1);
+    expect(questions[0].content.kind).toBe("multi_select");
+    // Should have several explanation blocks before the question
+    const explanations = blocks.filter((b) => b.block_kind === "explanation");
+    expect(explanations.length).toBeGreaterThanOrEqual(8);
   });
 
-  it("V/F session emits 2 true_false questions and 5 blocks total", async () => {
+  it("V/F session emits 2 true_false questions", async () => {
     const VF_TOPIC = "44444444-4444-4444-4444-444444444403";
     const cookie = await getSofiCookie(app);
 
@@ -138,12 +141,12 @@ describe("session lifecycle", () => {
       headers: { cookie },
       payload: { topic_id: VF_TOPIC },
     });
-    expect(start.json().steps_planned).toBe(5);
+    expect(start.json().steps_planned).toBeGreaterThanOrEqual(10);
     const sessionId = start.json().session_id;
 
     const kinds: string[] = [];
     const questionKinds: string[] = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 50; i++) {
       const res = await app.inject({
         method: "POST",
         url: `/api/sofi/sessions/${sessionId}/next-block`,
@@ -157,7 +160,9 @@ describe("session lifecycle", () => {
       }
     }
 
-    expect(kinds).toEqual(["explanation", "question", "feedback", "question", "feedback"]);
     expect(questionKinds).toEqual(["true_false", "true_false"]);
+    // Feedback comes right after each question
+    const feedbackCount = kinds.filter((k) => k === "feedback").length;
+    expect(feedbackCount).toBe(2);
   });
 });

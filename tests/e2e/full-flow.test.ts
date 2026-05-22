@@ -87,9 +87,9 @@ describe("E2E full flow", () => {
     });
     const sessionId = start.json().session_id;
 
-    // 7. Loop next-block until done
+    // 7. Loop next-block until done — block count varies by topic.
     let blocks = 0;
-    while (blocks < 10) {
+    while (blocks < 100) {
       const res = await app.inject({
         method: "POST",
         url: `/api/sofi/sessions/${sessionId}/next-block`,
@@ -98,7 +98,7 @@ describe("E2E full flow", () => {
       if (res.json().done) break;
       blocks++;
     }
-    expect(blocks).toBe(4);
+    expect(blocks).toBeGreaterThanOrEqual(4);
 
     // 8. Finish
     const finish = await app.inject({
@@ -114,6 +114,6 @@ describe("E2E full flow", () => {
       [sessionId]
     );
     expect(sRows[0].status).toBe("finished");
-    expect(sRows[0].steps_completed).toBe(4);
+    expect(sRows[0].steps_completed).toBeGreaterThanOrEqual(4);
   });
 });

@@ -26,14 +26,34 @@ function renderExplanation(c) {
 }
 
 function renderVisual(c) {
-  const placeholder = document.createElement("div");
-  placeholder.className = "block-visual-placeholder";
-  placeholder.textContent = `[ ${c.visual_kind} ]`;
-  blockEl.appendChild(placeholder);
+  const wrap = document.createElement("div");
+  wrap.className = "visual-card";
+  const icon = document.createElement("div");
+  icon.className = "visual-icon";
+  icon.textContent = visualIcon(c.visual_kind);
+  wrap.appendChild(icon);
   const caption = document.createElement("p");
   caption.className = "block-text";
   caption.textContent = c.caption;
-  blockEl.appendChild(caption);
+  wrap.appendChild(caption);
+  blockEl.appendChild(wrap);
+}
+
+function visualIcon(kind) {
+  switch (kind) {
+    case "map_argentina":
+      return "🗺️";
+    case "timeline":
+      return "🕰️";
+    case "region_grouping":
+      return "🧩";
+    case "comparison_table":
+      return "📊";
+    case "arrow_diagram":
+      return "↗️";
+    default:
+      return "📷";
+  }
 }
 
 function renderFeedback(c) {

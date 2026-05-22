@@ -109,6 +109,19 @@ button.subtle {
   margin: var(--space-3) 0;
   color: var(--text-soft);
 }
+.visual-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-3) 0;
+  text-align: center;
+}
+.visual-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
 .options {
   display: flex;
   flex-direction: column;

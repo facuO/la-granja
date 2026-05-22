@@ -2,6 +2,8 @@ import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
+import { adminRoutes } from "./routes/admin.routes.js";
+import { sofiRoutes } from "./routes/sofi.routes.js";
 import { config } from "./config.js";
 import { closePool } from "./db.js";
 
@@ -15,6 +17,8 @@ export async function buildApp() {
   await app.register(cookie, { secret: config.cookieSecret });
   await app.register(healthRoutes);
   await app.register(authRoutes);
+  await app.register(adminRoutes);
+  await app.register(sofiRoutes);
 
   return app;
 }

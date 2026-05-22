@@ -1,18 +1,12 @@
-// Text-to-Speech con dos motores:
-// 1. Backend ElevenLabs (calidad alta + word timing exacto)
-// 2. Fallback: Web Speech del browser (gratis pero calidad variable)
-//
-// Ambos modos soportan highlight de palabras: pasale wordEls
-// (array de DOM elements, uno por palabra) y se va marcando con
-// la clase .speaking a medida que se leen.
-
-import { api, NoAccessError } from "./api.js";
-
-// --- Web Speech voice selection ---
+// Text-to-Speech con Web Speech API (motor del browser).
+// Sin backend, sin costo. Calidad depende del sistema operativo:
+// - iOS/macOS: voces Mónica / Paulina suenan bien
+// - Android Chrome: depende del TTS engine instalado
+// - Desktop Chrome Win/Linux: voces network de Google, suenan robóticas
 
 let cachedVoice = null;
 
-function pickWebSpeechVoice() {
+function pickVoice() {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
@@ -32,15 +26,11 @@ function pickWebSpeechVoice() {
 }
 
 if ("speechSynthesis" in window) {
-  pickWebSpeechVoice();
-  window.speechSynthesis.onvoiceschanged = () => pickWebSpeechVoice();
+  pickVoice();
+  window.speechSynthesis.onvoiceschanged = () => pickVoice();
 }
 
-// --- Internal current playback handle (so we can stop) ---
-
-let currentAudio = null;
 let currentUtter = null;
-let currentTimers = [];
 let currentWordEls = [];
 
 function clearHighlights() {
@@ -50,92 +40,30 @@ function clearHighlights() {
   currentWordEls = [];
 }
 
-function clearTimers() {
-  for (const t of currentTimers) clearTimeout(t);
-  currentTimers = [];
-}
-
 export function stop() {
-  if (currentAudio) {
-    try { currentAudio.pause(); } catch {}
-    currentAudio = null;
-  }
   if (currentUtter && "speechSynthesis" in window) {
     window.speechSynthesis.cancel();
     currentUtter = null;
   }
-  clearTimers();
   clearHighlights();
 }
 
-// --- Backend ElevenLabs playback ---
-
-async function playElevenLabs(text, wordEls, onDone) {
-  let result;
-  try {
-    result = await api("/api/sofi/tts", { method: "POST", body: { text } });
-  } catch (err) {
-    if (err instanceof NoAccessError) throw err;
-    // Cualquier error del backend (503 no configurado, 500 ElevenLabs rechazó,
-    // network, etc) → caer a Web Speech para que igual se escuche algo.
-    const e = new Error("tts_backend_failed");
-    e.fallback = true;
-    e.original = err;
-    throw e;
-  }
-
-  const audio = new Audio("data:audio/mpeg;base64," + result.audio_base64);
-  currentAudio = audio;
-  currentWordEls = wordEls;
-
-  // Schedule word highlights (each word matched by index to wordEls)
-  const words = result.words || [];
-  for (let i = 0; i < Math.min(words.length, wordEls.length); i++) {
-    const w = words[i];
-    const el = wordEls[i];
-    const startMs = Math.max(0, w.start * 1000);
-    const endMs = Math.max(startMs + 50, w.end * 1000);
-    currentTimers.push(setTimeout(() => { if (el && el.classList) el.classList.add("speaking"); }, startMs));
-    currentTimers.push(setTimeout(() => { if (el && el.classList) el.classList.remove("speaking"); }, endMs));
-  }
-
-  audio.addEventListener("ended", () => {
-    if (currentAudio === audio) {
-      clearTimers();
-      clearHighlights();
-      currentAudio = null;
-      if (typeof onDone === "function") onDone();
-    }
-  });
-  audio.addEventListener("error", () => {
-    if (currentAudio === audio) {
-      clearTimers();
-      clearHighlights();
-      currentAudio = null;
-      if (typeof onDone === "function") onDone();
-    }
-  });
-
-  try {
-    await audio.play();
-  } catch (err) {
-    clearTimers();
-    clearHighlights();
-    currentAudio = null;
-    throw err;
-  }
+export function ttsAvailable() {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-// --- Web Speech fallback playback ---
-
-function playWebSpeech(text, wordEls, onDone) {
-  if (!("speechSynthesis" in window)) {
-    if (typeof onDone === "function") onDone();
+export function speak(text, opts = {}) {
+  if (!ttsAvailable()) {
+    if (typeof opts.onDone === "function") opts.onDone();
     return;
   }
+  if (!text || typeof text !== "string") return;
+  stop();
 
-  // Compute char start index of each whitespace-separated word in `text`,
-  // so onboundary events (charIndex) can be mapped to a word index.
+  const wordEls = opts.wordEls || [];
+
+  // Calcular posición de cada palabra en el texto para mapear onboundary
+  // (charIndex) → wordIndex
   const wordStarts = [];
   let pos = 0;
   const tokens = text.split(/(\s+)/);
@@ -145,7 +73,7 @@ function playWebSpeech(text, wordEls, onDone) {
   }
 
   const utter = new SpeechSynthesisUtterance(text);
-  const voice = cachedVoice || pickWebSpeechVoice();
+  const voice = cachedVoice || pickVoice();
   if (voice) {
     utter.voice = voice;
     utter.lang = voice.lang;
@@ -175,7 +103,7 @@ function playWebSpeech(text, wordEls, onDone) {
     if (currentUtter === utter) {
       currentUtter = null;
       clearHighlights();
-      if (typeof onDone === "function") onDone();
+      if (typeof opts.onDone === "function") opts.onDone();
     }
   };
 
@@ -183,41 +111,17 @@ function playWebSpeech(text, wordEls, onDone) {
     if (currentUtter === utter) {
       currentUtter = null;
       clearHighlights();
-      if (typeof onDone === "function") onDone();
+      if (typeof opts.onDone === "function") opts.onDone();
     }
   };
 
   window.speechSynthesis.speak(utter);
 }
 
-// --- Public API ---
-
-export function ttsAvailable() {
-  return typeof window !== "undefined" && ("speechSynthesis" in window);
-}
-
-export async function speak(text, opts = {}) {
-  const wordEls = opts.wordEls || [];
-  const onDone = opts.onDone;
-  if (!text || typeof text !== "string") return;
-  stop();
-  try {
-    await playElevenLabs(text, wordEls, onDone);
-  } catch (err) {
-    if (err && (err.fallback || err.message === "tts_not_configured")) {
-      playWebSpeech(text, wordEls, onDone);
-    } else {
-      // Network or other error: fall back to Web Speech too
-      console.warn("Backend TTS falló, usando Web Speech:", err);
-      playWebSpeech(text, wordEls, onDone);
-    }
-  }
-}
-
 /**
- * Crea un botón 🔊 que habla el texto dado.
- * @param {() => string} getText - retorna el texto a leer
- * @param {() => Element[]} [getWordEls] - retorna los DOM els (uno por palabra) para highlight
+ * Botón 🔊 que habla el texto al clickearlo.
+ * @param {() => string} getText
+ * @param {() => Element[]} [getWordEls] - DOM elements (uno por palabra) para highlight
  */
 export function makeSpeakButton(getText, getWordEls) {
   const btn = document.createElement("button");
@@ -230,14 +134,14 @@ export function makeSpeakButton(getText, getWordEls) {
     btn.title = "Voz no disponible en este navegador";
     return btn;
   }
-  let active = false;
 
-  function reset() {
+  let active = false;
+  const reset = () => {
     active = false;
     btn.textContent = "🔊 Escuchar";
-  }
+  };
 
-  btn.addEventListener("click", async (e) => {
+  btn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (active) {
       stop();
@@ -249,7 +153,7 @@ export function makeSpeakButton(getText, getWordEls) {
     if (!text) return;
     active = true;
     btn.textContent = "🔇 Parar";
-    await speak(text, { wordEls, onDone: reset });
+    speak(text, { wordEls, onDone: reset });
   });
   return btn;
 }

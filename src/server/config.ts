@@ -20,12 +20,4 @@ export const config = {
   parentEmail: required("PARENT_EMAIL"),
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   groqModel: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
-  elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
-  elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID ?? "EXAVITQu4vr4xnSDxMaL",
-  elevenLabsModel: process.env.ELEVENLABS_MODEL ?? "eleven_multilingual_v2",
-  awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
-  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
-  awsRegion: process.env.AWS_REGION ?? "us-east-1",
-  pollyVoiceId: process.env.POLLY_VOICE_ID ?? "Mia", // es-AR neural
-  pollyEngine: (process.env.POLLY_ENGINE ?? "neural") as "standard" | "neural",
 };

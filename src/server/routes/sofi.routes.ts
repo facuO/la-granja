@@ -5,7 +5,6 @@ import { requireSofi } from "../auth/middleware.js";
 import { getSubjectsForSofi } from "../services/subjects.js";
 import { startSession, nextBlock, finishSession } from "../services/sessions.js";
 import { askTutor, type ChatMessage } from "../services/real-chat.js";
-import { synthesize, ttsConfigured } from "../services/tts.js";
 
 export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
@@ -100,36 +99,6 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await finishSession(req.params.id);
       return reply.send(result);
     }
-  );
-
-  // TTS: sintetiza audio + timing por palabra para que el frontend resalte
-  // las palabras a medida que se leen. Si ELEVENLABS_API_KEY no está
-  // configurado, devuelve 503 y el frontend cae a Web Speech.
-  fastify.post<{ Body: { text: string } }>(
-    "/api/sofi/tts",
-    {
-      preHandler: requireSofi,
-      schema: {
-        body: {
-          type: "object",
-          required: ["text"],
-          properties: { text: { type: "string", minLength: 1, maxLength: 800 } },
-        },
-      },
-    },
-    async (req, reply) => {
-      if (!ttsConfigured()) {
-        return reply.code(503).send({ ok: false, reason: "tts_not_configured" });
-      }
-      try {
-        const result = await synthesize(req.body.text);
-        return reply.send(result);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "unknown";
-        req.log.error({ err }, "tts failed");
-        return reply.code(500).send({ ok: false, reason: msg });
-      }
-    },
   );
 
   // Chat conversacional con el tutor. Acepta history (turnos previos) + el

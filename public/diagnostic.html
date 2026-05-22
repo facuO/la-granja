@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnóstico de pictogramas</title>
+  <link rel="stylesheet" href="/styles/base.css">
+  <style>
+    body { max-width: none; }
+    .app { max-width: 1100px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-2);
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 8px;
+    }
+    .item img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      background: #f8f6ef;
+      border-radius: 4px;
+    }
+    .item .label { margin-top: 6px; font-weight: 600; font-size: 0.9rem; }
+    .item .id { font-size: 0.75rem; color: var(--text-soft); }
+    .item.null img { display: none; }
+    .item.null::before {
+      content: "(sin pictograma)";
+      display: block;
+      width: 100px;
+      height: 100px;
+      background: #f0eee8;
+      color: var(--text-soft);
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>Diagnóstico de pictogramas</h1>
+      <p style="color: var(--text-soft);">Lista de las palabras del tutor con su pictograma ARASAAC asignado.
+        Si alguno está mal, copialo y pasale el número al equipo para corregirlo.</p>
+      <div id="grid" class="grid"></div>
+    </div>
+  </div>
+  <script type="module">
+    const ARASAAC = {
+      argentina: 8030, pais: 35431, paises: 35431, limitrofe: 8483, limitrofes: 8483,
+      vecino: 26529, sur: 8228, norte: 8178, este: 7095, oeste: 8179,
+      america: 5377, sudamerica: 34387, noreste: 27913, mapa: 5505, cuaderno: 2359,
+      mirar: 6564, mira: 6564, miras: 6564, ver: 6564, leer: 7141,
+      escribir: 2380, pensar: 38796, contar: 2714, oceano: 2925, atlantico: 32699,
+      pacifico: null, mar: 2925, rio: 2811, montana: 2909, montanas: 2909, monte: 2909,
+      cordillera: 23975, andes: 23975, provincia: 9858, provincias: 9858,
+      bolivia: 29594, paraguay: 8181, brasil: 8044, uruguay: 8244, chile: 8071,
+      verdadero: 8715, falso: null, si: 5584, no: 5526,
+      nieve: 7172, sol: 7252, lluvia: 7148, nube: 2883, arbol: 3057, bosque: 2666,
+      calor: 35561, frio: 4652, mojarse: 32464, paraguas: 2500, esquiar: 16701,
+      gente: 7117, poblacion: 2823, gobierno: 21906, territorio: null, presidente: 15326,
+      hola: 6522, hoy: 7131, listo: 17004, continuar: 24998, cambiar: 37360,
+      marcar: 30510, marca: 30510, selecciona: 30510, elegir: 30510, escoger: 30510,
+      todos: 5596, todas: 5596, preguntar: 9847, respuesta: 39692,
+      repasar: 15475, repasemos: 15475, ejercicio: 11263, clase: 9815,
+      grande: 4658, arriba: 5388, abajo: 5355,
+    };
+    const grid = document.getElementById("grid");
+    const entries = Object.entries(ARASAAC).sort(([a],[b]) => a.localeCompare(b));
+    for (const [word, id] of entries) {
+      const item = document.createElement("div");
+      item.className = "item" + (id ? "" : " null");
+      if (id) {
+        const img = document.createElement("img");
+        img.src = `https://static.arasaac.org/pictograms/${id}/${id}_300.png`;
+        img.alt = word;
+        img.loading = "lazy";
+        item.appendChild(img);
+      }
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = word;
+      item.appendChild(label);
+      const idEl = document.createElement("div");
+      idEl.className = "id";
+      idEl.textContent = id ?? "—";
+      item.appendChild(idEl);
+      grid.appendChild(item);
+    }
+  </script>
+</body>
+</html>

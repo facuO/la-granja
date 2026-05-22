@@ -55,14 +55,26 @@ function renderExplanation(c) {
   }
 }
 
+// Hard cap so cells don't get microscopic on long blocks without explicit BRs.
+const MAX_CELLS_PER_LINE = 6;
+
 function renderPhrase(phrase) {
   // Split into lines by BR markers (one line = one table row of cells)
-  const lines = [[]];
+  const initialLines = [[]];
   for (const unit of phrase) {
     if (unit && unit.break) {
-      lines.push([]);
+      initialLines.push([]);
     } else if (unit && typeof unit.word === "string") {
-      lines[lines.length - 1].push(unit);
+      initialLines[initialLines.length - 1].push(unit);
+    }
+  }
+
+  // Auto-chunk lines longer than MAX_CELLS_PER_LINE.
+  const lines = [];
+  for (const line of initialLines) {
+    if (line.length === 0) continue;
+    for (let i = 0; i < line.length; i += MAX_CELLS_PER_LINE) {
+      lines.push(line.slice(i, i + MAX_CELLS_PER_LINE));
     }
   }
 

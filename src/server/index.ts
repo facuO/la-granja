@@ -1,5 +1,7 @@
 import Fastify from "fastify";
+import cookie from "@fastify/cookie";
 import { healthRoutes } from "./routes/health.routes.js";
+import { authRoutes } from "./routes/auth.routes.js";
 import { config } from "./config.js";
 import { closePool } from "./db.js";
 
@@ -10,7 +12,9 @@ export async function buildApp() {
       : true,
   });
 
+  await app.register(cookie, { secret: config.cookieSecret });
   await app.register(healthRoutes);
+  await app.register(authRoutes);
 
   return app;
 }

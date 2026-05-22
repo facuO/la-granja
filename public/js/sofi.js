@@ -1,10 +1,11 @@
 import { api } from "./api.js";
 
+// Sin badges por status: todos los topics se presentan iguales para explorar.
 const STATUS_LABEL = {
-  featured: "← seguimos con esto",
+  featured: "",
   available: "",
-  done: "ya visto",
-  mastered: "repaso",
+  done: "",
+  mastered: "",
 };
 
 async function init() {

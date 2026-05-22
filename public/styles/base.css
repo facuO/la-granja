@@ -78,14 +78,9 @@ button.subtle {
   width: 100%;
   color: var(--text);
 }
-.topic[data-status="featured"] {
-  background: white;
-  border-color: var(--accent);
-  font-weight: 600;
-}
-.topic[data-status="done"] {
-  color: var(--text-soft);
-}
+/* Todos los topics se presentan iguales: no hay diferenciación visual
+   por status. Sofi/AT eligen libremente sin pistas de "ya visto" o
+   "seguimos con esto". */
 .topic .badge {
   font-size: 0.85rem;
   color: var(--text-soft);

@@ -50,9 +50,10 @@ describe("GET /api/sofi/subjects", () => {
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.subjects).toHaveLength(1);
-    const sociales = body.subjects[0];
-    expect(sociales.name).toBe("Ciencias Sociales");
+    const sociales = body.subjects.find(
+      (s: { name: string }) => s.name === "Ciencias Sociales"
+    );
+    expect(sociales).toBeDefined();
 
     const statuses = sociales.topics.map((t: { status: string }) => t.status);
     expect(statuses).toContain("featured");
@@ -61,6 +62,22 @@ describe("GET /api/sofi/subjects", () => {
     expect(statuses).not.toContain("upcoming");
 
     expect(sociales.topics[0].status).toBe("featured");
+  });
+
+  it("returns subjects without topics too (empty topic list)", async () => {
+    const cookie = await getSofiCookie(app);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/sofi/subjects",
+      headers: { cookie },
+    });
+    const body = res.json();
+    const names = body.subjects.map((s: { name: string }) => s.name).sort();
+    expect(names).toContain("Lengua");
+    expect(names).toContain("Matemática");
+    expect(names).toContain("Ciencias Naturales");
+    const lengua = body.subjects.find((s: { name: string }) => s.name === "Lengua");
+    expect(lengua.topics).toEqual([]);
   });
 
   it("rejects unauthenticated", async () => {

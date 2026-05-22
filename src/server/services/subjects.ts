@@ -20,25 +20,31 @@ export async function getSubjectsForSofi(opts: { difficultMode: boolean }): Prom
   const { rows } = await query<{
     subject_id: string;
     subject_name: string;
-    topic_id: string;
-    topic_title: string;
-    topic_status: TopicForSelector["status"];
+    topic_id: string | null;
+    topic_title: string | null;
+    topic_status: TopicForSelector["status"] | null;
+    topic_status_order: number | null;
+    block_order_index: number | null;
+    topic_order_index: number | null;
   }>(`
     SELECT s.id AS subject_id, s.name AS subject_name,
-           t.id AS topic_id, t.title AS topic_title, t.status AS topic_status
+           t.id AS topic_id, t.title AS topic_title, t.status AS topic_status,
+           CASE t.status
+             WHEN 'featured' THEN 0
+             WHEN 'available' THEN 1
+             WHEN 'done' THEN 2
+             WHEN 'mastered' THEN 3
+             ELSE 9
+           END AS topic_status_order,
+           b.order_index AS block_order_index,
+           t.order_index AS topic_order_index
       FROM subjects s
-      JOIN blocks b ON b.subject_id = s.id
-      JOIN topics t ON t.block_id = b.id
-     WHERE s.active = true
+      LEFT JOIN blocks b ON b.subject_id = s.id
+      LEFT JOIN topics t
+        ON t.block_id = b.id
        AND t.status IN ${statusFilter}
-     ORDER BY s.name,
-              CASE t.status
-                WHEN 'featured' THEN 0
-                WHEN 'available' THEN 1
-                WHEN 'done' THEN 2
-                WHEN 'mastered' THEN 3
-              END,
-              b.order_index, t.order_index
+     WHERE s.active = true
+     ORDER BY s.name, topic_status_order, block_order_index, topic_order_index
   `);
 
   const map = new Map<string, SubjectForSelector>();
@@ -46,11 +52,13 @@ export async function getSubjectsForSofi(opts: { difficultMode: boolean }): Prom
     if (!map.has(r.subject_id)) {
       map.set(r.subject_id, { id: r.subject_id, name: r.subject_name, topics: [] });
     }
-    map.get(r.subject_id)!.topics.push({
-      id: r.topic_id,
-      title: r.topic_title,
-      status: r.topic_status,
-    });
+    if (r.topic_id && r.topic_title && r.topic_status) {
+      map.get(r.subject_id)!.topics.push({
+        id: r.topic_id,
+        title: r.topic_title,
+        status: r.topic_status,
+      });
+    }
   }
   return Array.from(map.values());
 }

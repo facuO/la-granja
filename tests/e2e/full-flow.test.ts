@@ -73,7 +73,11 @@ describe("E2E full flow", () => {
     });
     expect(subjects.statusCode).toBe(200);
     const subjectsBody = subjects.json();
-    const featured = subjectsBody.subjects[0].topics.find(
+    const sociales = subjectsBody.subjects.find(
+      (s: { name: string }) => s.name === "Ciencias Sociales"
+    );
+    expect(sociales).toBeDefined();
+    const featured = sociales.topics.find(
       (t: { id: string; status: string }) => t.status === "featured"
     );
     expect(featured).toBeDefined();

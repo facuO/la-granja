@@ -162,8 +162,10 @@ function renderVisual(c) {
     const img = document.createElement("img");
     img.src = c.image_src;
     img.alt = c.image_alt || c.caption || "";
-    img.className = "wikimedia-image";
+    img.className = "wikimedia-image zoomable";
     img.loading = "lazy";
+    // Higher-res version for the lightbox zoom view.
+    img.dataset.zoomSrc = c.image_src.replace(/width=\d+/, "width=2000");
     wrap.appendChild(img);
     if (c.caption) {
       const caption = document.createElement("p");

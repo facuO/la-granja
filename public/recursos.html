@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mapas</title>
+  <title>Recursos</title>
   <link rel="stylesheet" href="/styles/base.css">
 </head>
 <body>
   <div class="app">
     <div class="trail">
-      <span class="trail-progress">Mapas para consultar</span>
+      <span class="trail-progress">Recursos para consultar</span>
       <div class="trail-nav">
         <a href="javascript:history.back()" class="trail-home">← Volver</a>
         <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
@@ -18,9 +18,10 @@
 
     <div class="card">
       <h2 class="map-title">Mapa político de Argentina</h2>
-      <p class="map-desc">Argentina con todas sus provincias y sus nombres.</p>
+      <p class="map-desc">Argentina con todas sus provincias y sus nombres. <span class="zoom-hint">Tocá la imagen para ampliarla.</span></p>
       <img
-        class="wikimedia-image"
+        class="wikimedia-image zoomable"
+        data-zoom-src="https://commons.wikimedia.org/wiki/Special:FilePath/Argentina%20politico.svg?width=2000"
         src="https://commons.wikimedia.org/wiki/Special:FilePath/Argentina%20politico.svg?width=900"
         alt="Mapa político de Argentina con sus provincias"
         loading="lazy"
@@ -29,9 +30,10 @@
 
     <div class="card">
       <h2 class="map-title">Mapa de la provincia de Córdoba</h2>
-      <p class="map-desc">Tu provincia. Está en el centro de Argentina.</p>
+      <p class="map-desc">Tu provincia. Está en el centro de Argentina. <span class="zoom-hint">Tocá la imagen para ampliarla.</span></p>
       <img
-        class="wikimedia-image"
+        class="wikimedia-image zoomable"
+        data-zoom-src="https://commons.wikimedia.org/wiki/Special:FilePath/Mapas%20escolares%20del%20Instituto%20Geogr%C3%A1fico%20Nacional%20(Argentina)%20-%20Provincia%20de%20C%C3%B3rdoba%20-%20Pol%C3%ADtico%20(2016).jpg?width=2000"
         src="https://commons.wikimedia.org/wiki/Special:FilePath/Mapas%20escolares%20del%20Instituto%20Geogr%C3%A1fico%20Nacional%20(Argentina)%20-%20Provincia%20de%20C%C3%B3rdoba%20-%20Pol%C3%ADtico%20(2016).jpg?width=900"
         alt="Mapa político escolar de la provincia de Córdoba"
         loading="lazy"
@@ -42,5 +44,7 @@
       Mapas oficiales del Instituto Geográfico Nacional (IGN). Vía Wikimedia Commons.
     </p>
   </div>
+
+  <script type="module" src="/js/lightbox.js"></script>
 </body>
 </html>

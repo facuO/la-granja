@@ -219,6 +219,24 @@ button.subtle {
   background: white;
   padding: 4px;
 }
+.map-title {
+  margin-top: 0;
+  margin-bottom: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 1.2rem;
+}
+.map-desc {
+  color: var(--text-soft);
+  margin-top: 0;
+  margin-bottom: var(--space-3);
+}
+.map-credits {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  font-style: italic;
+}
 .phrase {
   margin: var(--space-3) 0;
   display: flex;

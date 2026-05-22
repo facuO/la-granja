@@ -90,4 +90,25 @@ describe("auth flow", () => {
     const second = await app.inject({ method: "GET", url: `/api/auth/verify?token=${token}` });
     expect(second.statusCode).toBe(401);
   });
+
+  it("verify rejects expired token", async () => {
+    // Insert a user + a magic link that already expired.
+    const { rows: userRows } = await testPool.query<{ id: string }>(
+      `INSERT INTO users (email, name, role) VALUES ($1, $2, $3) RETURNING id`,
+      ["expired@example.com", "Test", "parent"]
+    );
+    const userId = userRows[0].id;
+    await testPool.query(
+      `INSERT INTO magic_links (user_id, token, expires_at)
+       VALUES ($1, $2, now() - interval '1 minute')`,
+      [userId, "expired-token-12345678901234567890"]
+    );
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/auth/verify?token=expired-token-12345678901234567890",
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().reason).toBe("expired");
+  });
 });

@@ -21,7 +21,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       querystring: {
         type: "object",
         required: ["token"],
-        properties: { token: { type: "string", minLength: 16 } },
+        properties: { token: { type: "string", minLength: 32 } },
       },
     },
   }, async (req, reply) => {

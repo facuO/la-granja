@@ -45,32 +45,34 @@ export type VerifyResult =
   | { ok: false; reason: "not_found" | "expired" | "already_used" };
 
 export async function verifyMagicLink(token: string): Promise<VerifyResult> {
-  const { rows } = await query<{
-    id: string;
-    user_id: string;
-    expires_at: Date;
-    used_at: Date | null;
-    role: string;
-    revoked_at: Date | null;
-  }>(
-    `SELECT ml.id, ml.user_id, ml.expires_at, ml.used_at, u.role, u.revoked_at
-       FROM magic_links ml
-       JOIN users u ON u.id = ml.user_id
-      WHERE ml.token = $1
-      LIMIT 1`,
+  // Atomically claim the link: only succeeds if token exists, not used, not expired.
+  const { rows, rowCount } = await query<{ user_id: string }>(
+    `UPDATE magic_links
+        SET used_at = now()
+      WHERE token = $1
+        AND used_at IS NULL
+        AND expires_at > now()
+     RETURNING user_id`,
     [token]
   );
 
-  if (rows.length === 0) return { ok: false, reason: "not_found" };
-
-  const link = rows[0];
-  if (link.used_at) return { ok: false, reason: "already_used" };
-  if (new Date(link.expires_at).getTime() < Date.now()) {
-    return { ok: false, reason: "expired" };
+  if (rowCount === 1) {
+    const { rows: userRows } = await query<{ role: string; revoked_at: Date | null }>(
+      `SELECT role, revoked_at FROM users WHERE id = $1`,
+      [rows[0].user_id]
+    );
+    if (userRows.length === 0 || userRows[0].revoked_at) {
+      return { ok: false, reason: "not_found" };
+    }
+    return { ok: true, userId: rows[0].user_id, role: userRows[0].role };
   }
-  if (link.revoked_at) return { ok: false, reason: "not_found" };
 
-  await query(`UPDATE magic_links SET used_at = now() WHERE id = $1`, [link.id]);
-
-  return { ok: true, userId: link.user_id, role: link.role };
+  // Claim failed — figure out why (for the 401 response reason).
+  const { rows: diag } = await query<{ used_at: Date | null; expires_at: Date }>(
+    `SELECT used_at, expires_at FROM magic_links WHERE token = $1`,
+    [token]
+  );
+  if (diag.length === 0) return { ok: false, reason: "not_found" };
+  if (diag[0].used_at) return { ok: false, reason: "already_used" };
+  return { ok: false, reason: "expired" };
 }

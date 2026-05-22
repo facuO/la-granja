@@ -1,6 +1,5 @@
 import { query } from "../db.js";
 import { shortToken } from "../lib/ids.js";
-import { sendMagicLink } from "../email/resend.js";
 import { config } from "../config.js";
 
 const EXPIRATION_MINUTES = 15;
@@ -36,8 +35,8 @@ export async function requestMagicLink(email: string): Promise<void> {
     [userId, token, expiresAt]
   );
 
-  const link = `${config.appBaseUrl}/api/auth/verify?token=${token}`;
-  await sendMagicLink(normalized, link);
+  // No email integration: the link is queryable from the magic_links table.
+  // Operator (or Postgres MCP) retrieves it directly.
 }
 
 export type VerifyResult =

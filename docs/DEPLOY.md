@@ -10,10 +10,10 @@
    - `NODE_ENV=production`
    - `DATABASE_URL=${{ Postgres.DATABASE_URL }}` (variable de referencia al service Postgres)
    - `COOKIE_SECRET=` (generar con `openssl rand -hex 32`)
-   - `RESEND_API_KEY=` (sacar de https://resend.com — verificar el dominio del remitente antes)
-   - `EMAIL_FROM=noreply@tudominio.com`
    - `APP_BASE_URL=` (URL pública del service, ej. `https://sofi.up.railway.app`)
    - `PARENT_EMAIL=facuompre@gmail.com`
+
+> **Sin integración de email.** Los magic links se guardan en la tabla `magic_links` y se consultan directamente (vía Postgres MCP o `railway connect Postgres`). Quien tiene acceso a la DB / al operador es quien puede entrar como Papá. Tradeoff aceptado para el MVP.
 
 ## Deploy
 

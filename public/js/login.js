@@ -9,7 +9,7 @@ form.addEventListener("submit", async (e) => {
   status.textContent = "Enviando...";
   try {
     await api("/api/auth/request-magic-link", { method: "POST", body: { email } });
-    status.textContent = "Si el email está autorizado, recibiste un link. Revisá tu mail.";
+    status.textContent = "Listo. Pedile el link a quien tenga acceso a los logs.";
   } catch (err) {
     status.textContent = "Error. Probá de nuevo.";
     console.error(err);

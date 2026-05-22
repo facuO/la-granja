@@ -16,8 +16,6 @@ export const config = {
   sofiCookieName: process.env.SOFI_COOKIE_NAME ?? "sofi_device",
   parentCookieMaxDays: Number(process.env.PARENT_COOKIE_MAX_DAYS ?? 30),
   sofiCookieMaxDays: Number(process.env.SOFI_COOKIE_MAX_DAYS ?? 90),
-  resendApiKey: process.env.RESEND_API_KEY ?? "",
-  emailFrom: process.env.EMAIL_FROM ?? "noreply@example.com",
   appBaseUrl: process.env.APP_BASE_URL ?? "http://localhost:3000",
   parentEmail: required("PARENT_EMAIL"),
 };

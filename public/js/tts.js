@@ -76,13 +76,12 @@ async function playElevenLabs(text, wordEls, onDone) {
     result = await api("/api/sofi/tts", { method: "POST", body: { text } });
   } catch (err) {
     if (err instanceof NoAccessError) throw err;
-    // 503 means TTS not configured — let caller fall back to Web Speech
-    if (err.message && err.message.includes("503")) {
-      const e = new Error("tts_not_configured");
-      e.fallback = true;
-      throw e;
-    }
-    throw err;
+    // Cualquier error del backend (503 no configurado, 500 ElevenLabs rechazó,
+    // network, etc) → caer a Web Speech para que igual se escuche algo.
+    const e = new Error("tts_backend_failed");
+    e.fallback = true;
+    e.original = err;
+    throw e;
   }
 
   const audio = new Audio("data:audio/mpeg;base64," + result.audio_base64);

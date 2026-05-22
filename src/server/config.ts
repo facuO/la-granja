@@ -18,4 +18,6 @@ export const config = {
   sofiCookieMaxDays: Number(process.env.SOFI_COOKIE_MAX_DAYS ?? 90),
   appBaseUrl: process.env.APP_BASE_URL ?? "http://localhost:3000",
   parentEmail: required("PARENT_EMAIL"),
+  groqApiKey: process.env.GROQ_API_KEY ?? "",
+  groqModel: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
 };

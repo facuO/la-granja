@@ -1,5 +1,5 @@
 import { query } from "../db.js";
-import { nextStubBlock, totalStubBlocks, stubSessionSummary } from "./stub-tutor.js";
+import { nextStubBlock, totalStubBlocks, stubSessionSummary, getAllStubBlocks } from "./stub-tutor.js";
 import type { StubBlock } from "./stub-tutor.js";
 
 export interface StartSessionInput {
@@ -9,6 +9,22 @@ export interface StartSessionInput {
 export interface StartSessionResult {
   sessionId: string;
   stepsPlanned: number;
+}
+
+/**
+ * Get the canonical block sequence for a topic: prefers LLM-generated blocks
+ * if persisted, falls back to the hand-crafted stub registry.
+ */
+async function blocksForTopic(topicId: string): Promise<StubBlock[]> {
+  const { rows } = await query<{ generated_blocks: StubBlock[] | null }>(
+    `SELECT generated_blocks FROM topics WHERE id = $1`,
+    [topicId],
+  );
+  const generated = rows[0]?.generated_blocks;
+  if (generated && Array.isArray(generated) && generated.length > 0) {
+    return generated;
+  }
+  return getAllStubBlocks(topicId);
 }
 
 export async function startSession(input: StartSessionInput): Promise<StartSessionResult> {
@@ -24,13 +40,16 @@ export async function startSession(input: StartSessionInput): Promise<StartSessi
     throw new Error("topic_not_eligible");
   }
 
-  const stepsPlanned = totalStubBlocks(topic.id);
+  const blocks = await blocksForTopic(topic.id);
+  const stepsPlanned = blocks.length;
 
+  // Snapshot blocks into session metadata so a mid-session regeneration of
+  // the topic doesn't break Sofi's flow.
   const { rows: sessionRows } = await query<{ id: string }>(
-    `INSERT INTO sessions (subject_id, topic_id, steps_planned)
-     VALUES ($1, $2, $3)
+    `INSERT INTO sessions (subject_id, topic_id, steps_planned, metadata)
+     VALUES ($1, $2, $3, $4)
      RETURNING id`,
-    [topic.subject_id, topic.id, stepsPlanned]
+    [topic.subject_id, topic.id, stepsPlanned, JSON.stringify({ blocks })]
   );
   return { sessionId: sessionRows[0].id, stepsPlanned };
 }
@@ -42,15 +61,25 @@ export interface NextBlockResult {
 }
 
 export async function nextBlock(sessionId: string): Promise<NextBlockResult> {
-  const { rows } = await query<{ steps_completed: number; status: string; topic_id: string }>(
-    `SELECT steps_completed, status, topic_id FROM sessions WHERE id = $1`,
+  const { rows } = await query<{
+    steps_completed: number;
+    status: string;
+    topic_id: string;
+    metadata: { blocks?: StubBlock[] } | null;
+  }>(
+    `SELECT steps_completed, status, topic_id, metadata FROM sessions WHERE id = $1`,
     [sessionId]
   );
   if (rows.length === 0) throw new Error("session_not_found");
   if (rows[0].status !== "active") return { done: true };
 
   const stepIndex = rows[0].steps_completed;
-  const block = nextStubBlock(rows[0].topic_id, stepIndex);
+  const snapshot = rows[0].metadata?.blocks;
+  // Prefer the per-session snapshot (taken at startSession). Falls back to
+  // the stub registry for legacy sessions started before this feature.
+  const block: StubBlock | null = Array.isArray(snapshot) && snapshot[stepIndex]
+    ? snapshot[stepIndex]
+    : nextStubBlock(rows[0].topic_id, stepIndex);
 
   if (!block) return { done: true };
 

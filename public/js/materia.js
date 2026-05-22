@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, NoAccessError } from "./api.js";
 
 const SUBJECT_ICONS = {
   "Ciencias Sociales": 35402,
@@ -61,8 +61,16 @@ async function init() {
       topicsEl.appendChild(btn);
     }
   } catch (err) {
-    topicsEl.textContent = "No pudimos cargar la materia. Probá refrescar.";
-    console.error(err);
+    if (err instanceof NoAccessError) {
+      topicsEl.innerHTML = `
+        <div class="no-access-card">
+          <h2>Necesitás un link de acceso</h2>
+          <p>Este celular no está autorizado todavía. Pedile a Papá el link que termina en <code>/s/...</code>, abrilo una vez acá, y después volvés.</p>
+        </div>`;
+    } else {
+      topicsEl.textContent = "No pudimos cargar la materia. Probá refrescar.";
+      console.error(err);
+    }
   }
 }
 

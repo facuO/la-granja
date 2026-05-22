@@ -1,3 +1,12 @@
+// Sentinel error thrown when the server says we're not authenticated.
+// Pages catch this to show a friendly "needs access link" message.
+export class NoAccessError extends Error {
+  constructor() {
+    super("no_access");
+    this.name = "NoAccessError";
+  }
+}
+
 export async function api(path, opts = {}) {
   const hasBody = opts.body !== undefined && opts.body !== null;
   const headers = { ...(opts.headers || {}) };
@@ -13,6 +22,9 @@ export async function api(path, opts = {}) {
     body: hasBody ? JSON.stringify(opts.body) : undefined,
   };
   const res = await fetch(path, fetchOpts);
+  if (res.status === 401) {
+    throw new NoAccessError();
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${text}`);

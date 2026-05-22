@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, NoAccessError } from "./api.js";
 
 const conversationEl = document.getElementById("conversation");
 const formEl = document.getElementById("chat-form");
@@ -181,7 +181,11 @@ async function sendMessage(message) {
     removePending();
     const errCard = document.createElement("div");
     errCard.className = "chat-bubble chat-bubble-assistant chat-error";
-    errCard.textContent = "No pude responder. Probá de nuevo.";
+    if (err instanceof NoAccessError) {
+      errCard.textContent = "Este celular no está autorizado. Pedile a Papá el link de acceso (el que termina en /s/...).";
+    } else {
+      errCard.textContent = "No pude responder. Probá de nuevo.";
+    }
     conversationEl.appendChild(errCard);
     console.error(err);
   } finally {

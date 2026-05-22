@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, NoAccessError } from "./api.js";
 
 // Pictogramas ARASAAC por materia (lookup por nombre).
 const SUBJECT_ICONS = {
@@ -44,8 +44,16 @@ async function init() {
       root.appendChild(card);
     }
   } catch (err) {
-    root.textContent = "No pudimos cargar las materias. Probá refrescar.";
-    console.error(err);
+    if (err instanceof NoAccessError) {
+      root.innerHTML = `
+        <div class="no-access-card">
+          <h2>Necesitás un link de acceso</h2>
+          <p>Este celular no está autorizado todavía. Pedile a Papá el link que termina en <code>/s/...</code>, abrilo una vez acá, y después volvés.</p>
+        </div>`;
+    } else {
+      root.textContent = "No pudimos cargar las materias. Probá refrescar.";
+      console.error(err);
+    }
   }
 }
 

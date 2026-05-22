@@ -1,5 +1,8 @@
+import path from "path";
+import { fileURLToPath } from "url";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import staticPlugin from "@fastify/static";
 import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { adminRoutes } from "./routes/admin.routes.js";
@@ -15,6 +18,11 @@ export async function buildApp() {
   });
 
   await app.register(cookie, { secret: config.cookieSecret });
+
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const publicDir = path.resolve(__dirname, "../../public");
+  await app.register(staticPlugin, { root: publicDir, prefix: "/" });
+
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(adminRoutes);

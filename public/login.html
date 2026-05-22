@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresar</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>Ingresar</h1>
+      <p>Te mandamos un link al mail para entrar.</p>
+      <form id="login-form">
+        <input
+          type="email"
+          name="email"
+          placeholder="tu@email.com"
+          required
+          style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;font:inherit"
+        />
+        <div class="advance">
+          <button type="submit">Enviar link</button>
+        </div>
+      </form>
+      <p id="status" style="color: var(--text-soft); margin-top: 1rem;"></p>
+    </div>
+  </div>
+  <script type="module" src="/js/login.js"></script>
+</body>
+</html>

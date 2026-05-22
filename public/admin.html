@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Admin · Sofi Tutor</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <h1>Admin</h1>
+      <p>Ingresaste correctamente. La interfaz completa de admin viene en el próximo plan.</p>
+      <p>Por ahora, podés crear un token de Sofi desde la consola del navegador:</p>
+      <pre style="background: var(--bg); padding: 1rem; border-radius: 8px; overflow:auto;">
+fetch('/api/admin/sofi-tokens', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ device_name: 'Laptop personal' }),
+  credentials: 'include'
+}).then(r => r.json()).then(console.log)
+      </pre>
+      <button id="logout" class="subtle">Cerrar sesión</button>
+    </div>
+  </div>
+  <script type="module">
+    import { api } from "/js/api.js";
+    document.getElementById("logout").addEventListener("click", async () => {
+      await api("/api/auth/logout", { method: "POST" });
+      window.location.href = "/login.html";
+    });
+  </script>
+</body>
+</html>

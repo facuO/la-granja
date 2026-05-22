@@ -123,7 +123,22 @@ button.subtle {
   cursor: pointer;
   text-align: left;
 }
-.option.selected { border-color: var(--accent-strong); }
+.option.selected { border-color: var(--accent-strong); background: #f5f9f3; }
+.option.correct {
+  background: #e8f5e9;
+  border-color: var(--accent);
+  color: #2e7d32;
+}
+.option.missed {
+  background: #fff8e1;
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+.option.wrong {
+  background: #fff8e1;
+  border-color: #d68910;
+  color: #5d4037;
+}
 .advance { display: flex; justify-content: flex-end; margin-top: var(--space-3); }
 .summary-list {
   list-style: none;

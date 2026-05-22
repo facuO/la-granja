@@ -46,11 +46,12 @@ async function init() {
 
 async function startSession(topicId) {
   try {
-    const { session_id } = await api("/api/sofi/sessions", {
+    const { session_id, steps_planned } = await api("/api/sofi/sessions", {
       method: "POST",
       body: { topic_id: topicId },
     });
-    window.location.href = `/session.html?id=${session_id}`;
+    const total = steps_planned ?? 0;
+    window.location.href = `/session.html?id=${session_id}&total=${total}`;
   } catch (err) {
     alert("No se pudo empezar. Probá de nuevo.");
     console.error(err);

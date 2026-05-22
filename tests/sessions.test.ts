@@ -96,4 +96,68 @@ describe("session lifecycle", () => {
     expect(start.statusCode).toBe(400);
     expect(start.json().reason).toBe("topic_not_eligible");
   });
+
+  it("países limítrofes session emits a multi_select question", async () => {
+    const PAISES_LIMITROFES = "44444444-4444-4444-4444-444444444401";
+    const cookie = await getSofiCookie(app);
+
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/sofi/sessions",
+      headers: { cookie },
+      payload: { topic_id: PAISES_LIMITROFES },
+    });
+    expect(start.statusCode).toBe(201);
+    expect(start.json().steps_planned).toBe(4);
+    const sessionId = start.json().session_id;
+
+    const blocks: { block_kind: string; content: { kind?: string } }[] = [];
+    for (let i = 0; i < 10; i++) {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/sofi/sessions/${sessionId}/next-block`,
+        headers: { cookie },
+      });
+      const body = res.json();
+      if (body.done) break;
+      blocks.push(body.block);
+    }
+
+    expect(blocks).toHaveLength(4);
+    const question = blocks.find((b) => b.block_kind === "question");
+    expect(question?.content.kind).toBe("multi_select");
+  });
+
+  it("V/F session emits 2 true_false questions and 5 blocks total", async () => {
+    const VF_TOPIC = "44444444-4444-4444-4444-444444444403";
+    const cookie = await getSofiCookie(app);
+
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/sofi/sessions",
+      headers: { cookie },
+      payload: { topic_id: VF_TOPIC },
+    });
+    expect(start.json().steps_planned).toBe(5);
+    const sessionId = start.json().session_id;
+
+    const kinds: string[] = [];
+    const questionKinds: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/sofi/sessions/${sessionId}/next-block`,
+        headers: { cookie },
+      });
+      const body = res.json();
+      if (body.done) break;
+      kinds.push(body.block.block_kind);
+      if (body.block.block_kind === "question") {
+        questionKinds.push(body.block.content.kind);
+      }
+    }
+
+    expect(kinds).toEqual(["explanation", "question", "feedback", "question", "feedback"]);
+    expect(questionKinds).toEqual(["true_false", "true_false"]);
+  });
 });

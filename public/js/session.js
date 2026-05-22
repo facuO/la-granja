@@ -2,57 +2,168 @@ import { api } from "./api.js";
 
 const params = new URLSearchParams(window.location.search);
 const sessionId = params.get("id");
+const stepsTotal = Number(params.get("total")) || 0;
 
 const blockEl = document.getElementById("block");
 const trailEl = document.getElementById("trail");
 const advanceEl = document.getElementById("advance");
 
 let stepIndex = 0;
-const stepsTotal = 4;
 
 function setTrail() {
-  trailEl.textContent = `Paso ${stepIndex + 1} de ${stepsTotal}`;
+  if (stepsTotal > 0) {
+    trailEl.textContent = `Paso ${stepIndex + 1} de ${stepsTotal}`;
+  } else {
+    trailEl.textContent = `Paso ${stepIndex + 1}`;
+  }
+}
+
+function renderExplanation(c) {
+  const p = document.createElement("p");
+  p.className = "block-text";
+  p.textContent = c.text;
+  blockEl.appendChild(p);
+}
+
+function renderVisual(c) {
+  const placeholder = document.createElement("div");
+  placeholder.className = "block-visual-placeholder";
+  placeholder.textContent = `[ ${c.visual_kind} ]`;
+  blockEl.appendChild(placeholder);
+  const caption = document.createElement("p");
+  caption.className = "block-text";
+  caption.textContent = c.caption;
+  blockEl.appendChild(caption);
+}
+
+function renderFeedback(c) {
+  const p = document.createElement("p");
+  p.className = "block-text";
+  p.textContent = c.text;
+  blockEl.appendChild(p);
+}
+
+function renderMultipleChoice(c) {
+  const options = document.createElement("div");
+  options.className = "options";
+  c.options.forEach((label) => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      options.querySelectorAll(".option").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    options.appendChild(btn);
+  });
+  blockEl.appendChild(options);
+}
+
+function renderMultiSelect(c) {
+  const options = document.createElement("div");
+  options.className = "options";
+  const selected = new Set();
+  let validated = false;
+
+  c.options.forEach((label, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = label;
+    btn.dataset.idx = String(idx);
+    btn.addEventListener("click", () => {
+      if (validated) return;
+      if (selected.has(idx)) {
+        selected.delete(idx);
+        btn.classList.remove("selected");
+      } else {
+        selected.add(idx);
+        btn.classList.add("selected");
+      }
+    });
+    options.appendChild(btn);
+  });
+  blockEl.appendChild(options);
+
+  const verifyBtn = document.createElement("button");
+  verifyBtn.className = "subtle";
+  verifyBtn.textContent = "Verificar mis respuestas";
+  verifyBtn.style.marginTop = "1rem";
+  verifyBtn.addEventListener("click", () => {
+    if (validated) return;
+    validated = true;
+    const correctSet = new Set(c.correct_indices);
+    options.querySelectorAll(".option").forEach((btn) => {
+      const idx = Number(btn.dataset.idx);
+      btn.classList.remove("selected");
+      if (correctSet.has(idx) && selected.has(idx)) {
+        btn.classList.add("correct");
+        btn.textContent = btn.textContent + "  ✓";
+      } else if (correctSet.has(idx) && !selected.has(idx)) {
+        btn.classList.add("missed");
+        btn.textContent = btn.textContent + "  ← faltaba esta";
+      } else if (!correctSet.has(idx) && selected.has(idx)) {
+        btn.classList.add("wrong");
+        btn.textContent = btn.textContent + "  (no es esta)";
+      }
+    });
+    verifyBtn.style.display = "none";
+  });
+  blockEl.appendChild(verifyBtn);
+}
+
+function renderTrueFalse(c) {
+  const options = document.createElement("div");
+  options.className = "options";
+  let validated = false;
+
+  ["Verdadero", "Falso"].forEach((label, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      if (validated) return;
+      validated = true;
+      const isTrue = idx === 0;
+      const correct = isTrue === c.correct;
+      options.querySelectorAll(".option").forEach((b) => b.classList.remove("selected"));
+      if (correct) {
+        btn.classList.add("correct");
+      } else {
+        btn.classList.add("wrong");
+        const correctBtn = options.children[c.correct ? 0 : 1];
+        correctBtn.classList.add("correct");
+      }
+    });
+    options.appendChild(btn);
+  });
+  blockEl.appendChild(options);
+}
+
+function renderQuestion(c) {
+  const p = document.createElement("p");
+  p.className = "block-text";
+  p.textContent = c.text;
+  blockEl.appendChild(p);
+
+  if (c.kind === "multi_select") {
+    renderMultiSelect(c);
+  } else if (c.kind === "true_false") {
+    renderTrueFalse(c);
+  } else {
+    renderMultipleChoice(c);
+  }
 }
 
 function renderBlock(block) {
   blockEl.innerHTML = "";
   if (block.block_kind === "explanation") {
-    const p = document.createElement("p");
-    p.className = "block-text";
-    p.textContent = block.content.text;
-    blockEl.appendChild(p);
+    renderExplanation(block.content);
   } else if (block.block_kind === "visual") {
-    const placeholder = document.createElement("div");
-    placeholder.className = "block-visual-placeholder";
-    placeholder.textContent = `[ ${block.content.visual_kind} ]`;
-    blockEl.appendChild(placeholder);
-    const caption = document.createElement("p");
-    caption.className = "block-text";
-    caption.textContent = block.content.caption;
-    blockEl.appendChild(caption);
+    renderVisual(block.content);
   } else if (block.block_kind === "question") {
-    const p = document.createElement("p");
-    p.className = "block-text";
-    p.textContent = block.content.text;
-    blockEl.appendChild(p);
-    const options = document.createElement("div");
-    options.className = "options";
-    block.content.options.forEach((label) => {
-      const btn = document.createElement("button");
-      btn.className = "option";
-      btn.textContent = label;
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".option").forEach((b) => b.classList.remove("selected"));
-        btn.classList.add("selected");
-      });
-      options.appendChild(btn);
-    });
-    blockEl.appendChild(options);
+    renderQuestion(block.content);
   } else if (block.block_kind === "feedback") {
-    const p = document.createElement("p");
-    p.className = "block-text";
-    p.textContent = block.content.text;
-    blockEl.appendChild(p);
+    renderFeedback(block.content);
   }
 }
 

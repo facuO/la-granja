@@ -3,8 +3,6 @@ import { makeTestApp } from "../helpers/app.js";
 import { testPool, closeTestPool, resetDb } from "../helpers/db.js";
 import type { FastifyInstance } from "fastify";
 
-const FEATURED_TOPIC_ID = "33333333-3333-3333-3333-333333333332";
-
 async function applyMigrations() {
   const { runner } = await import("node-pg-migrate");
   await runner({
@@ -78,14 +76,14 @@ describe("E2E full flow", () => {
     const featured = subjectsBody.subjects[0].topics.find(
       (t: { id: string; status: string }) => t.status === "featured"
     );
-    expect(featured.id).toBe(FEATURED_TOPIC_ID);
+    expect(featured).toBeDefined();
 
-    // 6. Sofi starts session
+    // 6. Sofi starts session on the featured topic (whatever it currently is)
     const start = await app.inject({
       method: "POST",
       url: "/api/sofi/sessions",
       headers: { cookie: sofiCookieHeader },
-      payload: { topic_id: FEATURED_TOPIC_ID },
+      payload: { topic_id: featured.id },
     });
     const sessionId = start.json().session_id;
 

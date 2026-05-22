@@ -48,7 +48,11 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
     async (req, reply) => {
       try {
         const result = await startSession({ topicId: req.body.topic_id });
-        return reply.code(201).send({ ok: true, session_id: result.sessionId });
+        return reply.code(201).send({
+          ok: true,
+          session_id: result.sessionId,
+          steps_planned: result.stepsPlanned,
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "unknown";
         return reply.code(400).send({ ok: false, reason: msg });

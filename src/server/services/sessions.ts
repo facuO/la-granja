@@ -8,6 +8,7 @@ export interface StartSessionInput {
 
 export interface StartSessionResult {
   sessionId: string;
+  stepsPlanned: number;
 }
 
 export async function startSession(input: StartSessionInput): Promise<StartSessionResult> {
@@ -23,13 +24,15 @@ export async function startSession(input: StartSessionInput): Promise<StartSessi
     throw new Error("topic_not_eligible");
   }
 
+  const stepsPlanned = totalStubBlocks(topic.id);
+
   const { rows: sessionRows } = await query<{ id: string }>(
     `INSERT INTO sessions (subject_id, topic_id, steps_planned)
      VALUES ($1, $2, $3)
      RETURNING id`,
-    [topic.subject_id, topic.id, totalStubBlocks()]
+    [topic.subject_id, topic.id, stepsPlanned]
   );
-  return { sessionId: sessionRows[0].id };
+  return { sessionId: sessionRows[0].id, stepsPlanned };
 }
 
 export interface NextBlockResult {
@@ -39,15 +42,15 @@ export interface NextBlockResult {
 }
 
 export async function nextBlock(sessionId: string): Promise<NextBlockResult> {
-  const { rows } = await query<{ steps_completed: number; status: string }>(
-    `SELECT steps_completed, status FROM sessions WHERE id = $1`,
+  const { rows } = await query<{ steps_completed: number; status: string; topic_id: string }>(
+    `SELECT steps_completed, status, topic_id FROM sessions WHERE id = $1`,
     [sessionId]
   );
   if (rows.length === 0) throw new Error("session_not_found");
   if (rows[0].status !== "active") return { done: true };
 
   const stepIndex = rows[0].steps_completed;
-  const block = nextStubBlock(stepIndex);
+  const block = nextStubBlock(rows[0].topic_id, stepIndex);
 
   if (!block) return { done: true };
 
@@ -69,11 +72,16 @@ export interface FinishSessionResult {
 }
 
 export async function finishSession(sessionId: string): Promise<FinishSessionResult> {
+  const { rows } = await query<{ topic_id: string }>(
+    `SELECT topic_id FROM sessions WHERE id = $1`,
+    [sessionId]
+  );
   await query(
     `UPDATE sessions
         SET status = 'finished', ended_at = now()
       WHERE id = $1 AND status = 'active'`,
     [sessionId]
   );
-  return { summary: stubSessionSummary() };
+  const topicId = rows[0]?.topic_id ?? "";
+  return { summary: stubSessionSummary(topicId) };
 }

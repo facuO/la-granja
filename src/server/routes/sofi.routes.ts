@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import { query } from "../db.js";
 import { setSofiCookie } from "../auth/cookies.js";
+import { requireSofi } from "../auth/middleware.js";
+import { getSubjectsForSofi } from "../services/subjects.js";
 
 export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
@@ -20,4 +22,13 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
     setSofiCookie(reply, req.params.token);
     return reply.redirect("/sofi.html");
   });
+
+  fastify.get(
+    "/api/sofi/subjects",
+    { preHandler: requireSofi },
+    async () => {
+      const subjects = await getSubjectsForSofi({ difficultMode: false });
+      return { subjects };
+    }
+  );
 };

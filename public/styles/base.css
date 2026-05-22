@@ -153,7 +153,6 @@ button.subtle {
   border-bottom: 1.5px solid var(--text);
   background: white;
 }
-.phrase-cell.no-pic .phrase-pic-cell { background: transparent; }
 .phrase-pic {
   max-width: 72px;
   max-height: 72px;
@@ -171,11 +170,6 @@ button.subtle {
   line-height: 1.2;
   color: var(--text);
   word-break: break-word;
-}
-.phrase-cell.no-pic .phrase-word-cell {
-  font-weight: 500;
-  color: var(--text-soft);
-  text-transform: lowercase;
 }
 .visual-header {
   font-weight: 600;

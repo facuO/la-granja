@@ -402,7 +402,15 @@ function appendSpeakButton(block) {
   if (!speakText) return;
   const wrap = document.createElement("div");
   wrap.className = "speak-wrap";
-  wrap.appendChild(makeSpeakButton(() => speakText));
+  wrap.appendChild(
+    makeSpeakButton(
+      () => speakText,
+      // Para highlight: pasamos los .phrase-word-cell del bloque renderizado.
+      // Solo bloques con phrase tienen estos elementos; para visual/feedback
+      // sin phrase, devolvemos [] y el audio se reproduce sin highlight.
+      () => Array.from(blockEl.querySelectorAll(".phrase-word-cell")),
+    ),
+  );
   blockEl.appendChild(wrap);
 }
 

@@ -104,7 +104,12 @@ function renderAssistantTurn(reply) {
   if (reply.text) {
     const speakWrap = document.createElement("div");
     speakWrap.className = "speak-wrap";
-    speakWrap.appendChild(makeSpeakButton(() => reply.text));
+    speakWrap.appendChild(
+      makeSpeakButton(
+        () => reply.text,
+        () => Array.from(card.querySelectorAll(".phrase-word-cell")),
+      ),
+    );
     card.appendChild(speakWrap);
   }
   conversationEl.appendChild(card);

@@ -561,6 +561,13 @@ button.subtle {
   word-break: keep-all;
   overflow-wrap: break-word;
   hyphens: auto;
+  transition: background-color 100ms ease;
+}
+.phrase-word-cell.speaking {
+  background: #fff3a0;
+}
+.phrase-cell:has(.phrase-word-cell.speaking) .phrase-pic-cell {
+  background: #fff8d6;
 }
 .visual-header {
   font-weight: 600;

@@ -8,22 +8,44 @@ const blockEl = document.getElementById("block");
 const trailEl = document.getElementById("trail");
 const advanceEl = document.getElementById("advance");
 
-let stepIndex = 0;
+// -------- Navigation history --------
+// Each entry: { block, stepIndex, questionState?: { selected: number[], validated: boolean } }
+// The server keeps advancing as we fetch new blocks; this cache lets us go
+// back to previously seen ones without losing question state.
+const history = [];
+let viewIdx = -1;
 
 // -------- Trail / progress --------
 
 function setTrail() {
+  const current = viewIdx >= 0 ? history[viewIdx]?.stepIndex ?? 0 : 0;
   if (stepsTotal > 0) {
-    trailEl.textContent = `Paso ${stepIndex + 1} de ${stepsTotal}`;
+    trailEl.textContent = `Paso ${current + 1} de ${stepsTotal}`;
   } else {
-    trailEl.textContent = `Paso ${stepIndex + 1}`;
+    trailEl.textContent = `Paso ${current + 1}`;
   }
 }
 
-// -------- Advance button --------
+// -------- Advance bar --------
 
-function renderAdvance(label, handler, opts = {}) {
+function renderAdvanceBar(opts = {}) {
   advanceEl.innerHTML = "";
+
+  const backBtn = document.createElement("button");
+  backBtn.className = "subtle";
+  backBtn.textContent = "← Atrás";
+  if (viewIdx <= 0) {
+    backBtn.disabled = true;
+    backBtn.classList.add("is-disabled");
+  } else {
+    backBtn.addEventListener("click", goBack);
+  }
+  advanceEl.appendChild(backBtn);
+
+  const spacer = document.createElement("div");
+  spacer.style.flex = "1";
+  advanceEl.appendChild(spacer);
+
   if (opts.secondary) {
     const sec = document.createElement("button");
     sec.className = "subtle";
@@ -31,15 +53,18 @@ function renderAdvance(label, handler, opts = {}) {
     sec.addEventListener("click", opts.secondary.handler);
     advanceEl.appendChild(sec);
   }
-  const btn = document.createElement("button");
-  btn.textContent = label;
-  if (opts.disabled) {
-    btn.disabled = true;
-    btn.classList.add("is-disabled");
-  } else if (handler) {
-    btn.addEventListener("click", handler);
+
+  if (opts.primary) {
+    const btn = document.createElement("button");
+    btn.textContent = opts.primary.label;
+    if (opts.primary.disabled) {
+      btn.disabled = true;
+      btn.classList.add("is-disabled");
+    } else if (opts.primary.handler) {
+      btn.addEventListener("click", opts.primary.handler);
+    }
+    advanceEl.appendChild(btn);
   }
-  advanceEl.appendChild(btn);
 }
 
 // -------- Block renderers --------
@@ -55,11 +80,9 @@ function renderExplanation(c) {
   }
 }
 
-// Hard cap so cells don't get microscopic on long blocks without explicit BRs.
 const MAX_CELLS_PER_LINE = 6;
 
 function renderPhrase(phrase) {
-  // Split into lines by BR markers (one line = one table row of cells)
   const initialLines = [[]];
   for (const unit of phrase) {
     if (unit && unit.break) {
@@ -69,7 +92,6 @@ function renderPhrase(phrase) {
     }
   }
 
-  // Auto-chunk lines longer than MAX_CELLS_PER_LINE.
   const lines = [];
   for (const line of initialLines) {
     if (line.length === 0) continue;
@@ -145,7 +167,6 @@ function renderVisual(c) {
     blockEl.appendChild(wrap);
     return;
   }
-  // Default: cuaderno-style framing
   const wrap = document.createElement("div");
   wrap.className = "visual-card";
   const header = document.createElement("div");
@@ -207,7 +228,7 @@ function buildInlineFeedback(c, selected, labels) {
   return "";
 }
 
-function renderQuestion(c) {
+function renderQuestion(c, savedState, saveState) {
   const p = document.createElement("p");
   p.className = "block-text question-text";
   p.textContent = c.text;
@@ -221,15 +242,23 @@ function renderQuestion(c) {
   feedbackEl.className = "inline-feedback";
   blockEl.appendChild(feedbackEl);
 
-  // Normalize options to { label, image? } shape. true_false uses fixed labels.
   const rawOptions = c.kind === "true_false" ? ["Verdadero", "Falso"] : c.options;
   const options = rawOptions.map((o) =>
     typeof o === "string" ? { label: o } : { label: o.label, image: o.image }
   );
   const labels = options.map((o) => o.label);
   const isMulti = c.kind === "multi_select";
-  let selected = new Set();
-  let validated = false;
+
+  let selected = savedState && Array.isArray(savedState.selected)
+    ? new Set(savedState.selected)
+    : new Set();
+  let validated = !!(savedState && savedState.validated);
+
+  function persist() {
+    if (typeof saveState === "function") {
+      saveState({ selected: [...selected], validated });
+    }
+  }
 
   function paintOptions() {
     optionsEl.querySelectorAll(".option").forEach((btn, idx) => {
@@ -272,20 +301,22 @@ function renderQuestion(c) {
         selected.add(idx);
       }
       paintOptions();
-      refreshAdvance();
+      persist();
+      refreshBar();
     });
     optionsEl.appendChild(btn);
   });
 
-  function refreshAdvance() {
+  function refreshBar() {
     if (validated) {
-      renderAdvance("Continuar", nextBlock, {
+      renderAdvanceBar({
+        primary: { label: "Continuar", handler: advance },
         secondary: { label: "Cambiar mi respuesta", handler: reset },
       });
     } else if (selected.size > 0) {
-      renderAdvance("Listo", validateAndShow);
+      renderAdvanceBar({ primary: { label: "Listo", handler: validateAndShow } });
     } else {
-      renderAdvance("Listo", null, { disabled: true });
+      renderAdvanceBar({ primary: { label: "Listo", disabled: true } });
     }
   }
 
@@ -293,7 +324,8 @@ function renderQuestion(c) {
     validated = true;
     paintOptions();
     feedbackEl.textContent = buildInlineFeedback(c, selected, labels);
-    refreshAdvance();
+    persist();
+    refreshBar();
   }
 
   function reset() {
@@ -301,43 +333,70 @@ function renderQuestion(c) {
     selected.clear();
     feedbackEl.textContent = "";
     paintOptions();
-    refreshAdvance();
+    persist();
+    refreshBar();
   }
 
-  refreshAdvance();
+  // Initial paint: respects savedState
+  paintOptions();
+  if (validated) {
+    feedbackEl.textContent = buildInlineFeedback(c, selected, labels);
+  }
+  refreshBar();
 }
 
 // -------- Block dispatch --------
 
-function renderBlock(block) {
+function renderBlock(entry) {
   blockEl.innerHTML = "";
+  const block = entry.block;
   if (block.block_kind === "explanation") {
     renderExplanation(block.content);
-    renderAdvance("Listo", nextBlock);
+    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
   } else if (block.block_kind === "visual") {
     renderVisual(block.content);
-    renderAdvance("Listo", nextBlock);
+    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
   } else if (block.block_kind === "question") {
-    renderQuestion(block.content);
-    // renderQuestion controls its own advance state
+    renderQuestion(block.content, entry.questionState, (state) => {
+      entry.questionState = state;
+    });
   } else if (block.block_kind === "feedback") {
     renderFeedback(block.content);
-    renderAdvance("Listo", nextBlock);
+    renderAdvanceBar({ primary: { label: "Listo", handler: advance } });
   }
 }
 
-// -------- Session flow --------
+// -------- Navigation --------
 
-async function nextBlock() {
+async function advance() {
+  if (viewIdx + 1 < history.length) {
+    viewIdx++;
+    showCurrent();
+    return;
+  }
   const res = await api(`/api/sofi/sessions/${sessionId}/next-block`, { method: "POST" });
   if (res.done) {
     await finishSession();
     return;
   }
-  renderBlock(res.block);
-  stepIndex = res.stepIndex + 1;
-  setTrail();
+  history.push({ block: res.block, stepIndex: res.stepIndex, questionState: null });
+  viewIdx = history.length - 1;
+  showCurrent();
 }
+
+function goBack() {
+  if (viewIdx > 0) {
+    viewIdx--;
+    showCurrent();
+  }
+}
+
+function showCurrent() {
+  setTrail();
+  renderBlock(history[viewIdx]);
+}
+
+// -------- Finish --------
 
 async function finishSession() {
   const { summary } = await api(`/api/sofi/sessions/${sessionId}/finish`, { method: "POST" });
@@ -346,8 +405,13 @@ async function finishSession() {
     <ul class="summary-list"><li>${escapeHtml(summary)}</li></ul>
   `;
   trailEl.textContent = "";
-  renderAdvance("Cerrar", () => {
-    window.location.href = "/sofi.html";
+  // From the summary screen, "Atrás" lets you re-read the last block;
+  // primary closes the session.
+  renderAdvanceBar({
+    primary: {
+      label: "Cerrar",
+      handler: () => { window.location.href = "/sofi.html"; },
+    },
   });
 }
 
@@ -358,5 +422,5 @@ function escapeHtml(s) {
 if (!sessionId) {
   blockEl.textContent = "Falta el id de la sesión.";
 } else {
-  nextBlock();
+  advance();
 }

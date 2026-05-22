@@ -237,6 +237,39 @@ button.subtle {
   color: var(--text-soft);
   font-style: italic;
 }
+.admin-section-title {
+  margin-top: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 1.1rem;
+}
+.admin-subject-header {
+  margin: var(--space-3) 0 var(--space-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-topic-row {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.admin-topic-row:last-child { border-bottom: none; }
+.admin-topic-meta { flex: 1; min-width: 0; }
+.admin-topic-title { font-weight: 600; }
+.admin-topic-desc { color: var(--text-soft); font-size: 0.9rem; margin-top: 2px; }
+.admin-topic-status { color: var(--text-soft); font-size: 0.8rem; font-style: italic; margin-top: 4px; }
+.admin-topic-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
 .zoom-hint {
   font-size: 0.85rem;
   color: var(--accent-strong);

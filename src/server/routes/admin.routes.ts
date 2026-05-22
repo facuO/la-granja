@@ -66,6 +66,64 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
     }
   );
 
+  // List all topics with their generation status.
+  fastify.get(
+    "/api/admin/topics",
+    { preHandler: requireParent },
+    async () => {
+      const { rows } = await query<{
+        id: string;
+        title: string;
+        description: string;
+        status: string;
+        subject_name: string;
+        generated_at: Date | null;
+        generated_by_model: string | null;
+        block_count: number | null;
+      }>(
+        `SELECT t.id, t.title, t.description, t.status,
+                s.name AS subject_name,
+                t.generated_at, t.generated_by_model,
+                CASE
+                  WHEN t.generated_blocks IS NULL THEN NULL
+                  ELSE jsonb_array_length(t.generated_blocks)
+                END AS block_count
+           FROM topics t
+           JOIN blocks b ON b.id = t.block_id
+           JOIN subjects s ON s.id = b.subject_id
+           WHERE s.active = true
+           ORDER BY s.name, b.order_index, t.order_index`,
+      );
+      return { topics: rows };
+    }
+  );
+
+  // Clear generated content (revert to stub or default).
+  fastify.delete<{ Params: { id: string } }>(
+    "/api/admin/topics/:id/generated",
+    {
+      preHandler: requireParent,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      await query(
+        `UPDATE topics
+            SET generated_blocks = NULL,
+                generated_at = NULL,
+                generated_by_model = NULL
+          WHERE id = $1`,
+        [req.params.id],
+      );
+      return reply.code(200).send({ ok: true });
+    }
+  );
+
   // Trigger LLM generation of pedagogical blocks for a topic.
   // Reads topic.title + description + key_concepts from DB, calls Groq,
   // validates the response, and persists into topic.generated_blocks.

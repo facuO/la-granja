@@ -2,32 +2,138 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin · Sofi Tutor</title>
   <link rel="stylesheet" href="/styles/base.css">
 </head>
 <body>
   <div class="app">
+    <div class="trail">
+      <span class="trail-progress">Panel de control</span>
+      <div class="trail-nav">
+        <a href="/sofi.html" class="trail-home">Ver app</a>
+        <button id="logout" class="trail-home" style="border:1px solid var(--border);background:white;cursor:pointer;">Cerrar sesión</button>
+      </div>
+    </div>
+
     <div class="card">
-      <h1>Admin</h1>
-      <p>Ingresaste correctamente. La interfaz completa de admin viene en el próximo plan.</p>
-      <p>Por ahora, podés crear un token de Sofi desde la consola del navegador:</p>
-      <pre style="background: var(--bg); padding: 1rem; border-radius: 8px; overflow:auto;">
-fetch('/api/admin/sofi-tokens', {
+      <h2 class="admin-section-title">Contenido por LLM</h2>
+      <p style="color: var(--text-soft); margin-bottom: 1rem;">
+        Cada topic puede tener su contenido generado por LLM (Groq) basado en su título y descripción.
+        El contenido generado se renderiza con el mismo formato SAAC que el contenido hand-crafted.
+      </p>
+      <div id="topics-list"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="admin-section-title">Tokens de Sofi</h2>
+      <p style="color: var(--text-soft); margin-bottom: 1rem;">
+        Cada token autoriza un dispositivo. Por ahora se crea desde la consola del navegador.
+      </p>
+      <pre style="background: var(--bg); padding: 1rem; border-radius: 8px; overflow:auto; font-size:0.85rem;">fetch('/api/admin/sofi-tokens', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ device_name: 'Laptop personal' }),
   credentials: 'include'
-}).then(r => r.json()).then(console.log)
-      </pre>
-      <button id="logout" class="subtle">Cerrar sesión</button>
+}).then(r =&gt; r.json()).then(console.log)</pre>
     </div>
   </div>
+
   <script type="module">
     import { api } from "/js/api.js";
+
     document.getElementById("logout").addEventListener("click", async () => {
       await api("/api/auth/logout", { method: "POST" });
       window.location.href = "/login.html";
     });
+
+    const list = document.getElementById("topics-list");
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function statusLabel(t) {
+      if (t.generated_at) {
+        return `${t.block_count} bloques · ${formatDate(t.generated_at)} · ${t.generated_by_model || "—"}`;
+      }
+      return "contenido por defecto (stub)";
+    }
+
+    async function load() {
+      list.innerHTML = "<p style='color:var(--text-soft)'>Cargando topics...</p>";
+      try {
+        const { topics } = await api("/api/admin/topics");
+        if (!topics.length) {
+          list.innerHTML = "<p style='color:var(--text-soft)'>No hay topics.</p>";
+          return;
+        }
+        list.innerHTML = "";
+        let currentSubject = "";
+        for (const t of topics) {
+          if (t.subject_name !== currentSubject) {
+            const h3 = document.createElement("h3");
+            h3.textContent = t.subject_name;
+            h3.className = "admin-subject-header";
+            list.appendChild(h3);
+            currentSubject = t.subject_name;
+          }
+          const row = document.createElement("div");
+          row.className = "admin-topic-row";
+          row.innerHTML = `
+            <div class="admin-topic-meta">
+              <div class="admin-topic-title">${escapeHtml(t.title)}</div>
+              <div class="admin-topic-desc">${escapeHtml(t.description || "")}</div>
+              <div class="admin-topic-status">${escapeHtml(statusLabel(t))}</div>
+            </div>
+            <div class="admin-topic-actions">
+              <button class="subtle" data-action="generate" data-id="${t.id}">${t.generated_at ? "Regenerar" : "Generar con LLM"}</button>
+              ${t.generated_at ? `<button class="subtle" data-action="clear" data-id="${t.id}">Volver al stub</button>` : ""}
+            </div>
+          `;
+          list.appendChild(row);
+        }
+      } catch (err) {
+        list.innerHTML = `<p style='color:var(--text-soft)'>Error: ${err.message}</p>`;
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    list.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      try {
+        if (action === "generate") {
+          btn.textContent = "Generando...";
+          const res = await api(`/api/admin/topics/${id}/generate`, { method: "POST" });
+          btn.textContent = `✓ ${res.block_count} bloques`;
+          setTimeout(load, 1200);
+        } else if (action === "clear") {
+          if (!confirm("¿Volver al contenido por defecto? Se borra el contenido generado.")) {
+            btn.disabled = false;
+            return;
+          }
+          await api(`/api/admin/topics/${id}/generated`, { method: "DELETE" });
+          load();
+        }
+      } catch (err) {
+        btn.textContent = "Error";
+        btn.disabled = false;
+        alert(err.message);
+        setTimeout(() => { btn.textContent = originalLabel; }, 2000);
+      }
+    });
+
+    load();
   </script>
 </body>
 </html>

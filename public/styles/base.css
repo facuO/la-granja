@@ -32,7 +32,7 @@ body {
 }
 .app {
   width: 100%;
-  max-width: 640px;
+  max-width: 880px;
 }
 h1, h2 {
   font-weight: 600;
@@ -161,15 +161,17 @@ button.subtle {
   object-fit: contain;
 }
 .phrase-word-cell {
-  padding: 8px 4px;
+  padding: 8px 2px;
   text-align: center;
   font-weight: 600;
   font-size: 0.95rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.2;
   color: var(--text);
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 .visual-header {
   font-weight: 600;

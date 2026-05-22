@@ -1,4 +1,5 @@
 import { api, NoAccessError } from "./api.js";
+import { makeSpeakButton } from "./tts.js";
 
 const conversationEl = document.getElementById("conversation");
 const formEl = document.getElementById("chat-form");
@@ -99,6 +100,12 @@ function renderAssistantTurn(reply) {
     const p = document.createElement("p");
     p.textContent = reply.text;
     card.appendChild(p);
+  }
+  if (reply.text) {
+    const speakWrap = document.createElement("div");
+    speakWrap.className = "speak-wrap";
+    speakWrap.appendChild(makeSpeakButton(() => reply.text));
+    card.appendChild(speakWrap);
   }
   conversationEl.appendChild(card);
 }

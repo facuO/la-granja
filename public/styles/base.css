@@ -271,6 +271,30 @@ button.subtle {
   flex-shrink: 0;
 }
 
+.speak-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+.speak-btn {
+  background: white;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.speak-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent-strong);
+}
+.speak-btn:disabled {
+  background: var(--border);
+  color: var(--text-soft);
+  cursor: not-allowed;
+}
+
 .no-access-card {
   padding: var(--space-3);
   background: #fff8e1;

@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { makeSpeakButton, stop as stopTts } from "./tts.js";
 
 const params = new URLSearchParams(window.location.search);
 const sessionId = params.get("id");
@@ -377,21 +378,54 @@ function renderQuestion(c, savedState, saveState) {
 
 // -------- Block dispatch --------
 
+function buildSpeakText(block) {
+  const c = block.content || {};
+  if (block.block_kind === "explanation" || block.block_kind === "feedback") {
+    return c.text || "";
+  }
+  if (block.block_kind === "visual") {
+    return c.caption || "";
+  }
+  if (block.block_kind === "question") {
+    const optTexts = (c.options || []).map((o) => (typeof o === "string" ? o : o.label));
+    const optList = optTexts.length ? " Opciones: " + optTexts.join(", ") + "." : "";
+    if (c.kind === "true_false") {
+      return c.text + " Verdadero o falso.";
+    }
+    return c.text + "." + optList;
+  }
+  return "";
+}
+
+function appendSpeakButton(block) {
+  const speakText = buildSpeakText(block);
+  if (!speakText) return;
+  const wrap = document.createElement("div");
+  wrap.className = "speak-wrap";
+  wrap.appendChild(makeSpeakButton(() => speakText));
+  blockEl.appendChild(wrap);
+}
+
 function renderBlock(entry) {
+  stopTts();
   blockEl.innerHTML = "";
   const block = entry.block;
   if (block.block_kind === "explanation") {
     renderExplanation(block.content);
+    appendSpeakButton(block);
     renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   } else if (block.block_kind === "visual") {
     renderVisual(block.content);
+    appendSpeakButton(block);
     renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   } else if (block.block_kind === "question") {
     renderQuestion(block.content, entry.questionState, (state) => {
       entry.questionState = state;
     });
+    appendSpeakButton(block);
   } else if (block.block_kind === "feedback") {
     renderFeedback(block.content);
+    appendSpeakButton(block);
     renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
   }
 }

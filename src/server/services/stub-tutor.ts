@@ -30,7 +30,7 @@ const PAISES_LIMITROFES: StubBlock[] = [
   e("También se le dice país vecino."),
   e("Argentina está al sur de América del Sur."),
   e("Está rodeada por otros países y por el océano Atlántico."),
-  v("map_argentina", "Mirá Argentina en el mapa de tu cuaderno."),
+  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. Mirá la forma del país y los países que la rodean."),
   e("Argentina tiene 5 países limítrofes. Los vamos a ver uno por uno."),
   e("Al norte, Argentina toca con Bolivia. Bolivia queda arriba."),
   e("Al noreste, Argentina toca con Paraguay y con Brasil."),
@@ -74,7 +74,7 @@ const PROVINCIAS_ANDES: StubBlock[] = [
   e("El oeste es el lado izquierdo cuando mirás el mapa."),
   e("Los Andes separan a Argentina de Chile."),
   e("Funcionan como una pared natural muy alta entre los dos países."),
-  v("map_argentina", "Mirá el mapa: la Cordillera está pegada al borde izquierdo de Argentina."),
+  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa. La Cordillera está pegada al borde izquierdo de Argentina."),
   e("Hay varias provincias argentinas que tocan con los Andes."),
   e("Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja."),
   e("Las del centro: San Juan y Mendoza."),
@@ -283,7 +283,7 @@ const TOPIC_BLOCKS: Record<string, StubBlock[]> = {
 
 const DEFAULT_BLOCKS: StubBlock[] = [
   e("Las provincias se agrupan en regiones. Hoy vamos a ver el Noroeste argentino, el NOA."),
-  v("map_argentina", "El NOA es esta zona del país, arriba a la izquierda."),
+  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. El NOA es la zona del norte, arriba a la izquierda."),
   {
     block_kind: "question",
     content: {

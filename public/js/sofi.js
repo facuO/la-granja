@@ -1,60 +1,50 @@
 import { api } from "./api.js";
 
-// Sin badges por status: todos los topics se presentan iguales para explorar.
-const STATUS_LABEL = {
-  featured: "",
-  available: "",
-  done: "",
-  mastered: "",
+// Pictogramas ARASAAC por materia (lookup por nombre).
+const SUBJECT_ICONS = {
+  "Ciencias Sociales": 35402,
+  "Lengua": 10259,
+  "Matemática": 32554,
+  "Ciencias Naturales": 32542,
 };
 
+// Orden fijo para estabilidad visual (no depende del orden del server).
+const SUBJECT_ORDER = ["Ciencias Sociales", "Lengua", "Matemática", "Ciencias Naturales"];
+
 async function init() {
-  const root = document.getElementById("subjects");
+  const root = document.getElementById("materias");
   try {
     const { subjects } = await api("/api/sofi/subjects");
     if (!subjects.length) {
-      root.textContent = "Todavía no hay nada para ver. Avisale a Papá.";
+      root.textContent = "Todavía no hay materias. Avisale a Papá.";
       return;
     }
-    for (const subject of subjects) {
-      const h2 = document.createElement("h2");
-      h2.textContent = subject.name;
-      root.appendChild(h2);
-
-      const list = document.createElement("div");
-      list.className = "topic-list";
-      for (const topic of subject.topics) {
-        const btn = document.createElement("button");
-        btn.className = "topic";
-        btn.dataset.status = topic.status;
-        btn.textContent = topic.title;
-        if (STATUS_LABEL[topic.status]) {
-          const badge = document.createElement("span");
-          badge.className = "badge";
-          badge.textContent = STATUS_LABEL[topic.status];
-          btn.appendChild(badge);
-        }
-        btn.addEventListener("click", () => startSession(topic.id));
-        list.appendChild(btn);
+    const sorted = [...subjects].sort((a, b) => {
+      const ai = SUBJECT_ORDER.indexOf(a.name);
+      const bi = SUBJECT_ORDER.indexOf(b.name);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+    for (const subject of sorted) {
+      const card = document.createElement("a");
+      card.className = "materia-card";
+      card.href = `/materia.html?id=${encodeURIComponent(subject.id)}`;
+      const picId = SUBJECT_ICONS[subject.name];
+      if (picId) {
+        const img = document.createElement("img");
+        img.src = `https://static.arasaac.org/pictograms/${picId}/${picId}_500.png`;
+        img.alt = subject.name;
+        img.loading = "lazy";
+        img.className = "materia-icon";
+        card.appendChild(img);
       }
-      root.appendChild(list);
+      const name = document.createElement("div");
+      name.className = "materia-name";
+      name.textContent = subject.name;
+      card.appendChild(name);
+      root.appendChild(card);
     }
   } catch (err) {
     root.textContent = "No pudimos cargar las materias. Probá refrescar.";
-    console.error(err);
-  }
-}
-
-async function startSession(topicId) {
-  try {
-    const { session_id, steps_planned } = await api("/api/sofi/sessions", {
-      method: "POST",
-      body: { topic_id: topicId },
-    });
-    const total = steps_planned ?? 0;
-    window.location.href = `/session.html?id=${session_id}&total=${total}`;
-  } catch (err) {
-    alert("No se pudo empezar. Probá de nuevo.");
     console.error(err);
   }
 }

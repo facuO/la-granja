@@ -92,9 +92,30 @@ button.subtle {
   margin-left: 0.5rem;
 }
 .trail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.85rem;
   color: var(--text-soft);
   margin-bottom: var(--space-3);
+  gap: var(--space-2);
+}
+.trail-progress {
+  /* default styling inherited */
+}
+.trail-home {
+  color: var(--text-soft);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.85rem;
+  transition: background-color 120ms ease;
+}
+.trail-home:hover {
+  background: var(--bg);
+  color: var(--text);
 }
 .block-text {
   font-size: 1.2rem;

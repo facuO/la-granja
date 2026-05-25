@@ -7,5 +7,14 @@ export default defineConfig({
     testTimeout: 10_000,
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },
+    // Excluir worktrees de agentes paralelos para que vitest no recoja
+    // copias de los tests que viven ahí. Por defecto vitest no cubre
+    // .claude/ — agregamos explícito.
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.claude/**",
+      "**/.git/**",
+    ],
   },
 });

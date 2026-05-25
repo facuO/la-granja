@@ -17,7 +17,9 @@
     <div class="card">
       <h1>Hola, Sofi</h1>
       <p>¿Qué materia vamos a ver hoy?</p>
-      <div id="materias" class="materia-grid"></div>
+      <div id="materias" class="materia-grid" aria-live="polite" aria-busy="true">
+        <p class="materia-empty">Cargando materias...</p>
+      </div>
     </div>
     <a href="/chat.html" class="chat-cta">
       <span class="chat-cta-icon">💬</span>

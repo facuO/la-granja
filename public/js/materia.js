@@ -17,11 +17,16 @@ let subjectName = "";
 
 async function init() {
   if (!subjectId) {
+    topicsEl.innerHTML = "";
+    topicsEl.setAttribute("aria-busy", "false");
     topicsEl.textContent = "Falta el id de la materia.";
     return;
   }
   try {
     const { subjects } = await api("/api/sofi/subjects");
+    // Clear the "Cargando temas..." placeholder from the HTML shell.
+    topicsEl.innerHTML = "";
+    topicsEl.setAttribute("aria-busy", "false");
     const subject = subjects.find((s) => s.id === subjectId);
     if (!subject) {
       topicsEl.textContent = "No encontramos esa materia.";
@@ -61,6 +66,8 @@ async function init() {
       topicsEl.appendChild(btn);
     }
   } catch (err) {
+    topicsEl.innerHTML = "";
+    topicsEl.setAttribute("aria-busy", "false");
     if (err instanceof NoAccessError) {
       topicsEl.innerHTML = `
         <div class="no-access-card">

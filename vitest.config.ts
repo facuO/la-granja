@@ -7,5 +7,6 @@ export default defineConfig({
     testTimeout: 10_000,
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },
+    setupFiles: ["./tests/setup.ts"],
   },
 });

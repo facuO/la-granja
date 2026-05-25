@@ -94,6 +94,37 @@ export const ARASAAC: Record<string, number | null> = {
   grande: 4658,
   arriba: 5388,
   abajo: 5355,
+  // Ampliación tras audit de issue #15 + regeneración de Capitales
+  ciudad: 2704,
+  ciudades: 2704,
+  capital: null, // ARASAAC no tiene pictograma claro para "capital"
+  capitales: null,
+  importante: 11470,
+  importantes: 11470,
+  mejor: 11470,
+  igual: 4667,
+  iguales: 4667,
+  mismo: 4667,
+  misma: 4667,
+  conocer: 6993,
+  conoce: 6993,
+  aprender: 37810,
+  aprende: 37810,
+  aprendes: 37810,
+  aprendiste: 37810,
+  recordar: 37369,
+  recuerda: 37369,
+  practicar: null, // sin pictograma decente en ARASAAC
+  practica: null,
+  ya: 25736,
+  sabes: null, // pictograma matchea "yuca", no útil
+  // Topónimos: la palabra en mayúsculas alcanza, sin pictograma genérico
+  buenos: null,
+  aires: null,
+  mendoza: null,
+  cordoba: null,
+  plata: null,
+  turistica: null,
 };
 
 export function normalize(word: string): string {

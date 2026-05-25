@@ -27,8 +27,10 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
       }
       // Single-tenant: el user de Papá es el que tiene PARENT_EMAIL.
       // Si no existe (nunca pidió magic link), lo creamos al vuelo.
+      // users.name es NOT NULL — defaulteamos a 'Papá' en alta. En conflict
+      // no pisamos el name por si la magic-link route ya lo había seteado.
       const { rows } = await query<{ id: string }>(
-        `INSERT INTO users (email, role) VALUES ($1, 'parent')
+        `INSERT INTO users (email, name, role) VALUES ($1, 'Papá', 'parent')
          ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
          RETURNING id`,
         [config.parentEmail],

@@ -12,12 +12,15 @@
       <h1>Ingresar</h1>
       <p>Te mandamos un link al mail para entrar.</p>
       <form id="login-form">
+        <label for="login-email" class="sr-only">Tu email</label>
         <input
+          id="login-email"
           type="email"
           name="email"
           placeholder="tu@email.com"
           required
-          style="width:100%;padding:0.75rem;border:1px solid var(--border);border-radius:8px;font:inherit"
+          autocomplete="email"
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:8px;font:inherit;font-size:16px;min-height:44px"
         />
         <div class="advance">
           <button type="submit">Enviar link</button>

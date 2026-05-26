@@ -11,8 +11,8 @@
     <div class="trail">
       <span class="trail-progress">Conversar con el tutor</span>
       <div class="trail-nav">
-        <a href="/recursos.html" class="trail-home">📚 Recursos</a>
-        <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
+        <a href="/recursos.html" class="trail-home" aria-label="Ver recursos">📚 Recursos</a>
+        <a href="/sofi.html" class="trail-home" aria-label="Volver al inicio">🏠 Inicio</a>
       </div>
     </div>
 
@@ -30,6 +30,7 @@
     </div>
 
     <form id="chat-form" class="chat-form">
+      <label for="chat-input" class="sr-only">Tu pregunta</label>
       <input
         type="text"
         id="chat-input"

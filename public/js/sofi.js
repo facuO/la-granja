@@ -15,6 +15,9 @@ async function init() {
   const root = document.getElementById("materias");
   try {
     const { subjects } = await api("/api/sofi/subjects");
+    // Clear the "Cargando materias..." placeholder from the HTML shell.
+    root.innerHTML = "";
+    root.setAttribute("aria-busy", "false");
     if (!subjects.length) {
       root.textContent = "Todavía no hay materias. Avisale a Papá.";
       return;
@@ -44,6 +47,7 @@ async function init() {
       root.appendChild(card);
     }
   } catch (err) {
+    root.setAttribute("aria-busy", "false");
     if (err instanceof NoAccessError) {
       root.innerHTML = `
         <div class="no-access-card">

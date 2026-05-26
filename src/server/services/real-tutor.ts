@@ -71,6 +71,40 @@ REGLAS NO NEGOCIABLES (no las cambies por ningún motivo):
 8. Sofi tiene 10-12 años. Ya sabe leer. NO infantilices, NO la trates de "nena".
 9. Predictibilidad: saludos y cierres breves y constantes.
 10. NO sugieras visuales, imágenes ni mapas — eso lo manejamos por separado.
+11. COBERTURA TOTAL — toda question DEBE testear contenido que ya apareció
+    en una explanation previa del MISMO topic. La respuesta correcta tiene
+    que poder deducirse de explanations anteriores. NUNCA preguntes algo
+    que recién aparece en el feedback. Antes de cada question, verificá
+    que el hecho que se pregunta fue presentado.
+12. VOCABULARIO GLOSADO — todo término técnico (esófago, anteúltima,
+    algoritmo, numerador, satélite, herbívoro, etc.) debe definirse en
+    una explanation ANTES de usarse en otra explanation o question.
+    Acrónimos (NOA, NEA) deben expandirse la primera vez que aparecen.
+13. UNA IDEA POR BLOQUE — "una idea" no es "una oración". Si necesitás
+    enumerar 4+ elementos nuevos (ej. dividendo/divisor/cociente/resto,
+    los 8 planetas, los 5 sentidos), partilos en explanations separadas
+    (una por elemento). Máximo 3 items nuevos por oración.
+14. DISTRACTORES VÁLIDOS — en multiple_choice de sinónimo/antónimo/
+    equivalencia/categoría de una palabra X, X NO puede aparecer entre
+    las opciones. Todos los distractores deben ser verificablemente
+    falsos por el contenido enseñado.
+15. CIERRE CONCRETO — el último bloque debe incluir al menos UN nombre
+    propio, número, fecha o término técnico específico introducido en
+    las explanations. PROHIBIDOS los cierres genéricos:
+    - "Ya sabés que [tema] es importante" ❌
+    - "Ya sabés sobre [tema]" ❌
+    - "Ya sabés algunos/algunas [cosas]" ❌
+    - "Ya sabés [hacer X]" sin un hecho concreto ❌
+    EJEMPLOS BUENOS:
+    - "Ya sabés que el 9 de julio de 1816 se declaró la Independencia en Tucumán." ✓
+    - "Ya sabés que las 4 provincias andinas son Mendoza, Salta, Catamarca y Santa Cruz." ✓
+    - "Ya sabés que la capital de Buenos Aires es La Plata." ✓
+16. SI / VERDADERO — en feedback de true_false NUNCA digas "La respuesta
+    era true" ni "es si" sin tilde. Usá "Es verdadero" o "Es falso"
+    explícitos en castellano.
+17. VOSEO CONSISTENTE — verbos en 2da persona singular en voseo SIEMPRE:
+    "podés", "tenés", "sabés", "mirá", "elegí", "practicá". NUNCA "puedes",
+    "tienes", "sabes", "mira", "elige", "practica".
 
 CONTRATO DE SALIDA:
 Devolvé EXCLUSIVAMENTE un objeto JSON con clave "blocks" que es un array de bloques. Cada bloque es una de estas formas:
@@ -191,6 +225,45 @@ function validateResponse(r: unknown): RawBlock[] {
   // Mínimo 1 question, y proporción razonable
   const questionCount = valid.filter((b) => b.kind === "question").length;
   if (questionCount === 0) throw new Error("Topic sin questions");
+
+  // Validación de cierre concreto: el último bloque (explanation) debe
+  // tener un hecho específico. Rechazamos los patrones genéricos detectados
+  // en el audit psicopedagógico de mayo 2026.
+  const lastBlock = valid[valid.length - 1];
+  if (lastBlock.kind === "explanation") {
+    const closure = lastBlock.text.toLowerCase().trim();
+    const genericPatterns = [
+      /\bes importante\b/,
+      /\bya sabés (algunos|algunas|sobre)\b/,
+      /\bya sabés (qué|cómo|cuál)\s*\.?$/,
+      /\bya sabés (leer|escribir|hacer|usar) (un|una|el|la)? ?\w+\s*\.?$/i,
+      /\bbásic[oa]\.?$/,
+      /^ya sabés que (la|el) \w+ es importante/,
+    ];
+    if (genericPatterns.some((re) => re.test(closure))) {
+      throw new Error(
+        `Cierre genérico: "${lastBlock.text}". Debe incluir un nombre propio, número, fecha o término técnico específico.`,
+      );
+    }
+  }
+
+  // Detectar leaks de español castellano (no rioplatense) que el prompt prohíbe
+  const forbiddenSpanish = /\b(tú|tienes|sabes|puedes|conoces|practica|mira|elige|escoge)\b/i;
+  const forbiddenArtifacts = /\b(la respuesta es (si|true|false))\b/i;
+  for (let i = 0; i < valid.length; i++) {
+    const b = valid[i];
+    const text = "text" in b ? b.text : "";
+    if (forbiddenSpanish.test(text)) {
+      throw new Error(
+        `Bloque ${i} tiene español castellano (no rioplatense): "${text.slice(0, 100)}". Usá voseo (tenés, sabés, podés, etc.)`,
+      );
+    }
+    if (forbiddenArtifacts.test(text)) {
+      throw new Error(
+        `Bloque ${i} tiene artefacto de LLM: "${text.slice(0, 100)}". Usá "verdadero"/"falso" en castellano.`,
+      );
+    }
+  }
 
   return valid;
 }

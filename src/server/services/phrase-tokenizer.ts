@@ -115,7 +115,7 @@ export const ARASAAC: Record<string, number | null> = {
   practicar: null, // sin pictograma decente en ARASAAC
   practica: null,
   // ya: 25736 — DESCARTADO (override a null más abajo en stopwords)
-  sabes: null, // pictograma matchea "yuca", no útil
+  // sabes con pictograma del verbo saber (16885) — sabés rioplatense normaliza a sabes
   // Topónimos: la palabra en mayúsculas alcanza, sin pictograma genérico
   buenos: null,
   aires: null,
@@ -134,7 +134,7 @@ export const ARASAAC: Record<string, number | null> = {
   // --- Verbos comunes ---
   hablar: 6517, habla: 6517, hablas: 6517, hablamos: 6517,
   escuchar: 6572, escucha: 6572, escuchas: 6572,
-  saber: 16885, sabe: 16885,
+  saber: 16885, sabe: 16885, sabes: 16885, sabemos: 16885, sabia: 16885,
   tener: 32761, tiene: 32761, tienen: 32761, tienes: 32761, tenemos: 32761, tengo: 32761,
   decir: 9693, dice: 9693, dicen: 9693, decimos: 9693,
   hacer: 32751, hace: 32751, hacen: 32751, hacemos: 32751,
@@ -177,6 +177,13 @@ export const ARASAAC: Record<string, number | null> = {
   crecer: 7002, crece: 7002, crecemos: 7002,
   alimentar: 11176, alimenta: 11176, alimentan: 11176,
   respirar: 34377, respira: 34377, respiramos: 34377,
+
+  // 'llamar': pictograma de "venir, llamar" (32669). Para "llaman" (verbo) lo usamos,
+  // pero "llama" lo dejamos null porque también es el animal (camélido andino) y
+  // ARASAAC pone el pictograma de antorcha (5905) — mejor sin pic que mal pic.
+  llamar: 32669, llaman: 32669, llamamos: 32669,
+  llama: null, // ambiguo: verbo vs. animal vs. antorcha
+  significar: null, significa: null, significan: null, // 404 en ARASAAC
 
   // --- Sustantivos comunes ---
   casa: 6964, casas: 6964,

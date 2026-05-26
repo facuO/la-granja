@@ -586,6 +586,17 @@ button.subtle {
   border-bottom: 1.5px solid var(--text);
   background: white;
 }
+/* Cells sin pictograma (stopwords, conectores) más sutiles para que la
+   atención vaya a las palabras content que tienen pic. */
+.phrase-cell.no-pic .phrase-pic-cell {
+  background: var(--bg);
+  border-bottom-color: var(--border);
+  border-bottom-style: dashed;
+}
+.phrase-cell.no-pic .phrase-word-cell {
+  color: var(--text-soft);
+  font-weight: 500;
+}
 .phrase-pic {
   max-width: 72px;
   max-height: 72px;

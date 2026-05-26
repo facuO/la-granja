@@ -280,58 +280,56 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
 // ----- Topic 5: Leer mapas con símbolos -----
 const MAPAS_SIMBOLOS: StubBlock[] = [
   ep(tw`Hoy vamos a aprender a leer mapas con símbolos.`),
-  ep(tw`Los mapas usan dibujos chiquitos llamados símbolos o referencias.`),
-  ep(tw`Cada símbolo nos cuenta algo de ese lugar.`),
-  ep(tw`Mirá los símbolos que usamos hoy:`),
-  ep(tw`🏔️ una montañita significa que hay montañas.`),
-  ep(tw`❄️ un copito de nieve significa que ahí hay nieve.`),
-  ep(tw`☀️ un sol significa que ahí hace calor.`),
-  ep(tw`🌧️ una nube con lluvia significa que llueve mucho.`),
-  ep(tw`🌲 un árbol significa que hay bosque.`),
-  ep(tw`Ahora vamos a usar estos símbolos para responder algunas preguntas.`),
+  ep(tw`Los mapas usan dibujos llamados símbolos.`),
+  ep(tw`Cada símbolo nos cuenta algo del lugar en el mapa.`),
+  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa con símbolos. Vas a ver dibujos de nieve, sol, lluvia, montañas y bosques."),
+  ep(tw`Vamos a ver los cinco símbolos uno por uno.`),
+  ep(tw`Nieve. El símbolo de nieve significa que ahí hay nieve.`),
+  ep(tw`Sol. El símbolo de sol significa que ahí hace calor.`),
+  ep(tw`Lluvia. El símbolo de lluvia significa que ahí llueve mucho.`),
+  ep(tw`Montaña. El símbolo de montaña significa que hay montañas.`),
+  ep(tw`Bosque. El símbolo de bosque significa que hay árboles.`),
+  ep(tw`Ahora vamos a usar estos símbolos en preguntas.`),
 
   ep(tw`Primera pregunta.`),
-  ep(tw`Quiero estrenar mis esquíes nuevos.`),
-  ep(tw`Para esquiar, necesito nieve.`),
+  ep(tw`Quiero estrenar mis esquíes nuevos. Para esquiar necesito nieve.`),
   {
     block_kind: "question",
     content: {
       kind: "multiple_choice",
       text: "Para usar esquíes, voy a un lugar con...",
-      options: ["☀️ sol", "❄️ nieve", "🌧️ lluvia"],
+      options: ["sol", "nieve", "lluvia"],
       correct_index: 1,
     },
   },
-  fb("Bien. Para esquiar necesitás nieve. Vas al lugar con el símbolo de nieve."),
+  fb("Para esquiar necesitás nieve. Vas al lugar marcado con nieve en el mapa."),
 
   ep(tw`Segunda pregunta.`),
-  ep(tw`Quiero estrenar mi paraguas nuevo.`),
-  ep(tw`Pero hoy no quiero mojarme.`),
-  ep(tw`Si NO quiero mojarme, ¿adónde NO voy?`),
+  ep(tw`Quiero estrenar mi paraguas nuevo. Pero hoy no quiero mojarme.`),
   {
     block_kind: "question",
     content: {
       kind: "multiple_choice",
       text: "Si no quiero mojarme, evito el lugar con...",
-      options: ["☀️ sol", "❄️ nieve", "🌧️ lluvia"],
+      options: ["sol", "nieve", "lluvia"],
       correct_index: 2,
     },
   },
-  fb("Bien. La lluvia te moja, así que evitás el lugar con la nube de lluvia."),
+  fb("La lluvia te moja, así que evitás el lugar marcado con lluvia."),
 
   ep(tw`Tercera pregunta.`),
-  ep(tw`Tengo mucho calor y quiero sacarme el pulóver.`),
-  ep(tw`Necesito un lugar donde haga calor.`),
+  ep(tw`Tengo mucho calor y quiero sacarme el pulóver. Necesito un lugar donde haga calor.`),
   {
     block_kind: "question",
     content: {
       kind: "multiple_choice",
       text: "Para sacarme el pulóver, voy al lugar con...",
-      options: ["❄️ nieve", "🏔️ montaña", "☀️ sol"],
+      options: ["nieve", "montaña", "sol"],
       correct_index: 2,
     },
   },
-  fb("Bien. El sol significa que hace calor, así que ahí te podés sacar el pulóver."),
+  fb("El sol significa que hace calor. Ahí te podés sacar el pulóver."),
+  ep(tw`Ya sabés leer cinco símbolos del mapa: nieve, sol, lluvia, montaña y bosque.`),
 ];
 
 // =============================================================================

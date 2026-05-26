@@ -114,7 +114,7 @@ export const ARASAAC: Record<string, number | null> = {
   recuerda: 37369,
   practicar: null, // sin pictograma decente en ARASAAC
   practica: null,
-  ya: 25736,
+  // ya: 25736 — DESCARTADO (override a null más abajo en stopwords)
   sabes: null, // pictograma matchea "yuca", no útil
   // Topónimos: la palabra en mayúsculas alcanza, sin pictograma genérico
   buenos: null,
@@ -342,6 +342,58 @@ export const ARASAAC: Record<string, number | null> = {
   policia: 37367, policias: 37367,
   soldado: 2797, soldados: 2797,
   ley: 11473, leyes: 11473,
+
+  // --- Stopwords (artículos, preposiciones, conjunciones, pronombres) ---
+  // Explícitamente sin pictograma. ARASAAC tiene matches para varios de
+  // estos (ej. "la" → 7029, "y" → 3047), pero ponerle picto a cada conector
+  // satura visualmente la tabla SAAC y le quita anclaje a las palabras
+  // content que son las que importan.
+  el: null,
+  la: null, las: null,
+  los: null, lo: null,
+  un: null, una: null, unos: null, unas: null,
+  de: null, del: null,
+  // 'bajo' como prepósición pierde — está como adjetivo arriba (25839)
+  en: null, a: null, al: null, ante: null, con: null, contra: null,
+  desde: null, entre: null, hacia: null, hasta: null, para: null, por: null,
+  segun: null, sin: null, sobre: null, tras: null, durante: null, mediante: null,
+  // 'bajo' lo mantenemos como adjetivo (25839) más arriba — la prepósición pierde
+  // 'este' lo mantenemos como cardinal (7095) más arriba — el demostrativo pierde
+  y: null, e: null, o: null, u: null, ni: null,
+  pero: null, mas_que: null, sino: null, aunque: null, pues: null,
+  porque: null, como: null, cuando: null, mientras: null, donde: null, dond: null,
+  que: null, quien: null, quienes: null, cual: null, cuales: null,
+  cuyo: null, cuya: null,
+  yo: null, tu: null, vos: null, ella: null,
+  nosotros: null, nosotras: null, vosotros: null, ustedes: null, ellos: null, ellas: null,
+  me: null, te: null, se: null, le: null, nos: null, les: null,
+  mi: null, su: null, sus: null, mis: null, tus: null,
+  mio: null, tuyo: null, suyo: null, mia: null, tuya: null, suya: null,
+  nuestro: null, vuestro: null, nuestra: null, vuestra: null,
+  es: null, son: null, soy: null, eres: null, somos: null, sois: null,
+  era: null, eran: null, eras: null, eramos: null,
+  fue: null, fueron: null, fui: null, fuiste: null, fuimos: null, fuisteis: null,
+  sera: null, seran: null, sere: null, seras: null, seremos: null, sereis: null,
+  sea: null, sean: null, seas: null, seamos: null,
+  esta: null, estan: null, estoy: null, estas: null, estamos: null,
+  estaba: null, estaban: null, estabas: null, estabais: null,
+  estuvo: null, estuvieron: null, estuve: null, estuviste: null,
+  ha: null, han: null, he: null, has: null, hemos: null, habia: null, habian: null,
+  hay: null, habra: null, habran: null,
+  ya: null, // sobreescribe entrada anterior — el picto-reloj no aporta para "ya sabés"
+  cada: null,
+  mas: null, menos: null,
+  muy: null, tan: null, casi: null, demasiado: null,
+  solo: null, solamente: null, tambien: null, tampoco: null,
+  asi: null, entonces: null, ademas: null,
+  despues: null, antes: null, luego: null, mientras_que: null,
+  aqui: null, alli: null, alla: null, aca: null,
+  esto: null, eso: null, aquello: null,
+  // este: ya está como cardinal — no override
+  estos: null,
+  ese: null, esa: null, esos: null, esas: null,
+  aquel: null, aquella: null, aquellos: null, aquellas: null,
+  poco_a_poco: null,
 
   // --- Palabras que matchean MAL en ARASAAC → null explícito ---
   // (Cualquier pictograma sería peor que nada)

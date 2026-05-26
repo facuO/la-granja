@@ -95,8 +95,6 @@ export const ARASAAC: Record<string, number | null> = {
   arriba: 5388,
   abajo: 5355,
   // Ampliación tras audit de issue #15 + regeneración de Capitales
-  ciudad: 2704,
-  ciudades: 2704,
   capital: null, // ARASAAC no tiene pictograma claro para "capital"
   capitales: null,
   importante: 11470,
@@ -265,8 +263,7 @@ export const ARASAAC: Record<string, number | null> = {
   piel: 2840,
 
   // --- Matemática ---
-  suma: 5868,
-  resta: 5841,
+  // (sumar/suma/restar/resta ya definidos en verbos arriba)
   verbo: 7297, verbos: 7297,
   fraccion: 5739, fracciones: 5739,
   medida: 9834, medidas: 9834,

@@ -80,7 +80,7 @@ export function speak(text, opts = {}) {
   } else {
     utter.lang = "es-AR";
   }
-  utter.rate = 0.95;
+  utter.rate = 0.75; // más lento para Sofi — el 0.95 leía muy rápido
   utter.pitch = 1.0;
 
   currentUtter = utter;

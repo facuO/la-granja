@@ -3,7 +3,10 @@ import { makeTestApp } from "./helpers/app.js";
 import { testPool, closeTestPool, resetDb } from "./helpers/db.js";
 import type { FastifyInstance } from "fastify";
 
-const FEATURED_TOPIC_ID = "33333333-3333-3333-3333-333333333332";
+// Usamos PAISES_LIMITROFES porque tiene contenido hand-crafted en stub-tutor.ts.
+// (Antes este test usaba "Provincias y regiones" 333…332 que dependía del
+// DEFAULT_BLOCKS fallback, ya eliminado para no confundir a Sofi.)
+const FEATURED_TOPIC_ID = "44444444-4444-4444-4444-444444444401";
 const UPCOMING_TOPIC_ID = "33333333-3333-3333-3333-333333333334";
 
 async function applyMigrations() {
@@ -80,7 +83,7 @@ describe("session lifecycle", () => {
     const sessionId = start.json().session_id;
 
     const kinds: string[] = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 50; i++) {
       const res = await app.inject({
         method: "POST",
         url: `/api/sofi/sessions/${sessionId}/next-block`,
@@ -91,7 +94,13 @@ describe("session lifecycle", () => {
       kinds.push(body.block.block_kind);
     }
 
-    expect(kinds).toEqual(["explanation", "visual", "question", "feedback"]);
+    // El topic hand-crafted PAISES_LIMITROFES contiene los 4 kinds (explanation,
+    // visual, question, feedback) en algún orden. No asertamos secuencia exacta
+    // — solo que cada kind aparezca al menos una vez.
+    expect(kinds).toContain("explanation");
+    expect(kinds).toContain("visual");
+    expect(kinds).toContain("question");
+    expect(kinds).toContain("feedback");
 
     const finish = await app.inject({
       method: "POST",

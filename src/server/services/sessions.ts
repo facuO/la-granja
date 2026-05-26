@@ -13,9 +13,10 @@ export interface StartSessionResult {
 
 /**
  * Get the canonical block sequence for a topic: prefers LLM-generated blocks
- * if persisted, falls back to the hand-crafted stub registry.
+ * if persisted, falls back to the hand-crafted stub registry. Returns null
+ * if neither exists — el caller debe rechazar la sesión.
  */
-async function blocksForTopic(topicId: string): Promise<StubBlock[]> {
+async function blocksForTopic(topicId: string): Promise<StubBlock[] | null> {
   const { rows } = await query<{ generated_blocks: StubBlock[] | null }>(
     `SELECT generated_blocks FROM topics WHERE id = $1`,
     [topicId],
@@ -41,6 +42,9 @@ export async function startSession(input: StartSessionInput): Promise<StartSessi
   }
 
   const blocks = await blocksForTopic(topic.id);
+  if (!blocks || blocks.length === 0) {
+    throw new Error("topic_has_no_content");
+  }
   const stepsPlanned = blocks.length;
 
   // Snapshot blocks into session metadata so a mid-session regeneration of

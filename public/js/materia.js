@@ -92,8 +92,14 @@ async function startSession(topicId) {
       ? `&subject_id=${encodeURIComponent(subjectId)}&subject_name=${encodeURIComponent(subjectName)}`
       : "";
     window.location.href = `/session.html?id=${session_id}&total=${total}${subjQs}`;
+    return;
   } catch (err) {
-    alert("No se pudo empezar. Probá de nuevo.");
+    // 400 con reason="topic_has_no_content" → Papá no generó contenido todavía
+    if (err.message && err.message.includes("topic_has_no_content")) {
+      alert("Este tema todavía no tiene contenido. Pedile a Papá que lo genere desde el panel Admin.");
+    } else {
+      alert("No se pudo empezar. Probá de nuevo.");
+    }
     console.error(err);
   }
 }

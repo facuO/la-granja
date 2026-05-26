@@ -344,20 +344,8 @@ const TOPIC_BLOCKS: Record<string, StubBlock[]> = {
   "44444444-4444-4444-4444-444444444405": MAPAS_SIMBOLOS,
 };
 
-const DEFAULT_BLOCKS: StubBlock[] = [
-  ep(tw`Las provincias se agrupan en regiones. Hoy vamos a ver el Noroeste argentino, el NOA.`),
-  v("cuaderno_mapa", "Abrí tu cuaderno en la página del mapa de Argentina. El NOA es la zona del norte, arriba a la izquierda."),
-  {
-    block_kind: "question",
-    content: {
-      kind: "multiple_choice",
-      text: "¿Cuál de estas provincias es del NOA?",
-      options: ["Jujuy", "Río Negro", "Mendoza"],
-      correct_index: 0,
-    },
-  },
-  fb("Bien. Jujuy queda al norte, dentro del NOA."),
-];
+/** IDs de topics que tienen contenido hand-crafted en este archivo. */
+export const HAND_CRAFTED_TOPIC_IDS = Object.keys(TOPIC_BLOCKS);
 
 const TOPIC_SUMMARIES: Record<string, string> = {
   "44444444-4444-4444-4444-444444444401":
@@ -372,22 +360,26 @@ const TOPIC_SUMMARIES: Record<string, string> = {
     "Hoy aprendiste a leer mapas con símbolos: ❄️ nieve, ☀️ sol, 🌧️ lluvia, 🏔️ montaña, 🌲 bosque.",
 };
 
-const DEFAULT_SUMMARY =
-  "Hoy aprendiste que Jujuy es una provincia del NOA y dónde queda en el mapa.";
+const DEFAULT_SUMMARY = "Terminaste la sesión de hoy.";
 
 export function nextStubBlock(topicId: string, stepIndex: number): StubBlock | null {
-  const blocks = TOPIC_BLOCKS[topicId] ?? DEFAULT_BLOCKS;
-  if (stepIndex < 0 || stepIndex >= blocks.length) return null;
+  const blocks = TOPIC_BLOCKS[topicId];
+  if (!blocks || stepIndex < 0 || stepIndex >= blocks.length) return null;
   return blocks[stepIndex];
 }
 
 export function totalStubBlocks(topicId: string): number {
-  return (TOPIC_BLOCKS[topicId] ?? DEFAULT_BLOCKS).length;
+  return (TOPIC_BLOCKS[topicId] ?? []).length;
 }
 
-/** Full block sequence for a topic (hand-crafted registry, or default fallback). */
-export function getAllStubBlocks(topicId: string): StubBlock[] {
-  return TOPIC_BLOCKS[topicId] ?? DEFAULT_BLOCKS;
+/**
+ * Full block sequence for a topic, o `null` si no hay contenido hand-crafted.
+ * Antes devolvía un DEFAULT_BLOCKS sobre el NOA — lo eliminamos porque
+ * confundía a Sofi (entraba a un topic y le aparecía contenido de otro).
+ * Cuando devuelve null, el caller debe rechazar la sesión.
+ */
+export function getAllStubBlocks(topicId: string): StubBlock[] | null {
+  return TOPIC_BLOCKS[topicId] ?? null;
 }
 
 export function stubSessionSummary(topicId: string): string {

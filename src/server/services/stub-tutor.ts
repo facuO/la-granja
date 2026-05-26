@@ -81,9 +81,9 @@ y por el océano Atlántico.`),
   v("argentina_map", "Argentina y los países vecinos que la rodean.", ["neighbors"]),
   ep(tw`Argentina tiene 5 países limítrofes.
 Los vamos a ver uno por uno.`),
-  ep(tw`Al norte, Argentina toca con Bolivia.
+  ep(tw`Al norte, Argentina limita con Bolivia.
 Bolivia queda arriba.`),
-  ep(tw`Al noreste, Argentina toca
+  ep(tw`Al noreste, Argentina limita
 con Paraguay y con Brasil.`),
   ep(tw`Brasil es el país más grande
 de Sudamérica.`),
@@ -99,24 +99,22 @@ Brasil, Uruguay y Chile.`),
     block_kind: "question",
     content: {
       kind: "multi_select",
-      text: "Marcá todos los países que son limítrofes con Argentina.",
+      text: "Marcá los países limítrofes con Argentina.",
       options: [
-        { label: "Ecuador", image: flag("Ecuador") },
-        { label: "Perú", image: flag("Peru") },
-        { label: "Colombia", image: flag("Colombia") },
         { label: "Bolivia", image: flag("Bolivia") },
-        { label: "Paraguay", image: flag("Paraguay") },
         { label: "Brasil", image: flag("Brazil") },
-        { label: "Venezuela", image: flag("Venezuela") },
         { label: "Uruguay", image: flag("Uruguay") },
         { label: "Chile", image: flag("Chile") },
+        { label: "Perú", image: flag("Peru") },
+        { label: "Ecuador", image: flag("Ecuador") },
       ],
-      correct_indices: [3, 4, 5, 7, 8],
+      correct_indices: [0, 1, 2, 3],
     },
   },
   fb(
-    "Argentina tiene 5 países limítrofes: Bolivia, Paraguay, Brasil, Uruguay y Chile. Los otros (Ecuador, Perú, Colombia, Venezuela) están en América del Sur, pero más al norte, no tocan con Argentina.",
+    "Bolivia, Brasil, Uruguay y Chile limitan con Argentina. El quinto, Paraguay, también es limítrofe (lo nombramos antes). Perú y Ecuador están más al norte de Sudamérica, no limitan con Argentina.",
   ),
+  ep(tw`Ya sabés cuáles son los 5 países limítrofes de Argentina.`),
 ];
 
 // ----- Topic 2: Provincias con la Cordillera de los Andes -----
@@ -131,43 +129,42 @@ const PROVINCIAS_ANDES: StubBlock[] = [
   ep(tw`Los Andes separan a Argentina de Chile.`),
   ep(tw`Funcionan como una pared natural muy alta entre los dos países.`),
   v("argentina_map", "La Cordillera está pegada al borde izquierdo de Argentina, en el oeste.", ["cordillera"]),
-  ep(tw`Hay varias provincias argentinas que tocan con los Andes.`),
+  ep(tw`Argentina tiene varias provincias que limitan con la Cordillera.`),
   vimg(
     wm("Argentina politico.svg", 720),
     "Mapa político de Argentina con todas las provincias",
-    "Mapa político de Argentina. Cada provincia tiene su nombre. Las que están al oeste tocan con la Cordillera."
+    "Mapa político de Argentina. Cada provincia tiene su nombre. Las que están al oeste limitan con la Cordillera."
   ),
-  ep(tw`Las del norte: Jujuy, Salta, Tucumán, Catamarca y La Rioja.`),
-  ep(tw`Las del centro: San Juan y Mendoza.`),
-  ep(tw`Las del sur: Neuquén, Río Negro, Chubut y Santa Cruz.`),
+  ep(tw`Hoy vamos a aprender cuatro de ellas, una por cada zona del país.`),
+  ep(tw`Del norte: Salta y Catamarca.`),
+  ep(tw`Del centro: Mendoza.`),
+  ep(tw`Del sur: Santa Cruz.`),
   vimg(
     wm("Mapas escolares del Instituto Geográfico Nacional (Argentina) - Provincia de Córdoba - Político (2016).jpg", 720),
     "Mapa político escolar de la provincia de Córdoba",
-    "Esta es Córdoba, tu provincia. Está en el centro de Argentina."
+    "Esta es Córdoba, tu provincia. Está en el centro de Argentina. Córdoba no limita con los Andes."
   ),
-  ep(tw`Ahora vamos a ver la lista de tu cuaderno.`),
+  ep(tw`Ahora la pregunta de tu cuaderno.`),
   {
     block_kind: "question",
     content: {
       kind: "multi_select",
-      text: "De estas provincias, marcá las que tienen una parte de su límite con la Cordillera de los Andes.",
+      text: "Marcá las provincias que limitan con la Cordillera de los Andes.",
       options: [
-        "Formosa",
         "Mendoza",
         "Misiones",
-        "Santa Cruz",
-        "Buenos Aires",
         "Salta",
-        "La Pampa",
-        "Entre Ríos",
+        "Buenos Aires",
         "Catamarca",
+        "Santa Cruz",
       ],
-      correct_indices: [1, 3, 5, 8],
+      correct_indices: [0, 2, 4, 5],
     },
   },
   fb(
-    "Las que tienen los Andes son: Mendoza, Salta, Catamarca y Santa Cruz. Las otras (Formosa, Misiones, Buenos Aires, La Pampa, Entre Ríos) están en otras zonas del país, no en el oeste.",
+    "Mendoza, Salta, Catamarca y Santa Cruz limitan con los Andes. Misiones está al noreste y Buenos Aires al centro-este, lejos de la Cordillera.",
   ),
+  ep(tw`Ya sabés que estas cuatro provincias tienen los Andes en su límite oeste.`),
 ];
 
 // ----- Topic 3: Verdadero o falso geográfico -----
@@ -176,7 +173,7 @@ const VF_GEOGRAFICO: StubBlock[] = [
   ep(tw`Tomate tu tiempo. No hay apuro.`),
   ep(tw`Primera frase. Pensemos en los mares y océanos.`),
   ep(tw`Argentina tiene mucha costa al este, al lado del océano Atlántico.`),
-  ep(tw`La parte del Atlántico que toca con Argentina se llama Mar Argentino.`),
+  ep(tw`La parte del Atlántico que limita con Argentina se llama Mar Argentino.`),
   ep(tw`Las provincias que tienen costa al Mar Argentino son cinco.`),
   ep(tw`Son: Buenos Aires, Río Negro, Chubut, Santa Cruz y Tierra del Fuego.`),
   ep(tw`Las nombramos otra vez: Buenos Aires, Río Negro, Chubut, Santa Cruz, Tierra del Fuego. Cinco.`),
@@ -207,6 +204,7 @@ const VF_GEOGRAFICO: StubBlock[] = [
   fb(
     "Es verdad. Chile está entre Argentina y el Pacífico, así que ninguna provincia argentina llega a ese océano.",
   ),
+  ep(tw`Ya sabés dos cosas del territorio: Argentina tiene costa al Atlántico pero no al Pacífico.`),
 ];
 
 // ----- Topic 4: Territorio, población y autoridades -----
@@ -234,7 +232,7 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
       correct_index: 0,
     },
   },
-  fb("Bien. El territorio es el espacio físico donde está el país."),
+  fb("El territorio es el espacio físico donde está el país: suelo, agua y cielo."),
 
   ep(tw`Segunda palabra: POBLACIÓN.`),
   ep(tw`La población son las personas que viven en un lugar.`),
@@ -253,7 +251,7 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
       correct_index: 1,
     },
   },
-  fb("Bien. La población son las personas que viven en el país."),
+  fb("La población son todas las personas que viven en el país: chicos, grandes, abuelos."),
 
   ep(tw`Tercera palabra: AUTORIDADES DE GOBIERNO.`),
   ep(tw`Las autoridades son las personas que dirigen y deciden cosas para el país.`),
@@ -267,15 +265,16 @@ const TERRITORIO_POBLACION_GOBIERNO: StubBlock[] = [
       text: "¿Quiénes son las autoridades de gobierno?",
       options: [
         "Las personas que viven en el país.",
-        "Los animales del país.",
+        "Los policías y soldados del país.",
         "Las personas que dirigen y deciden por el país.",
       ],
       correct_index: 2,
     },
   },
   fb(
-    "Bien. Las autoridades son las personas que dirigen el país: el Presidente, los gobernadores y los intendentes.",
+    "Las autoridades son las personas que dirigen el país: el Presidente, los gobernadores y los intendentes. Los policías y soldados protegen, pero no son los que deciden.",
   ),
+  ep(tw`Ya sabés tres palabras importantes: territorio, población y autoridades.`),
 ];
 
 // ----- Topic 5: Leer mapas con símbolos -----

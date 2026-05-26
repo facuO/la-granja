@@ -4,8 +4,9 @@ import { setParentCookie } from "../auth/cookies.js";
 import { query } from "../db.js";
 import { sofiToken } from "../lib/ids.js";
 import { config } from "../config.js";
-import { generateTopicBlocks } from "../services/real-tutor.js";
+import { generateTopicBlocks, validateResponse, rawToBlock, type RawBlock } from "../services/real-tutor.js";
 import { HAND_CRAFTED_TOPIC_IDS } from "../services/stub-tutor.js";
+import { enrichPhrase } from "../services/arasaac.js";
 
 export const adminRoutes: FastifyPluginAsync = async (fastify) => {
   // Login simple por password (single-tenant). Si match, levanta el user
@@ -197,6 +198,72 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
         failed: results.filter((r) => !r.ok).length,
         results,
       });
+    },
+  );
+
+  // Inyectar blocks pre-generados (por Opus en dev, o cualquier otra source).
+  // Pasa por el MISMO validator + tokenizer ARASAAC que la generación con Groq.
+  // El campo `model_name` queda registrado en generated_by_model para
+  // trazabilidad (ej. 'claude-opus-4-7-dev' o 'manual').
+  fastify.post<{
+    Params: { id: string };
+    Body: { blocks: RawBlock[]; model_name?: string };
+  }>(
+    "/api/admin/topics/:id/set-blocks",
+    {
+      preHandler: requireParent,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+        body: {
+          type: "object",
+          required: ["blocks"],
+          properties: {
+            blocks: { type: "array", minItems: 5, maxItems: 30 },
+            model_name: { type: "string", maxLength: 100 },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        // Mismo validator que usa generateTopicBlocks — enforza apertura,
+        // cierre concreto, question→feedback adyacente, voseo, etc.
+        const rawBlocks = validateResponse({ blocks: req.body.blocks });
+        const stubBlocks = rawBlocks.map(rawToBlock);
+
+        // Enriquecer pictogramas ARASAAC (cache DB + API).
+        for (const block of stubBlocks) {
+          const phrase = "phrase" in block.content ? block.content.phrase : undefined;
+          if (Array.isArray(phrase)) await enrichPhrase(phrase);
+        }
+
+        const modelName = req.body.model_name ?? "manual";
+        const { rows } = await query<{ id: string }>(
+          `UPDATE topics
+              SET generated_blocks = $2,
+                  generated_at = now(),
+                  generated_by_model = $3
+            WHERE id = $1
+            RETURNING id`,
+          [req.params.id, JSON.stringify(stubBlocks), modelName],
+        );
+        if (rows.length === 0) {
+          return reply.code(404).send({ ok: false, reason: "topic_not_found" });
+        }
+        return reply.code(200).send({
+          ok: true,
+          block_count: stubBlocks.length,
+          model: modelName,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "unknown";
+        req.log.error({ err }, "set-blocks failed");
+        return reply.code(400).send({ ok: false, reason: msg });
+      }
     },
   );
 

@@ -35,7 +35,7 @@ interface RawTrueFalse {
   text: string;
   correct: boolean;
 }
-type RawBlock = RawExplanation | RawFeedback | RawMultipleChoice | RawMultiSelect | RawTrueFalse;
+export type RawBlock = RawExplanation | RawFeedback | RawMultipleChoice | RawMultiSelect | RawTrueFalse;
 interface RawResponse {
   blocks: RawBlock[];
 }
@@ -188,7 +188,7 @@ function isValidRawBlock(b: unknown): b is RawBlock {
   return false;
 }
 
-function validateResponse(r: unknown): RawBlock[] {
+export function validateResponse(r: unknown): RawBlock[] {
   if (!r || typeof r !== "object" || !Array.isArray((r as { blocks?: unknown }).blocks)) {
     throw new Error("Respuesta sin 'blocks' array");
   }
@@ -270,7 +270,7 @@ function validateResponse(r: unknown): RawBlock[] {
 
 // --- Mapping raw → StubBlock (with pictogram phrase) ---
 
-function rawToBlock(raw: RawBlock): StubBlock {
+export function rawToBlock(raw: RawBlock): StubBlock {
   if (raw.kind === "explanation") {
     const phrase: PhraseUnit[] = tokenizePhrase(raw.text);
     return { block_kind: "explanation", content: { text: raw.text, phrase } };

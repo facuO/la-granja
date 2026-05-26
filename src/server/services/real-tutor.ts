@@ -2,6 +2,7 @@ import { query } from "../db.js";
 import { chatJson } from "../llm/groq.js";
 import { config } from "../config.js";
 import { tokenizePhrase } from "./phrase-tokenizer.js";
+import { enrichPhrase } from "./arasaac.js";
 import type { StubBlock, QuestionContent, PhraseUnit } from "./stub-tutor.js";
 
 // --- Raw shape we ask the LLM to produce (intentionally minimal) ---
@@ -257,6 +258,15 @@ export async function generateTopicBlocks(topicId: string): Promise<GenerateResu
 
   const validBlocks = validateResponse(response);
   const stubBlocks = validBlocks.map(rawToBlock);
+
+  // Enriquecer phrases con pictogramas que el map estático no cubre.
+  // Consulta DB cache + API de ARASAAC para cada palabra content sin pic.
+  for (const block of stubBlocks) {
+    const phrase = "phrase" in block.content ? block.content.phrase : undefined;
+    if (Array.isArray(phrase)) {
+      await enrichPhrase(phrase);
+    }
+  }
 
   await query(
     `UPDATE topics

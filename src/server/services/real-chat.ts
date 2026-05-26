@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { config } from "../config.js";
 import { tokenizePhrase, type PhraseUnit } from "./phrase-tokenizer.js";
+import { enrichPhrase } from "./arasaac.js";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -83,6 +84,9 @@ export async function askTutor(input: ChatTurnInput): Promise<ChatTurnResult> {
   if (!text) throw new Error("Respuesta sin campo 'text'");
 
   const phrase = tokenizePhrase(text);
+  // Auto-lookup de palabras content que el map estático no cubre.
+  // Persiste en arasaac_cache para que próximas conversaciones sean instantáneas.
+  await enrichPhrase(phrase);
   return { text, phrase };
 }
 

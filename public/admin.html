@@ -33,6 +33,10 @@
           Cada topic puede tener su contenido generado por LLM (Groq) basado en su título y descripción.
           El contenido generado se renderiza con el mismo formato SAAC que el contenido hand-crafted.
         </p>
+        <div class="admin-batch-row">
+          <button id="generate-missing-btn" class="subtle">Generar todos los que faltan</button>
+          <span id="generate-missing-status" class="generate-missing-status"></span>
+        </div>
         <div id="topics-list"></div>
       </div>
 
@@ -188,6 +192,28 @@
         btn.disabled = false;
         alert(err.message);
         setTimeout(() => { btn.textContent = originalLabel; }, 2000);
+      }
+    });
+
+    // Generate-missing: dispara generación batch sobre todos los topics
+    // sin contenido. Sincrónico — puede tardar 3-10 minutos según cuántos
+    // sean y rate limits de Groq.
+    const genMissingBtn = document.getElementById("generate-missing-btn");
+    const genMissingStatus = document.getElementById("generate-missing-status");
+    genMissingBtn?.addEventListener("click", async () => {
+      if (!confirm("Esto va a generar contenido para TODOS los topics vacíos. Puede tardar varios minutos. ¿Continuar?")) return;
+      genMissingBtn.disabled = true;
+      genMissingStatus.textContent = "Generando... (no cierres esta pestaña)";
+      const start = Date.now();
+      try {
+        const res = await api("/api/admin/topics/generate-missing", { method: "POST" });
+        const dur = Math.round((Date.now() - start) / 1000);
+        genMissingStatus.textContent = `✓ ${res.succeeded}/${res.total} generados en ${dur}s${res.failed ? ` · ${res.failed} fallaron` : ""}`;
+        setTimeout(load, 1500);
+      } catch (err) {
+        genMissingStatus.textContent = "Error: " + err.message;
+      } finally {
+        genMissingBtn.disabled = false;
       }
     });
 

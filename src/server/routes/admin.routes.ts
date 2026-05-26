@@ -5,6 +5,7 @@ import { query } from "../db.js";
 import { sofiToken } from "../lib/ids.js";
 import { config } from "../config.js";
 import { generateTopicBlocks } from "../services/real-tutor.js";
+import { HAND_CRAFTED_TOPIC_IDS } from "../services/stub-tutor.js";
 
 export const adminRoutes: FastifyPluginAsync = async (fastify) => {
   // Login simple por password (single-tenant). Si match, levanta el user
@@ -131,6 +132,72 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { topics: rows };
     }
+  );
+
+  // Generación batch: corre el LLM secuencialmente sobre todos los topics
+  // activos que no tienen generated_blocks ni están en HAND_CRAFTED_TOPIC_IDS.
+  // Sincrónico — puede tardar varios minutos. Devuelve el resumen al final.
+  // Idempotente: re-correr salta los ya generados.
+  fastify.post(
+    "/api/admin/topics/generate-missing",
+    { preHandler: requireParent },
+    async (req, reply) => {
+      // Lista topics sin contenido (ni stub hand-crafted ni generated)
+      const handCraftedClause = HAND_CRAFTED_TOPIC_IDS.length > 0
+        ? `AND t.id::text NOT IN (${HAND_CRAFTED_TOPIC_IDS.map((_, i) => `$${i + 1}`).join(", ")})`
+        : "";
+      const { rows: empties } = await query<{ id: string; title: string; subject_name: string }>(
+        `SELECT t.id, t.title, s.name AS subject_name
+           FROM topics t
+           JOIN blocks b ON b.id = t.block_id
+           JOIN subjects s ON s.id = b.subject_id
+          WHERE s.active = true
+            AND t.generated_blocks IS NULL
+            ${handCraftedClause}
+          ORDER BY s.name, b.order_index, t.order_index`,
+        HAND_CRAFTED_TOPIC_IDS,
+      );
+
+      const results: Array<{
+        id: string;
+        title: string;
+        subject: string;
+        ok: boolean;
+        block_count?: number;
+        error?: string;
+      }> = [];
+
+      for (const t of empties) {
+        try {
+          const r = await generateTopicBlocks(t.id);
+          results.push({
+            id: t.id,
+            title: t.title,
+            subject: t.subject_name,
+            ok: true,
+            block_count: r.blocks.length,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "unknown";
+          req.log.error({ err, topic_id: t.id }, "topic generation failed in batch");
+          results.push({
+            id: t.id,
+            title: t.title,
+            subject: t.subject_name,
+            ok: false,
+            error: msg,
+          });
+        }
+      }
+
+      return reply.code(200).send({
+        ok: true,
+        total: empties.length,
+        succeeded: results.filter((r) => r.ok).length,
+        failed: results.filter((r) => !r.ok).length,
+        results,
+      });
+    },
   );
 
   // Clear generated content (revert to stub or default).

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi progreso · La granja de Sofi</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/globals.css">
+  <style>
+    .dash { max-width: 900px; margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-7); display: grid; gap: var(--sp-5); }
+    .dash-header { display: flex; justify-content: space-between; align-items: center; }
+    .dash-header h1 { font-size: 28px; margin: 0; }
+    .grid-cards { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      background: var(--granja-blanco);
+      border-radius: var(--r-md);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(212, 163, 115, 0.20);
+    }
+    .card h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--granja-marron-dark); margin: 0 0 var(--sp-3); }
+    .big-number { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .big-number small { font-size: 16px; color: var(--granja-ink-soft); font-weight: 600; margin-left: 4px; }
+    .pollitos-list { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .pollito-card {
+      background: var(--granja-crema-soft);
+      border-radius: var(--r-md);
+      padding: var(--sp-3);
+      text-align: center;
+      border: 1px solid rgba(212, 163, 115, 0.20);
+    }
+    .pollito-card img { width: 60px; }
+    .pollito-card strong { display: block; font-size: 14px; }
+    .pollito-card small { font-size: 11px; color: var(--granja-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+    .achievement {
+      background: linear-gradient(135deg, var(--granja-amarillo), var(--granja-amarillo-soft));
+      border: 1.5px solid var(--granja-marron);
+      color: var(--granja-marron-dark);
+      padding: var(--sp-2) var(--sp-4);
+      border-radius: var(--r-full);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .achievement.locked { background: transparent; color: var(--granja-ink-soft); border-color: rgba(60, 47, 37, 0.20); }
+    .empty { color: var(--granja-ink-soft); font-style: italic; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="dash">
+    <header class="dash-header">
+      <h1>Mi progreso</h1>
+      <a class="papa-link" href="index.html">← Volver al corral</a>
+    </header>
+
+    <div class="grid-cards">
+      <div class="card">
+        <h2>Mi racha</h2>
+        <div class="big-number" id="streak">0 <small>días</small></div>
+      </div>
+      <div class="card">
+        <h2>Huevos guardados</h2>
+        <div class="big-number" id="eggs">0</div>
+      </div>
+      <div class="card">
+        <h2>Mis pollitos</h2>
+        <div class="big-number" id="pollitosCount">0</div>
+      </div>
+      <div class="card">
+        <h2>Hoy</h2>
+        <div class="big-number" id="todayCount">0 <small>juegos</small></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Mis pollitos</h2>
+      <div id="pollitosBox" class="pollitos-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Logros</h2>
+      <div id="achievementsBox" class="badge-row"></div>
+    </div>
+  </main>
+
+  <script src="lib/registry.js"></script>
+  <script src="lib/store.js"></script>
+  <script src="lib/compute.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var store = window.Granja.store;
+    var s = store.getState();
+
+    // Stats
+    document.getElementById('streak').innerHTML = s.corral.streak + ' <small>' + (s.corral.streak === 1 ? 'día' : 'días') + '</small>';
+    document.getElementById('eggs').textContent = s.corral.eggs;
+    document.getElementById('pollitosCount').textContent = s.corral.pollitos.length;
+    var todays = store.getSessionsForDate();
+    document.getElementById('todayCount').innerHTML = todays.length + ' <small>' + (todays.length === 1 ? 'juego' : 'juegos') + '</small>';
+
+    // Pollitos
+    var box = document.getElementById('pollitosBox');
+    if (s.corral.pollitos.length === 0) {
+      box.innerHTML = '<div class="empty">Todavía no tenés pollitos. Completá una sesión diaria para ganar un huevo. Con 5 huevos eclosiona tu primer pollito.</div>';
+    } else {
+      box.innerHTML = s.corral.pollitos.map(function (p) {
+        var sprite = p.stage === 'gallina' ? 'shared/sprites/gallina.png' : 'shared/sprites/pollito.png';
+        return '<div class="pollito-card"><img src="' + sprite + '" alt=""><strong>' + p.name + '</strong><small>' + p.stage + '</small></div>';
+      }).join('');
+    }
+
+    // Achievements (simple set)
+    var achievements = [
+      { id: 'first', name: 'Primera sesión', got: s.sessions.length >= 1 },
+      { id: 'streak3', name: 'Racha de 3', got: s.corral.longestStreak >= 3 },
+      { id: 'streak7', name: 'Gallina madrugadora (7 días)', got: s.corral.longestStreak >= 7 },
+      { id: 'firstHatch', name: 'Primer pollito', got: s.corral.pollitos.length >= 1 },
+      { id: 'firstGallina', name: 'Primera gallina', got: s.corral.pollitos.some(function (p) { return p.stage === 'gallina'; }) },
+    ];
+    document.getElementById('achievementsBox').innerHTML = achievements.map(function (a) {
+      return '<span class="achievement' + (a.got ? '' : ' locked') + '">' + (a.got ? '★ ' : '') + a.name + '</span>';
+    }).join('');
+  })();
+  </script>
+</body>
+</html>

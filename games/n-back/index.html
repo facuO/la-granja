@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memoria activa · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Memoria activa</h1>
+      <div class="hud__stats">
+        <div class="hud__stat"><span class="hud__stat-value" id="score">0</span><span class="hud__stat-label">Aciertos</span></div>
+        <div class="hud__stat"><span class="hud__stat-value" id="stepCounter">—</span><span class="hud__stat-label">Paso</span></div>
+      </div>
+    </header>
+
+    <section class="arena" aria-label="Memoria activa">
+      <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
+      <div class="stim-stage" id="stage"></div>
+      <div class="hint">
+        Apretá <kbd>Espacio</kbd> si el pollito es del mismo color que el de hace <strong id="nIndicator">2</strong> turnos.
+      </div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">Memoria activa</h2>
+          <p class="overlay__sub">
+            Van a aparecer pollitos de distintos colores, uno por uno.<br>
+            Apretá <kbd>Espacio</kbd> cuando el de ahora sea <strong>del mismo color</strong> que el de hace <strong id="nIndicatorIntro">N</strong> turnos.<br>
+            Si no, dejá pasar.
+          </p>
+          <div class="example-row">
+            <img src="../../shared/sprites/pollito.png" style="filter: hue-rotate(50deg);" alt="">
+            <img src="../../shared/sprites/pollito.png" style="filter: hue-rotate(180deg);" alt="">
+            <img src="../../shared/sprites/pollito.png" class="match" style="filter: hue-rotate(50deg);" alt="">
+          </div>
+          <p style="font-size: 12px; color: var(--granja-ink-soft); margin: 0;">El tercero coincide con el primero (hace 2 turnos).</p>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="startBtn">Empezar</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Listo!</h2>
+          <p class="overlay__sub">Esto fue lo que hiciste:</p>
+          <div class="metrics-grid" id="metricsBox"></div>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="playAgainBtn">Jugar de nuevo</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="../../lib/sounds.js" defer></script>
+  <script src="game.js" defer></script>
+  <script>
+    // Reemplazar N en intro tras cargar
+    (function() {
+      var n = new URLSearchParams(location.search).get('difficulty') || '3';
+      var nMap = { '1':'1', '2':'2', '3':'2', '4':'3', '5':'3' };
+      var nValue = nMap[n] || '2';
+      var el = document.getElementById('nIndicatorIntro');
+      if (el) el.textContent = nValue;
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trazado preciso · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Trazado preciso</h1>
+      <span class="hud__counter" style="font-size: 13px; color: var(--granja-ink-soft); font-weight: 600;">Mouse</span>
+    </header>
+
+    <section class="arena" aria-label="Trazado">
+      <div style="display: grid; gap: var(--sp-3); width: 100%;">
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="bg" width="800" height="380"></canvas>
+          <canvas id="user" class="user" width="800" height="380"></canvas>
+        </div>
+        <p class="hint" id="hint">Empezá desde el punto verde "A" y seguí la línea hasta "B".</p>
+        <div class="controls">
+          <button class="btn btn--secondary btn--small" id="resetBtn">Borrar y volver a empezar</button>
+          <button class="btn btn--primary btn--small" id="finishBtn" disabled>Listo</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">Trazado preciso</h2>
+          <p class="overlay__sub">
+            Mantené apretado el mouse y seguí la línea punteada<br>
+            desde la <strong style="color: var(--granja-verde-dark);">A verde</strong>
+            hasta la <strong style="color: var(--granja-terracota-dark);">B terracota</strong>.<br>
+            Tratá de no salirte del camino.
+          </p>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="startBtn">Empezar</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Listo!</h2>
+          <p class="overlay__sub">Esto fue lo que hiciste:</p>
+          <div class="metrics-grid" id="metricsBox"></div>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="playAgainBtn">Jugar de nuevo</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="game.js" defer></script>
+</body>
+</html>

@@ -16,5 +16,6 @@ export default defineConfig({
       "**/.claude/**",
       "**/.git/**",
     ],
+    setupFiles: ["./tests/setup.ts"],
   },
 });

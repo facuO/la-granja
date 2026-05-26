@@ -1,0 +1,75 @@
+/* Fonts locales (opcional — si los archivos no están en /fonts, el browser
+ * cae al stack del sistema definido en --font-sans). Ver fonts/README.md.
+ * `font-display: swap` mantiene la app usable mientras carga o si falla. */
+@font-face {
+  font-family: 'Quicksand';
+  src: url('../fonts/Quicksand-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quicksand';
+  src: url('../fonts/Quicksand-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../fonts/Nunito-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nunito';
+  src: url('../fonts/Nunito-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Paleta granja cordobesa */
+  --granja-crema: #FDF6E3;
+  --granja-crema-soft: #FFF9EA;
+  --granja-amarillo: #F4C430;
+  --granja-amarillo-soft: #FCE38A;
+  --granja-verde: #95B46A;
+  --granja-verde-soft: #C4D7A1;
+  --granja-verde-dark: #6C8B4A;
+  --granja-terracota: #D97757;
+  --granja-terracota-dark: #B85C3F;
+  --granja-marron: #8A6B4F;
+  --granja-marron-dark: #5C4A38;
+  --granja-cielo: #E8F1F7;
+  --granja-cielo-soft: #F4F9FC;
+  --granja-ink: #3D2F25;
+  --granja-ink-soft: #6E5E50;
+  --granja-blanco: #FFFFFF;
+
+  /* Sombras suaves */
+  --shadow-sm: 0 1px 2px rgba(60, 47, 37, 0.08);
+  --shadow-md: 0 4px 10px rgba(60, 47, 37, 0.10);
+  --shadow-lg: 0 8px 22px rgba(60, 47, 37, 0.14);
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-full: 999px;
+
+  /* Tipografía */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Helvetica Rounded", "Segoe UI", "Quicksand", "Nunito", Arial, sans-serif;
+
+  /* Espaciado base */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+}

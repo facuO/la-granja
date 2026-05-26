@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atrapa-pollitos · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Atrapa-pollitos</h1>
+      <div class="hud__stats">
+        <div class="hud__stat">
+          <span class="hud__stat-value" id="score">0</span>
+          <span class="hud__stat-label">Atrapados</span>
+        </div>
+        <div class="hud__stat">
+          <span class="hud__stat-value" id="timeLeft">—</span>
+          <span class="hud__stat-label">Tiempo</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="arena" id="arena" aria-label="Cancha de juego">
+      <div class="lane-divider" aria-hidden="true"></div>
+      <div class="key-hint key-hint--left" id="keyHintLeft" aria-hidden="true">F</div>
+      <div class="key-hint key-hint--right" id="keyHintRight" aria-hidden="true">J</div>
+
+      <!-- Overlay: pantalla de inicio -->
+      <div class="overlay" id="startOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">Atrapa-pollitos</h2>
+          <p class="overlay__sub">
+            Los pollitos van a caer del cielo a la izquierda o a la derecha.<br>
+            Atrapalos apretando la tecla correcta antes de que toquen el suelo.
+          </p>
+          <div class="hands-illustration" aria-hidden="true">
+            <div class="key-col">
+              <div class="key-demo">F</div>
+              <small>Mano izquierda</small>
+            </div>
+            <div class="key-col">
+              <div class="key-demo">J</div>
+              <small>Mano derecha</small>
+            </div>
+          </div>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="startBtn">Empezar</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay: pantalla de fin -->
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Buen trabajo!</h2>
+          <p class="overlay__sub">Esto fue lo que hiciste:</p>
+          <div class="metrics-grid" id="metricsBox"></div>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="playAgainBtn">Jugar de nuevo</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../../lib/sounds.js" defer></script>
+  <script src="game.js" defer></script>
+</body>
+</html>

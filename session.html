@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sesión del día · La granja de Sofi</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/globals.css">
+  <style>
+    .session {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: var(--sp-6) var(--sp-5) var(--sp-7);
+    }
+    .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-6); }
+    .session-header h1 { font-size: 28px; margin: 0; }
+    .progress-dots { display: flex; gap: var(--sp-3); justify-content: center; margin: var(--sp-5) 0 var(--sp-6); }
+    .dot {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--granja-blanco);
+      border: 2.5px solid var(--granja-marron);
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 15px;
+      color: var(--granja-ink-soft);
+      transition: background 200ms ease, transform 200ms ease;
+    }
+    .dot.done { background: var(--granja-verde); color: var(--granja-blanco); border-color: var(--granja-verde-dark); }
+    .dot.current { background: var(--granja-amarillo); color: var(--granja-ink); border-color: var(--granja-marron); transform: scale(1.12); }
+    .card {
+      background: var(--granja-blanco);
+      border-radius: var(--r-lg);
+      padding: var(--sp-6) var(--sp-7);
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(212, 163, 115, 0.20);
+      text-align: center;
+    }
+    .game-info { margin-top: var(--sp-3); }
+    .game-info h2 { font-size: 26px; margin: 0 0 var(--sp-3); }
+    .game-info p { color: var(--granja-ink-soft); margin: 0; line-height: 1.5; }
+    .area-badges { display: flex; gap: var(--sp-2); justify-content: center; margin-top: var(--sp-4); flex-wrap: wrap; }
+    .badge {
+      background: var(--granja-crema-soft);
+      border: 1px solid var(--granja-marron);
+      color: var(--granja-marron-dark);
+      padding: 4px 12px;
+      border-radius: var(--r-full);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .stars { display: inline-flex; gap: 3px; margin-left: var(--sp-2); vertical-align: middle; }
+    .star { color: var(--granja-amarillo); font-size: 18px; }
+    .star.empty { color: rgba(60, 47, 37, 0.15); }
+    .summary-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); margin: var(--sp-5) 0; }
+    .summary-cell { background: var(--granja-crema-soft); border-radius: var(--r-md); padding: var(--sp-4); text-align: left; border: 1px solid rgba(212,163,115,0.18); }
+    .summary-cell__value { font-size: 22px; font-weight: 800; }
+    .summary-cell__label { font-size: 11px; color: var(--granja-ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .hatched-card {
+      background: linear-gradient(135deg, var(--granja-amarillo-soft), var(--granja-crema-soft));
+      border-radius: var(--r-md);
+      padding: var(--sp-5);
+      margin: var(--sp-4) 0;
+      display: flex; align-items: center; gap: var(--sp-4);
+      border: 1.5px solid var(--granja-amarillo);
+    }
+    .hatched-card img { width: 64px; }
+    .hatched-card__text strong { display: block; font-size: 18px; margin-bottom: 4px; }
+    .hatched-card__text { text-align: left; flex: 1; }
+    .pollito-name-input {
+      margin-top: var(--sp-2);
+      width: 100%;
+      max-width: 240px;
+      background: var(--granja-blanco);
+      border: 2px solid var(--granja-marron);
+      border-radius: var(--r-sm);
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--granja-ink);
+      outline: none;
+    }
+    .pollito-name-input:focus { border-color: var(--granja-terracota); }
+    .cta-row { display: flex; gap: var(--sp-3); justify-content: center; margin-top: var(--sp-5); flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main class="session">
+    <header class="session-header">
+      <h1>Sesión del día</h1>
+      <a class="papa-link" href="index.html">← Volver al corral</a>
+    </header>
+
+    <div class="progress-dots" id="progressDots"></div>
+
+    <div id="screen"></div>
+  </main>
+
+  <script src="lib/registry.js"></script>
+  <script src="lib/store.js"></script>
+  <script src="lib/session-builder.js"></script>
+  <script src="lib/compute.js"></script>
+  <script src="lib/sounds.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var ACTIVE_KEY = 'granja-active-session';
+    var store = window.Granja.store;
+    var builder = window.Granja.builder;
+    var registry = window.Granja.registry;
+
+    var $progressDots = document.getElementById('progressDots');
+    var $screen = document.getElementById('screen');
+
+    function getActive() {
+      try {
+        var raw = localStorage.getItem(ACTIVE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_e) { return null; }
+    }
+    function setActive(s) {
+      localStorage.setItem(ACTIVE_KEY, JSON.stringify(s));
+    }
+    function clearActive() {
+      localStorage.removeItem(ACTIVE_KEY);
+    }
+
+    function buildNew() {
+      var picks = builder.buildDailySession();
+      var session = {
+        startedAt: new Date().toISOString(),
+        plannedGames: picks.map(function (p) {
+          return { gameId: p.game.id, difficulty: p.difficulty, completed: false, metrics: null };
+        }),
+        currentStep: 0,
+      };
+      setActive(session);
+      return session;
+    }
+
+    function renderDots(session) {
+      $progressDots.innerHTML = '';
+      session.plannedGames.forEach(function (g, i) {
+        var d = document.createElement('div');
+        d.className = 'dot';
+        if (g.completed) d.classList.add('done');
+        else if (i === session.currentStep) d.classList.add('current');
+        d.textContent = g.completed ? '✓' : String(i + 1);
+        $progressDots.appendChild(d);
+      });
+    }
+
+    function renderStars(n) {
+      var html = '<span class="stars">';
+      for (var i = 1; i <= 5; i++) {
+        html += '<span class="star' + (i <= n ? '' : ' empty') + '">★</span>';
+      }
+      return html + '</span>';
+    }
+
+    function renderIntro(session) {
+      var first = registry.getById(session.plannedGames[0].gameId);
+      $screen.innerHTML = `
+        <div class="card">
+          <p style="color: var(--granja-ink-soft); margin: 0 0 var(--sp-3);">Hoy vamos a jugar</p>
+          <h2 style="margin: 0; font-size: 32px;">${session.plannedGames.length} juegos</h2>
+          <p style="margin-top: var(--sp-3); color: var(--granja-ink-soft);">
+            Una tanda corta para ejercitar las cuatro áreas.<br>
+            Al terminar te llevás un huevo para el corral.
+          </p>
+          <div class="cta-row">
+            <button class="btn btn--primary" id="goBtn">Empezar juego ${session.currentStep + 1}: ${first ? first.name : '?'}</button>
+            <a class="btn btn--secondary" href="index.html">Ahora no</a>
+          </div>
+        </div>
+      `;
+      document.getElementById('goBtn').addEventListener('click', function () {
+        goToCurrentGame(session);
+      });
+    }
+
+    function renderBetween(session, justFinished) {
+      var nextPlan = session.plannedGames[session.currentStep];
+      var nextGame = registry.getById(nextPlan.gameId);
+      var lastName = '';
+      if (justFinished) {
+        var justGame = registry.getById(justFinished.gameId);
+        lastName = justGame ? justGame.name : justFinished.gameId;
+      }
+      $screen.innerHTML = `
+        <div class="card">
+          ${justFinished ? `<p style="color: var(--granja-ink-soft); margin: 0;">Terminaste ${lastName}.</p>` : ''}
+          <h2>Toca el siguiente</h2>
+          <div class="game-info">
+            <h2 style="font-size: 24px;">${nextGame ? nextGame.name : '?'} ${renderStars(nextPlan.difficulty)}</h2>
+            <p>${nextGame ? nextGame.description : ''}</p>
+            <div class="area-badges">
+              ${nextGame ? nextGame.areas.map(function(a){ return '<span class="badge">'+a+'</span>'; }).join('') : ''}
+            </div>
+          </div>
+          <div class="cta-row">
+            <button class="btn btn--primary" id="goBtn">Empezar ${nextGame ? nextGame.name : ''}</button>
+            <a class="btn btn--secondary" href="index.html">Pausar</a>
+          </div>
+        </div>
+      `;
+      document.getElementById('goBtn').addEventListener('click', function () {
+        goToCurrentGame(session);
+      });
+    }
+
+    function goToCurrentGame(session) {
+      var plan = session.plannedGames[session.currentStep];
+      var game = registry.getById(plan.gameId);
+      if (!game) return;
+      var url = game.path + '?session=1&difficulty=' + plan.difficulty;
+      location.href = url;
+    }
+
+    function renderFinished(session, close) {
+      // Score total resumido
+      var compute = window.Granja.compute;
+      var total = session.plannedGames.reduce(function (a, g) {
+        return a + ((g.metrics && g.metrics.durationSec) || 0);
+      }, 0);
+      var avgAcc = session.plannedGames.reduce(function (a, g) {
+        return a + ((g.metrics && g.metrics.accuracy) || 0);
+      }, 0) / session.plannedGames.length;
+      var minutes = Math.round(total / 60);
+
+      var hatchedHtml = '';
+      close.hatched.forEach(function (p) {
+        hatchedHtml += `
+          <div class="hatched-card">
+            <img src="shared/sprites/pollito.png" alt="">
+            <div class="hatched-card__text">
+              <strong>¡Eclosionó un pollito!</strong>
+              <span>Lo podés llamar como quieras (o dejar el nombre sugerido):</span>
+              <input type="text" class="pollito-name-input" data-pollito-id="${p.id}" value="${p.name}" maxlength="24" aria-label="Nombre del pollito">
+            </div>
+          </div>`;
+      });
+      var promotedHtml = '';
+      close.promotedToGallina.forEach(function (p) {
+        promotedHtml += `
+          <div class="hatched-card">
+            <img src="shared/sprites/gallina.png" alt="">
+            <div class="hatched-card__text">
+              <strong>¡${p.name} creció!</strong>
+              <span>Ahora es una gallina del corral.</span>
+            </div>
+          </div>`;
+      });
+
+      // Cacareo al cerrar la sesión (si los sonidos están habilitados)
+      if (window.Granja.sound && window.Granja.sound.cacareo) {
+        try { window.Granja.sound.cacareo(); } catch (_e) {}
+      }
+
+      $screen.innerHTML = `
+        <div class="card">
+          <h2 style="margin: 0;">¡Sesión completa!</h2>
+          <p style="color: var(--granja-ink-soft); margin-top: var(--sp-2);">Buen trabajo. Esto fue tu día:</p>
+          <div class="summary-row">
+            <div class="summary-cell">
+              <div class="summary-cell__value">${session.plannedGames.length}</div>
+              <div class="summary-cell__label">Juegos</div>
+            </div>
+            <div class="summary-cell">
+              <div class="summary-cell__value">${minutes} min</div>
+              <div class="summary-cell__label">Tiempo total</div>
+            </div>
+            <div class="summary-cell">
+              <div class="summary-cell__value">${Math.round(avgAcc * 100)}%</div>
+              <div class="summary-cell__label">Precisión promedio</div>
+            </div>
+            <div class="summary-cell" style="display:flex; align-items:center; gap: var(--sp-3);">
+              <img src="shared/svg/huevo.svg" alt="" style="width:32px;">
+              <div>
+                <div class="summary-cell__value">+${close.eggsEarned}</div>
+                <div class="summary-cell__label">Huevo ganado</div>
+              </div>
+            </div>
+          </div>
+          ${hatchedHtml}
+          ${promotedHtml}
+          <div class="cta-row">
+            <a class="btn btn--primary" href="index.html">Volver al corral</a>
+          </div>
+        </div>
+      `;
+
+      // Wire de los inputs de nombre de pollito (si los hay)
+      Array.from(document.querySelectorAll('.pollito-name-input')).forEach(function (inp) {
+        var originalName = inp.value;
+        inp.addEventListener('blur', function () {
+          var newName = inp.value.trim();
+          if (newName && newName !== originalName) {
+            store.renamePollito(inp.dataset.pollitoId, newName);
+          }
+        });
+        inp.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') inp.blur();
+        });
+      });
+    }
+
+    /* ─────── Flujo ─────── */
+    var session = getActive();
+
+    // Si no hay sesión activa, armamos una nueva
+    if (!session) {
+      session = buildNew();
+    }
+
+    // Si veníamos de un juego: consumir lastGameResult e incorporarlo
+    var raw = localStorage.getItem('lastGameResult');
+    if (raw && session.currentStep < session.plannedGames.length) {
+      try {
+        var data = JSON.parse(raw);
+        var expected = session.plannedGames[session.currentStep];
+        if (data && data.type === 'gameFinished' && data.gameId === expected.gameId) {
+          store.addSession(data.gameId, expected.difficulty, data.metrics);
+          expected.completed = true;
+          expected.metrics = data.metrics;
+          session.currentStep += 1;
+          setActive(session);
+        }
+      } catch (_e) { /* ignore */ }
+      localStorage.removeItem('lastGameResult');
+    }
+
+    renderDots(session);
+
+    // Renderizado según paso actual
+    if (session.currentStep >= session.plannedGames.length) {
+      // Cierre: otorgar huevo, eclosionar, promover
+      var close = store.completeDailySession();
+      renderFinished(session, close);
+      clearActive();
+    } else if (session.currentStep === 0 && !session.plannedGames[0].completed) {
+      renderIntro(session);
+    } else {
+      var lastDone = session.plannedGames[session.currentStep - 1];
+      renderBetween(session, lastDone);
+    }
+  })();
+  </script>
+</body>
+</html>

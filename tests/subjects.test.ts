@@ -64,7 +64,7 @@ describe("GET /api/sofi/subjects", () => {
     expect(sociales.topics[0].status).toBe("featured");
   });
 
-  it("returns subjects without topics too (empty topic list)", async () => {
+  it("returns Lengua, Matemática and Naturales with their seeded topics", async () => {
     const cookie = await getSofiCookie(app);
     const res = await app.inject({
       method: "GET",
@@ -76,8 +76,17 @@ describe("GET /api/sofi/subjects", () => {
     expect(names).toContain("Lengua");
     expect(names).toContain("Matemática");
     expect(names).toContain("Ciencias Naturales");
-    const lengua = body.subjects.find((s: { name: string }) => s.name === "Lengua");
-    expect(lengua.topics).toEqual([]);
+
+    // Each newly-seeded subject has 1 featured + 2 available topics (seeded in
+    // 1779748122797_seed-topics-lengua-mate-naturales).
+    for (const subjectName of ["Lengua", "Matemática", "Ciencias Naturales"]) {
+      const subj = body.subjects.find((s: { name: string }) => s.name === subjectName);
+      expect(subj.topics.length).toBeGreaterThanOrEqual(3);
+      const statuses = subj.topics.map((t: { status: string }) => t.status);
+      expect(statuses).toContain("featured");
+      expect(statuses).toContain("available");
+      expect(subj.topics[0].status).toBe("featured");
+    }
   });
 
   it("rejects unauthenticated", async () => {

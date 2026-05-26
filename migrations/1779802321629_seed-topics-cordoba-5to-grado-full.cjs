@@ -275,7 +275,7 @@ exports.up = (pgm) => {
       ('55555555-5555-5555-5555-555555555543',
        '22222222-2222-2222-2222-222222222221',
        'Producción regional argentina',
-       'Conocer qué se produce en cada región del país. Pampeana: trigo, maíz, soja, ganado vacuno. NOA: caña de azúcar, tabaco, citrus. NEA: yerba mate, té, algodón. Cuyo: vid (vino), olivos. Patagonia: petróleo, lana, frutas finas como manzana y pera.',
+       'Conocer qué se produce en cada región del país. Pampeana: trigo, maíz, soja, ganado vacuno. NOA: caña de azúcar, tabaco, cítricos. NEA: yerba mate, té, algodón. Cuyo: vid (vino), olivos. Patagonia: petróleo, lana, frutas finas como manzana y pera.',
        '["producción", "agricultura", "ganadería", "trigo", "soja", "vid", "yerba mate", "petróleo", "región"]'::jsonb,
        'available',
        23),

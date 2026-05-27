@@ -15,6 +15,35 @@ const topicsEl = document.getElementById("topics");
 
 let subjectName = "";
 
+// Renderiza una sección (Contenido o Ejercicios) con su header y la lista
+// de topics. Si la sección está vacía, no renderiza nada.
+function renderSection(title, subtitle, topics) {
+  if (!topics.length) return;
+  const header = document.createElement("div");
+  header.className = "section-header";
+  const h2 = document.createElement("h2");
+  h2.className = "section-title";
+  h2.textContent = title;
+  const sub = document.createElement("p");
+  sub.className = "section-subtitle";
+  sub.textContent = subtitle;
+  header.appendChild(h2);
+  header.appendChild(sub);
+  topicsEl.appendChild(header);
+
+  const list = document.createElement("div");
+  list.className = "topic-list";
+  for (const topic of topics) {
+    const btn = document.createElement("button");
+    btn.className = "topic";
+    btn.dataset.status = topic.status;
+    btn.textContent = topic.title;
+    btn.addEventListener("click", () => startSession(topic.id));
+    list.appendChild(btn);
+  }
+  topicsEl.appendChild(list);
+}
+
 async function init() {
   if (!subjectId) {
     topicsEl.innerHTML = "";
@@ -57,14 +86,12 @@ async function init() {
       return;
     }
 
-    for (const topic of subject.topics) {
-      const btn = document.createElement("button");
-      btn.className = "topic";
-      btn.dataset.status = topic.status;
-      btn.textContent = topic.title;
-      btn.addEventListener("click", () => startSession(topic.id));
-      topicsEl.appendChild(btn);
-    }
+    // Dos secciones: Contenido (teoría) y Ejercicios (práctica).
+    const contenido = subject.topics.filter((t) => t.section !== "ejercicios");
+    const ejercicios = subject.topics.filter((t) => t.section === "ejercicios");
+
+    renderSection("📖 Contenido", "Aprendé el tema paso a paso.", contenido);
+    renderSection("✏️ Ejercicios", "Practicá lo que aprendiste.", ejercicios);
   } catch (err) {
     topicsEl.innerHTML = "";
     topicsEl.setAttribute("aria-busy", "false");

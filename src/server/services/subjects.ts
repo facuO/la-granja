@@ -4,6 +4,13 @@ export interface TopicForSelector {
   id: string;
   title: string;
   status: "featured" | "available" | "done" | "mastered";
+  section: "contenido" | "ejercicios";
+}
+
+// Los topics de ejercicios usan UUIDs que empiezan con 66666666 (ver
+// migración seed-ejercicios-siblings). El resto es contenido (teoría).
+function sectionForTopic(id: string): "contenido" | "ejercicios" {
+  return id.startsWith("66666666") ? "ejercicios" : "contenido";
 }
 
 export interface SubjectForSelector {
@@ -44,7 +51,7 @@ export async function getSubjectsForSofi(opts: { difficultMode: boolean }): Prom
         ON t.block_id = b.id
        AND t.status IN ${statusFilter}
      WHERE s.active = true
-     ORDER BY s.name, topic_status_order, block_order_index, topic_order_index
+     ORDER BY s.name, block_order_index, topic_order_index, topic_status_order
   `);
 
   const map = new Map<string, SubjectForSelector>();
@@ -57,6 +64,7 @@ export async function getSubjectsForSofi(opts: { difficultMode: boolean }): Prom
         id: r.topic_id,
         title: r.topic_title,
         status: r.topic_status,
+        section: sectionForTopic(r.topic_id),
       });
     }
   }

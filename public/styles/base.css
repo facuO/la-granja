@@ -96,6 +96,26 @@ a:focus-visible {
   flex-direction: column;
   gap: var(--space-2);
 }
+.section-header {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--border);
+}
+.section-header:first-child {
+  margin-top: var(--space-2);
+}
+.section-title {
+  margin: 0;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.section-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
 .materia-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

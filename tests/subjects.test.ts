@@ -61,7 +61,12 @@ describe("GET /api/sofi/subjects", () => {
     expect(statuses).toContain("done");
     expect(statuses).not.toContain("upcoming");
 
-    expect(sociales.topics[0].status).toBe("featured");
+    // Cada topic tiene una sección válida (contenido | ejercicios).
+    const sections = sociales.topics.map((t: { section: string }) => t.section);
+    expect(sections.every((s: string) => s === "contenido" || s === "ejercicios")).toBe(true);
+    // Y hay topics de ambas secciones.
+    expect(sections).toContain("contenido");
+    expect(sections).toContain("ejercicios");
   });
 
   it("returns Lengua, Matemática and Naturales with their seeded topics", async () => {
@@ -77,15 +82,16 @@ describe("GET /api/sofi/subjects", () => {
     expect(names).toContain("Matemática");
     expect(names).toContain("Ciencias Naturales");
 
-    // Each newly-seeded subject has 1 featured + 2 available topics (seeded in
-    // 1779748122797_seed-topics-lengua-mate-naturales).
+    // Cada materia tiene topics de contenido y ejercicios (siblings).
     for (const subjectName of ["Lengua", "Matemática", "Ciencias Naturales"]) {
       const subj = body.subjects.find((s: { name: string }) => s.name === subjectName);
       expect(subj.topics.length).toBeGreaterThanOrEqual(3);
       const statuses = subj.topics.map((t: { status: string }) => t.status);
       expect(statuses).toContain("featured");
       expect(statuses).toContain("available");
-      expect(subj.topics[0].status).toBe("featured");
+      const sections = subj.topics.map((t: { section: string }) => t.section);
+      expect(sections).toContain("contenido");
+      expect(sections).toContain("ejercicios");
     }
   });
 

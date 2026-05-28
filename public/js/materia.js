@@ -34,12 +34,24 @@ function renderSection(title, subtitle, topics) {
   const list = document.createElement("div");
   list.className = "topic-list";
   for (const topic of topics) {
+    const row = document.createElement("div");
+    row.className = "topic-row";
     const btn = document.createElement("button");
     btn.className = "topic";
     btn.dataset.status = topic.status;
     btn.textContent = topic.title;
     btn.addEventListener("click", () => startSession(topic.id));
-    list.appendChild(btn);
+    const printLink = document.createElement("a");
+    printLink.className = "topic-print";
+    printLink.href = `/imprimir.html?topic=${encodeURIComponent(topic.id)}`;
+    printLink.target = "_blank";
+    printLink.rel = "noopener";
+    printLink.setAttribute("aria-label", `Imprimir actividades de ${topic.title}`);
+    printLink.title = "Imprimir actividades";
+    printLink.textContent = "🖨️";
+    row.appendChild(btn);
+    row.appendChild(printLink);
+    list.appendChild(row);
   }
   topicsEl.appendChild(list);
 }

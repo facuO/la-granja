@@ -5,6 +5,7 @@ import { requireSofi } from "../auth/middleware.js";
 import { getSubjectsForSofi } from "../services/subjects.js";
 import { startSession, nextBlock, finishSession } from "../services/sessions.js";
 import { askTutor, type ChatMessage } from "../services/real-chat.js";
+import { getAllStubBlocks } from "../services/stub-tutor.js";
 
 export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
@@ -99,6 +100,51 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await finishSession(req.params.id);
       return reply.send(result);
     }
+  );
+
+  // Devuelve los blocks de un topic para el generador de actividades
+  // imprimibles. Accesible con la cookie sofi (Papá/AT/Sofi). Cae al stub
+  // hand-crafted si no hay generated_blocks.
+  fastify.get<{ Params: { id: string } }>(
+    "/api/sofi/topics/:id/blocks",
+    {
+      preHandler: requireSofi,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { rows } = await query<{
+        title: string;
+        subject_name: string;
+        generated_blocks: unknown[] | null;
+      }>(
+        `SELECT t.title, s.name AS subject_name, t.generated_blocks
+           FROM topics t
+           JOIN blocks b ON b.id = t.block_id
+           JOIN subjects s ON s.id = b.subject_id
+          WHERE t.id = $1`,
+        [req.params.id],
+      );
+      if (rows.length === 0) {
+        return reply.code(404).send({ ok: false, reason: "topic_not_found" });
+      }
+      const row = rows[0];
+      let blocks = row.generated_blocks;
+      if (!Array.isArray(blocks) || blocks.length === 0) {
+        blocks = getAllStubBlocks(req.params.id) ?? [];
+      }
+      return reply.send({
+        ok: true,
+        title: row.title,
+        subject_name: row.subject_name,
+        blocks,
+      });
+    },
   );
 
   // Chat conversacional con el tutor. Acepta history (turnos previos) + el

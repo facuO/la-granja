@@ -85,14 +85,14 @@ async function init() {
     return;
   }
   try {
-    const res = await api(`/api/admin/topics/${topicId}/blocks`);
+    const res = await api(`/api/sofi/topics/${topicId}/blocks`);
     loaded = res;
     statusEl.textContent = `${res.subject_name} · ${res.title}`;
     printBtn.disabled = false;
     render();
   } catch (err) {
     if (err instanceof NoAccessError) {
-      statusEl.textContent = "Necesitás iniciar sesión como Papá (entrá a /admin.html con la contraseña primero).";
+      statusEl.textContent = "Necesitás abrir antes el link de acceso (/s/<token>) para autorizar este dispositivo.";
     } else {
       statusEl.textContent = "No se pudo cargar. " + err.message;
     }

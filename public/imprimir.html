@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actividades para imprimir</title>
+  <link rel="stylesheet" href="/styles/base.css">
+  <style>
+    @page { size: A4; margin: 1.8cm; }
+    .print-toolbar {
+      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+      background: var(--bg); padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: var(--space-3);
+    }
+    .worksheet {
+      background: white; color: #1f2937; padding: var(--space-4);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 17px; line-height: 1.7;
+    }
+    .ws-header { border-bottom: 3px solid var(--accent-strong); padding-bottom: 12px; margin-bottom: 20px; }
+    .ws-header h1 { font-size: 24px; margin: 0 0 6px; }
+    .ws-meta { color: #4b5563; font-size: 15px; }
+    .ws-recordar {
+      background: #eaf3e6; border-left: 5px solid var(--accent-strong);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; font-size: 16px;
+    }
+    .ws-recordar h3 { margin: 0 0 6px; font-size: 16px; }
+    .ws-recordar ul { margin: 0; padding-left: 20px; }
+    .ws-item {
+      margin: 14px 0; padding: 12px 14px; border: 2px solid var(--border);
+      border-radius: 10px; page-break-inside: avoid;
+    }
+    .ws-num { font-weight: bold; color: var(--accent-strong); margin-right: 6px; }
+    .ws-opts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .ws-opt { display: flex; align-items: center; gap: 10px; }
+    .ws-mark { width: 22px; height: 22px; border: 2px solid #9ca3af; border-radius: 4px; flex-shrink: 0; }
+    .ws-mark.circle { border-radius: 50%; }
+    .ws-vf { display: flex; gap: 24px; margin-top: 8px; font-size: 18px; }
+    .ws-vf span { border: 2px solid #9ca3af; border-radius: 8px; padding: 4px 18px; }
+    .ws-line { border-bottom: 2px dotted #9ca3af; min-height: 32px; margin-top: 8px; }
+    .ws-footer { margin-top: 24px; font-style: italic; color: #6b7280; font-size: 14px; }
+    .answer-key {
+      background: #fff8e1; border: 2px solid #d6c8ae; border-radius: 10px;
+      padding: 16px; margin-top: 24px; page-break-before: always;
+    }
+    .answer-key h2 { margin-top: 0; }
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display: none !important; }
+      .app { max-width: 100%; }
+      .worksheet { border: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="print-toolbar no-print">
+      <span id="status" class="trail-progress">Cargando...</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-size:0.85rem; display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="toggle-key" checked> Incluir clave (para la docente)
+        </label>
+        <button id="print-btn" disabled>🖨️ Imprimir</button>
+      </div>
+    </div>
+
+    <div id="worksheet" class="worksheet"></div>
+  </div>
+
+  <script type="module" src="/js/imprimir.js"></script>
+</body>
+</html>

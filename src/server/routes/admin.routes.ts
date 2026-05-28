@@ -5,7 +5,7 @@ import { query } from "../db.js";
 import { sofiToken } from "../lib/ids.js";
 import { config } from "../config.js";
 import { generateTopicBlocks, validateResponse, rawToBlock, type RawBlock } from "../services/real-tutor.js";
-import { HAND_CRAFTED_TOPIC_IDS } from "../services/stub-tutor.js";
+import { HAND_CRAFTED_TOPIC_IDS, getAllStubBlocks } from "../services/stub-tutor.js";
 import { enrichPhrase } from "../services/arasaac.js";
 
 export const adminRoutes: FastifyPluginAsync = async (fastify) => {
@@ -133,6 +133,52 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { topics: rows };
     }
+  );
+
+  // Devuelve un topic con sus generated_blocks (para el generador de
+  // actividades imprimibles). Incluye contenido stub hand-crafted si el
+  // topic no tiene generated_blocks pero sí está en el registro.
+  fastify.get<{ Params: { id: string } }>(
+    "/api/admin/topics/:id/blocks",
+    {
+      preHandler: requireParent,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { rows } = await query<{
+        title: string;
+        subject_name: string;
+        generated_blocks: unknown[] | null;
+      }>(
+        `SELECT t.title, s.name AS subject_name, t.generated_blocks
+           FROM topics t
+           JOIN blocks b ON b.id = t.block_id
+           JOIN subjects s ON s.id = b.subject_id
+          WHERE t.id = $1`,
+        [req.params.id],
+      );
+      if (rows.length === 0) {
+        return reply.code(404).send({ ok: false, reason: "topic_not_found" });
+      }
+      const row = rows[0];
+      let blocks = row.generated_blocks;
+      if (!Array.isArray(blocks) || blocks.length === 0) {
+        // Fallback al stub hand-crafted si existe
+        blocks = getAllStubBlocks(req.params.id) ?? [];
+      }
+      return reply.send({
+        ok: true,
+        title: row.title,
+        subject_name: row.subject_name,
+        blocks,
+      });
+    },
   );
 
   // Generación batch: corre el LLM secuencialmente sobre todos los topics

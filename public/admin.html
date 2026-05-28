@@ -152,6 +152,7 @@
             </div>
             <div class="admin-topic-actions">
               <button class="subtle" data-action="generate" data-id="${t.id}">${t.generated_at ? "Regenerar" : "Generar con LLM"}</button>
+              ${t.block_count ? `<a class="subtle" href="/imprimir.html?topic=${t.id}" target="_blank" style="text-decoration:none;text-align:center;">🖨️ Imprimir</a>` : ""}
               ${t.generated_at ? `<button class="subtle" data-action="clear" data-id="${t.id}">Volver al stub</button>` : ""}
             </div>
           `;

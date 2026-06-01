@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Aventura del Pollito</title>
+  <link rel="stylesheet" href="/styles/base.css">
+  <style>
+    body.pollito-body { padding: 0; background: linear-gradient(180deg, #b9e4ff 0%, #d8f0ff 70%, #ffeaa6 100%); }
+    .pollito-app { padding: 8px; max-width: 100%; }
+    .pollito-trail {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 12px; background: rgba(255,255,255,0.85);
+      border-radius: 10px; margin-bottom: 8px;
+      font-size: 0.9rem; color: var(--text);
+    }
+    .pollito-trail a { color: var(--text); text-decoration: none; padding: 6px 12px;
+      border-radius: 8px; background: white; border: 1px solid var(--border); }
+    #game-canvas {
+      display: block; width: 100%; height: auto; max-height: 70vh;
+      background: linear-gradient(180deg, #b9e4ff 0%, #d8f0ff 100%);
+      border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+      touch-action: none;
+    }
+    .game-overlay {
+      position: absolute; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.4); border-radius: 12px;
+    }
+    .game-overlay.shown { display: flex; }
+    .overlay-card {
+      background: white; padding: 28px; border-radius: 16px;
+      text-align: center; max-width: 360px;
+    }
+    .overlay-card h2 { margin-top: 0; font-size: 1.6rem; }
+    .game-stage { position: relative; }
+
+    /* Controles touch */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px; margin-top: 12px; user-select: none;
+      max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+    .ctrl-btn {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 0;
+      font-size: 2.2rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ctrl-btn:active { background: var(--bg); transform: scale(0.96); }
+    .hud {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(255,255,255,0.9);
+      padding: 6px 12px; border-radius: 8px;
+      font-weight: 600; font-size: 1.05rem;
+    }
+  </style>
+</head>
+<body class="pollito-body">
+  <div class="app pollito-app">
+    <div class="pollito-trail">
+      <span>🐤 Aventura del Pollito</span>
+      <div style="display:flex; gap:6px;">
+        <a href="/juegos.html">← Juegos</a>
+        <a href="/sofi.html">🏠 Inicio</a>
+      </div>
+    </div>
+
+    <div class="game-stage">
+      <canvas id="game-canvas" width="800" height="500" aria-label="Aventura del Pollito"></canvas>
+      <div class="hud" id="hud">🥚 0 / 5</div>
+      <div class="game-overlay" id="win-overlay">
+        <div class="overlay-card">
+          <h2>🎉 ¡Juntaste todos los huevos!</h2>
+          <p>Lo lograste, Sofi. Querés jugar otra vez?</p>
+          <button id="restart-btn">Jugar otra vez</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn" id="btn-left" aria-label="Izquierda">◀</button>
+      <button class="ctrl-btn" id="btn-jump" aria-label="Saltar">⤴</button>
+      <button class="ctrl-btn" id="btn-right" aria-label="Derecha">▶</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/juego-pollito.js"></script>
+</body>
+</html>

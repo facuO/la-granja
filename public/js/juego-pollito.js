@@ -9,6 +9,12 @@
 //      b) Quiz in-game: pollito toca una "tabla" → pausa con pregunta
 //         de Lengua/Mate, contesta correcta = sigue (Campo, Estanque...).
 //  - Cada mundo termina con un banderín.
+//
+// Iteración 4 (audio):
+//  - Web Audio API: melodía granjera + SFX (salto, huevo, puerta, win, quiz).
+//  - Default muted. Toggle 🔇/🔊 en el HUD. Persiste preferencia.
+
+import { sfx, startMusic, stopMusic, isMuted, toggleMute } from "/js/juego-pollito-audio.js";
 
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
@@ -25,6 +31,18 @@ const winTitleEl = document.getElementById("win-title");
 const winMsgEl = document.getElementById("win-msg");
 const restartBtn = document.getElementById("restart-btn");
 const backToSelectBtn = document.getElementById("back-to-select");
+const audioBtn = document.getElementById("audio-btn");
+
+// Botón audio
+function refreshAudioBtn() {
+  audioBtn.textContent = isMuted() ? "🔇" : "🔊";
+  audioBtn.setAttribute("aria-label", isMuted() ? "Encender música" : "Apagar música");
+}
+audioBtn.addEventListener("click", () => {
+  toggleMute();
+  refreshAudioBtn();
+});
+refreshAudioBtn();
 
 // --- Constantes físicas ---
 const VIEW_W = canvas.width;
@@ -229,6 +247,7 @@ function showSelector() {
   state.scene = "select";
   winOverlay.classList.remove("shown");
   quizOverlay.classList.remove("shown");
+  stopMusic();
   renderSelector();
 }
 
@@ -255,6 +274,7 @@ function startWorld(idx) {
   quizOverlay.classList.remove("shown");
   worldPillEl.textContent = `${w.emoji} ${w.name}`;
   updateHud();
+  startMusic();
 }
 
 function updateHud() {
@@ -286,6 +306,7 @@ function answerQuiz(idx) {
     state.quiz.solved = true;
     state.quizSolved = true;
     quizFbEl.textContent = state.quiz.feedback_ok;
+    sfx.quizOk();
     setTimeout(() => {
       quizOverlay.classList.remove("shown");
       state.scene = "playing";
@@ -295,6 +316,7 @@ function answerQuiz(idx) {
     }, 1200);
   } else {
     quizFbEl.textContent = state.quiz.feedback_no;
+    sfx.quizNo();
   }
 }
 
@@ -341,7 +363,7 @@ function step() {
   if (keys.left) { p.vx = -MOVE_SPEED; p.facing = -1; }
   else if (keys.right) { p.vx = MOVE_SPEED; p.facing = 1; }
   else p.vx = 0;
-  if (keys.jump && p.onGround) { p.vy = JUMP_VY; p.onGround = false; }
+  if (keys.jump && p.onGround) { p.vy = JUMP_VY; p.onGround = false; sfx.jump(); }
 
   p.vy += GRAVITY;
   if (p.vy > MAX_FALL) p.vy = MAX_FALL;
@@ -384,6 +406,7 @@ function step() {
     if (aabb(p, box)) {
       egg.taken = true;
       state.collected++;
+      sfx.egg();
       updateHud();
     }
   }
@@ -391,6 +414,7 @@ function step() {
   if (state.door && !state.door.opened && state.collected >= state.door.eggs_required) {
     state.door.opened = true;
     state.hint = "¡Puerta abierta! Andá hasta el banderín.";
+    sfx.door();
     updateHud();
   }
 
@@ -399,6 +423,8 @@ function step() {
     const challengeOk = (!state.door || state.door.opened) && (!state.quiz || state.quiz.solved);
     if (challengeOk) {
       state.scene = "won";
+      sfx.win();
+      stopMusic();
       const done = loadCompleted();
       done.add(state.world.id);
       saveCompleted(done);

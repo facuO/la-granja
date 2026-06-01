@@ -87,11 +87,21 @@
       font-weight: 600; font-size: 1.05rem;
     }
     .world-pill {
-      position: absolute; top: 12px; right: 12px;
+      position: absolute; top: 12px; right: 60px;
       background: rgba(255,255,255,0.9);
       padding: 6px 12px; border-radius: 8px;
       font-size: 0.95rem;
     }
+    .audio-btn {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(255,255,255,0.9);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 1.2rem; line-height: 1;
+      cursor: pointer; min-height: 38px;
+    }
+    .audio-btn:hover { border-color: var(--accent-strong); }
   </style>
 </head>
 <body class="pollito-body">
@@ -108,6 +118,7 @@
       <canvas id="game-canvas" width="800" height="500" aria-label="Aventura del Pollito"></canvas>
       <div class="hud" id="hud"></div>
       <div class="world-pill" id="world-pill"></div>
+      <button class="audio-btn" id="audio-btn" aria-label="Encender música">🔇</button>
 
       <!-- Selector de mundos -->
       <div class="overlay shown" id="select-overlay">

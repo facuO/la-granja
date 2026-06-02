@@ -412,8 +412,9 @@ function refreshAudioBtn() {
   audioBtn.textContent = isMuted() ? "🔇" : "🔊";
   audioBtn.setAttribute("aria-label", isMuted() ? "Encender música" : "Apagar música");
 }
-audioBtn.addEventListener("click", async () => {
-  await toggleMute();
+audioBtn.addEventListener("click", () => {
+  // SINCRONICO — no await. iOS necesita que el unlock corra en el gesture stack.
+  toggleMute();
   refreshAudioBtn();
 });
 refreshAudioBtn();
@@ -493,9 +494,10 @@ function refreshSplashStats() {
 }
 refreshSplashStats();
 
-splashStartBtn.addEventListener("click", async () => {
-  // Aprovechar el gesto del usuario para desbloquear audio
-  await unlock();
+splashStartBtn.addEventListener("click", () => {
+  // SINCRONICO — primera línea: unlock dentro del gesture stack.
+  // iOS Safari pierde el gesture context si esperamos con await.
+  unlock();
   splashOverlay.classList.remove("shown");
   bumpRuns();
   showSelector();

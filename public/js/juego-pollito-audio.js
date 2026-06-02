@@ -49,21 +49,35 @@ function ensureCtx() {
 
 /**
  * Desbloquea el AudioContext en un gesto del usuario.
- * Llamarlo desde un handler de click directo.
+ * CRITICAL: debe ser SINCRONICO. iOS Safari pierde el "user gesture context"
+ * si usamos await — por eso fire-and-forget en resume y silent-buffer trick.
  */
-export async function unlock() {
+export function unlock() {
   ensureCtx();
   if (!ctx) return false;
+  // Trick iOS: tocar un buffer mudo de 1 frame en el mismo gesto despierta
+  // el output. Sin esto, ios suele dejar el ctx en "running" pero sin audio audible.
+  try {
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch {}
   if (ctx.state === "suspended") {
-    try { await ctx.resume(); } catch {}
+    // Fire-and-forget. iOS necesita que dispare el resume ANTES de que el
+    // gesture context se pierda. Si esperamos con await, ya no cuenta.
+    ctx.resume().catch(() => {});
   }
-  unlocked = ctx.state === "running";
-  return unlocked;
+  unlocked = true;
+  return true;
 }
 
 // Tono crudo con envoltura ADSR mínima
 function tone({ freq, duration, type = "square", vol = 1, attack = 0.005, release = 0.08, slideTo = null, gainNode = null }) {
   if (!ctx) return;
+  // iOS auto-suspende el ctx tras inactividad — resume defensivo
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   const dest = gainNode || sfxGain;
   if (!dest) return;
   const now = ctx.currentTime;
@@ -245,10 +259,10 @@ export function stopMusic() {
 
 export function isMuted() { return muted; }
 
-export async function toggleMute() {
+export function toggleMute() {
   muted = !muted;
   persistMute();
-  await unlock();
+  unlock();  // sincrónico: nada de await
   if (masterGain) masterGain.gain.value = muted ? 0 : VOLUME_MASTER;
   if (muted) stopMusic();
   else startMusic();

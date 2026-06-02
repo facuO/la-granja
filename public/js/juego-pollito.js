@@ -27,6 +27,7 @@ const worldGrid = document.getElementById("world-grid");
 const quizOverlay = document.getElementById("quiz-overlay");
 const quizQEl = document.getElementById("quiz-question");
 const quizOptsEl = document.getElementById("quiz-options");
+const quizVisualEl = document.getElementById("quiz-visual");
 const quizFbEl = document.getElementById("quiz-feedback");
 const winOverlay = document.getElementById("win-overlay");
 const winTitleEl = document.getElementById("win-title");
@@ -222,11 +223,15 @@ const WORLDS = [
     door: null,
     quiz: {
       x: 1650, y: 380, w: 40, h: 80,
-      question: "¿Cuál es un SUSTANTIVO?",
-      options: ["come", "perro", "rápido"],
+      question: "¿Cuál es un sustantivo? Un sustantivo es el nombre de algo o alguien.",
+      options: [
+        { text: "come", pic: 6520 },     // verbo
+        { text: "perro", pic: 2424 },    // ← sustantivo correcto
+        { text: "rápido", pic: 32072 },  // adverbio
+      ],
       correct: 1,
       feedback_ok: "¡Sí! 'Perro' es un sustantivo: nombra a un animal.",
-      feedback_no: "Esa palabra no es un sustantivo. Probá otra.",
+      feedback_no: "Esa palabra no nombra a algo. Probá otra.",
     },
     flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
@@ -296,7 +301,10 @@ const WORLDS = [
     quiz: {
       x: 950, y: 380, w: 40, h: 80,
       question: "¿Cuánto es 12 + 8?",
-      options: ["18", "20", "22"],
+      visual: { kind: "addition", a: 12, b: 8 },
+      options: [
+        { text: "18" }, { text: "20" }, { text: "22" },
+      ],
       correct: 1,
       feedback_ok: "¡Sí! 12 + 8 son 20. El puente está armado.",
       feedback_no: "Ese no es el resultado. Probá otra vez.",
@@ -370,7 +378,11 @@ const WORLDS = [
     quiz: {
       x: 1170, y: 380, w: 40, h: 80,
       question: "¿Qué animal pone huevos?",
-      options: ["vaca", "gallina", "caballo"],
+      options: [
+        { text: "vaca", pic: 7202 },
+        { text: "gallina", pic: 2609 },
+        { text: "caballo", pic: 2294 },
+      ],
       correct: 1,
       feedback_ok: "¡Sí! Las gallinas son las que ponen huevos.",
       feedback_no: "Ese animal no pone huevos. Probá otra vez.",
@@ -601,26 +613,72 @@ function updateHud(bump = false) {
   }
 }
 
+function renderQuizVisual(visual) {
+  if (!visual) { quizVisualEl.style.display = "none"; quizVisualEl.innerHTML = ""; return; }
+  quizVisualEl.style.display = "flex";
+  quizVisualEl.innerHTML = "";
+  if (visual.kind === "addition") {
+    // Grupo A + Grupo B = ?
+    const groupA = document.createElement("div");
+    groupA.className = "quiz-visual-group";
+    for (let i = 0; i < visual.a; i++) {
+      const e = document.createElement("div"); e.className = "quiz-visual-egg"; groupA.appendChild(e);
+    }
+    const opPlus = document.createElement("div");
+    opPlus.className = "quiz-visual-op"; opPlus.textContent = "+";
+    const groupB = document.createElement("div");
+    groupB.className = "quiz-visual-group";
+    for (let i = 0; i < visual.b; i++) {
+      const e = document.createElement("div"); e.className = "quiz-visual-egg"; groupB.appendChild(e);
+    }
+    const opEq = document.createElement("div");
+    opEq.className = "quiz-visual-op"; opEq.textContent = "=";
+    const q = document.createElement("div");
+    q.className = "quiz-visual-op"; q.textContent = "?";
+    quizVisualEl.append(groupA, opPlus, groupB, opEq, q);
+  }
+}
+
+// Normaliza opciones que pueden ser string (legacy) o { text, pic }
+function normalizeOptions(options) {
+  return options.map((o) => typeof o === "string" ? { text: o } : o);
+}
+
 function openQuiz() {
   state.scene = "quiz";
   stopMusic();
   quizQEl.textContent = state.quiz.question;
   quizFbEl.textContent = "";
   quizOptsEl.innerHTML = "";
-  state.quiz.options.forEach((opt, idx) => {
+  renderQuizVisual(state.quiz.visual);
+  const opts = normalizeOptions(state.quiz.options);
+  opts.forEach((opt, idx) => {
     const b = document.createElement("button");
-    b.className = "quiz-opt";
-    b.textContent = opt;
-    b.addEventListener("click", () => answerQuiz(idx));
+    b.className = "quiz-opt" + (opt.pic ? "" : " no-pic");
+    if (opt.pic) {
+      const img = document.createElement("img");
+      img.className = "quiz-opt-pic";
+      img.src = `https://static.arasaac.org/pictograms/${opt.pic}/${opt.pic}_300.png`;
+      img.alt = opt.text;
+      // Si la imagen no carga, no mostrar broken icon
+      img.onerror = () => { img.style.display = "none"; };
+      b.appendChild(img);
+    }
+    const t = document.createElement("div");
+    t.className = "quiz-opt-text";
+    t.textContent = opt.text;
+    b.appendChild(t);
+    b.addEventListener("click", () => answerQuiz(idx, b));
     quizOptsEl.appendChild(b);
   });
   quizOverlay.classList.add("shown");
 }
 
-function answerQuiz(idx) {
+function answerQuiz(idx, btnEl) {
   if (idx === state.quiz.correct) {
     state.quiz.solved = true;
     state.quizSolved = true;
+    if (btnEl) btnEl.classList.add("correct");
     quizFbEl.textContent = state.quiz.feedback_ok;
     sfx.quizOk();
     setTimeout(() => {
@@ -631,8 +689,13 @@ function answerQuiz(idx) {
       startMusic();
       // Sparkles celebratorios
       for (let i = 0; i < 18; i++) spawnSparkle(state.quiz.x + 20, state.quiz.y + 30);
-    }, 1100);
+    }, 1400);
   } else {
+    if (btnEl) {
+      btnEl.classList.add("wrong");
+      // Quitar el wrong después de la animación para permitir reintentos visuales claros
+      setTimeout(() => btnEl.classList.remove("wrong"), 500);
+    }
     quizFbEl.textContent = state.quiz.feedback_no;
     sfx.quizNo();
   }

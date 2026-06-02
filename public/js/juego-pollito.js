@@ -399,9 +399,16 @@ const state = {
   collected: 0,
   quizSolved: false,
   hint: "",
+  hintTimer: 0,   // frames restantes para que el hint quede visible (0 = oculto)
   particles: [],
   globalT: 0,
 };
+
+// Setea un hint con timer auto-dismiss (~4s) y fade out en los últimos 30 frames.
+function setHint(text, frames = 240) {
+  state.hint = text;
+  state.hintTimer = frames;
+}
 
 let paused = false;
 
@@ -560,7 +567,7 @@ function startWorld(idx) {
   state.camera.x = 0; state.camera.targetX = 0; state.camera.shake = 0;
   state.collected = 0;
   state.quizSolved = false;
-  state.hint = w.hint;
+  setHint(w.hint);
   state.particles = [];
   state.winTimer = 0;
   // Reset moving platforms a su posición inicial (range[0])
@@ -620,7 +627,7 @@ function answerQuiz(idx) {
       quizOverlay.classList.remove("shown");
       state.scene = "playing";
       state.player.x = state.quiz.x + state.quiz.w + 5;
-      state.hint = "¡Bien! Andá hasta el banderín.";
+      setHint("¡Bien! Andá hasta el banderín.");
       startMusic();
       // Sparkles celebratorios
       for (let i = 0; i < 18; i++) spawnSparkle(state.quiz.x + 20, state.quiz.y + 30);
@@ -859,6 +866,8 @@ function aabb(a, b) {
 
 function step() {
   state.globalT++;
+  // Decrementar timer del hint (no necesita estar en gameplay frame)
+  if (state.hintTimer > 0) state.hintTimer--;
   // Animar ambients y particles siempre (también después de ganar, para que el confetti caiga)
   for (const a of state.ambients) a.t += 0.05;
   // Pájaros avanzan en el cielo aún en pausa/ganado (es ambiente, no gameplay)
@@ -1044,7 +1053,7 @@ function step() {
   // Abrir puerta
   if (state.door && !state.door.opened && state.collected >= state.door.eggs_required) {
     state.door.opened = true;
-    state.hint = "¡Puerta abierta! Andá hasta el banderín.";
+    setHint("¡Puerta abierta! Andá hasta el banderín.");
     sfx.door();
     state.camera.shake = 8;
     for (let i = 0; i < 14; i++) spawnSparkle(state.door.x + 15, state.door.y + 50);
@@ -2034,17 +2043,24 @@ function drawPollito(p) {
 
 function drawHintBanner() {
   if (!state.hint || state.scene !== "playing") return;
+  if (state.hintTimer <= 0) return;
+  // Fade out en los últimos 30 frames
+  const alpha = Math.min(1, state.hintTimer / 30);
   const text = state.hint;
+  ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.font = "16px system-ui";
   const w = Math.min(VIEW_W - 40, ctx.measureText(text).width + 30);
   const x = (VIEW_W - w) / 2;
-  const y = VIEW_H - 56;
+  // Más cerca del borde inferior para no tapar ambient animals
+  const y = VIEW_H - 42;
   // sombra suave
   ctx.fillStyle = "rgba(0,0,0,0.7)";
-  ctx.fillRect(x, y, w, 32);
+  ctx.fillRect(x, y, w, 28);
   ctx.fillStyle = "white";
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(text, VIEW_W / 2, y + 16);
+  ctx.fillText(text, VIEW_W / 2, y + 14);
+  ctx.restore();
 }
 
 // Splash/Select: dibujamos una escena idle de fondo para que el HTML overlay

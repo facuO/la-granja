@@ -14,7 +14,7 @@
 //  - Música procedural cambia de patrón según el mundo.
 
 import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
-import { drawPollitoSprite, pickPollitoFrame } from "/js/juego-pollito-sprites.js";
+import { drawPollitoSprite, pickPollitoFrame, drawFoxSprite, pickFoxFrame } from "/js/juego-pollito-sprites.js";
 
 // ============================================================
 // DOM
@@ -132,26 +132,38 @@ const WORLDS = [
       { kind: "bird", x: -300, y: 140, vx: 1.0 },
     ],
     platforms: [
+      // Zona 1: introducción (suelo amplio, plataformas escalonadas hacia arriba)
       { x: 0,    y: 460, w: 700,  h: 40, kind: "grass" },
+      { x: 130,  y: 400, w: 100, h: 18, kind: "wood" },
+      { x: 290,  y: 350, w: 100, h: 18, kind: "wood" },
+      { x: 450,  y: 300, w: 100, h: 18, kind: "wood" },
+      // PLATAFORMA SECRETA muy alta para el huevo dorado
+      { x: 600,  y: 200, w: 80,  h: 18, kind: "wood" },
+      // Zona 2: pozo con plataforma móvil + zorro patrulla
       { x: 820,  y: 460, w: 700,  h: 40, kind: "grass" },
-      { x: 1640, y: 460, w: 760,  h: 40, kind: "grass" },
-      { x: 130,  y: 380, w: 120, h: 18, kind: "wood" },
-      { x: 320,  y: 330, w: 120, h: 18, kind: "wood" },
-      { x: 520,  y: 280, w: 120, h: 18, kind: "wood" },
-      { x: 720,  y: 380, w: 80,  h: 18, kind: "wood" },
-      // Plataforma móvil sobre el pozo
-      { x: 740, y: 320, w: 80, h: 18, kind: "wood", moving: { axis: "x", range: [740, 880], speed: 1.2, dir: 1 } },
+      { x: 740,  y: 320, w: 80,  h: 18, kind: "wood", moving: { axis: "x", range: [740, 880], speed: 1.2, dir: 1 } },
       { x: 980,  y: 380, w: 120, h: 18, kind: "wood" },
-      { x: 1180, y: 320, w: 120, h: 18, kind: "wood" },
-      { x: 1340, y: 260, w: 120, h: 18, kind: "wood" },
+      { x: 1180, y: 340, w: 120, h: 18, kind: "wood" },
+      { x: 1340, y: 280, w: 120, h: 18, kind: "wood" },
+      // Zona 3: puerta + tramo final (suelo más bajo de "respiro")
+      { x: 1640, y: 460, w: 760,  h: 40, kind: "grass" },
       { x: 1720, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1900, y: 320, w: 100, h: 18, kind: "wood" },
+      { x: 2080, y: 380, w: 120, h: 18, kind: "wood" },
     ],
     eggs: [
-      { x: 180,  y: 350 }, { x: 370,  y: 300 }, { x: 580,  y: 250 },
-      { x: 1040, y: 350 }, { x: 1240, y: 290 }, { x: 1400, y: 230 },
+      // Zona 1 - subida (3 huevos visibles)
+      { x: 180, y: 370 }, { x: 340, y: 320 }, { x: 500, y: 270 },
+      // Plataforma alta secreta - HUEVO DORADO (vale +5 en stats)
+      { x: 640, y: 170, golden: true },
+      // Zona 2 (3 huevos cerca del zorro)
+      { x: 1040, y: 350 }, { x: 1240, y: 310 }, { x: 1400, y: 250 },
     ],
-    door: { x: 1530, y: 360, w: 30, h: 100, eggs_required: 4 },
+    enemies: [
+      // Zorro patrullando en zona 2 (el huevo dorado es "premio" por subir muy alto en zona 1)
+      { kind: "fox", x: 1050, y: 432, range: [970, 1500], speed: 0.9, dir: 1 },
+    ],
+    door: { x: 1560, y: 360, w: 30, h: 100, eggs_required: 4 },
     quiz: null,
     flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
@@ -410,7 +422,8 @@ const state = {
   camera: { x: 0, targetX: 0, shake: 0 },
   platforms: [], eggs: [], door: null, quiz: null, flag: null, theme: null,
   parallaxFar: [], parallaxMid: [], parallaxNear: [],
-  decor: [], ambients: [], waterPits: [],
+  decor: [], ambients: [], waterPits: [], enemies: [],
+  knockback: 0,
   collected: 0,
   quizSolved: false,
   hint: "",
@@ -536,6 +549,8 @@ function startWorld(idx) {
   state.world = w;
   state.platforms = w.platforms;
   state.eggs = w.eggs.map((e) => ({ ...e, taken: false, t: 0 }));
+  state.enemies = (w.enemies || []).map((e) => ({ ...e, state: "patrol", sleepTimer: 0, stunBounce: 0, t: 0 }));
+  state.knockback = 0;  // frames de invulnerabilidad después del knockback
   state.door = w.door ? { ...w.door, opened: false } : null;
   state.quiz = w.quiz ? { ...w.quiz, solved: false } : null;
   state.flag = { ...w.flag, descend: 0 };
@@ -987,10 +1002,14 @@ function step() {
   const p = state.player;
   const W = state.world.width;
 
-  // Movimiento horizontal
-  if (keys.left) { p.vx = -MOVE_SPEED; p.facing = -1; }
-  else if (keys.right) { p.vx = MOVE_SPEED; p.facing = 1; }
-  else p.vx = 0;
+  // Movimiento horizontal — durante knockback no leemos input (la fuerza prima)
+  if (state.knockback > 15) {
+    p.vx *= 0.95; // friction natural, no input
+  } else {
+    if (keys.left) { p.vx = -MOVE_SPEED; p.facing = -1; }
+    else if (keys.right) { p.vx = MOVE_SPEED; p.facing = 1; }
+    else p.vx = 0;
+  }
 
   // Jump buffer: si tocó saltar, lo registramos por unos frames
   if (keys.jump) p.jumpBuffer = JUMP_BUFFER_FRAMES;
@@ -1079,18 +1098,44 @@ function step() {
     p.scaleX = 1 + Math.sin(state.globalT * 0.06) * -0.015;
   }
 
+  // Física de huevos loose (dropeados por knockback del zorro)
+  for (const egg of state.eggs) {
+    if (egg.taken || !egg.loose || egg.settled) continue;
+    egg.vy += 0.4;
+    egg.x += egg.vx;
+    egg.y += egg.vy;
+    egg.vx *= 0.95;
+    // Settle al tocar techo de una plataforma
+    for (const plat of state.platforms) {
+      if (egg.vy > 0 && egg.y >= plat.y - 8 && egg.y <= plat.y + 4 &&
+          egg.x > plat.x && egg.x < plat.x + plat.w) {
+        egg.y = plat.y - 8; egg.vy = -egg.vy * 0.3; egg.vx *= 0.5;
+        if (Math.abs(egg.vy) < 1.5) { egg.vy = 0; egg.settled = true; }
+      }
+    }
+    if (egg.y > 470) { egg.y = 470; egg.vy = 0; egg.settled = true; }
+  }
+
   // Recoger huevos
   for (const egg of state.eggs) {
     if (egg.taken) continue;
     egg.t += 0.06;
-    const box = { x: egg.x - 12, y: egg.y - 14, w: 24, h: 28 };
+    const box = { x: egg.x - 14, y: egg.y - 16, w: 28, h: 32 };
     if (aabb(p, box)) {
       egg.taken = true;
       state.collected++;
-      bumpEggs(1);
-      sfx.egg();
-      for (let i = 0; i < 10; i++) spawnSparkle(egg.x, egg.y, 1);
-      spawnFloatingText(egg.x, egg.y - 8, "+1");
+      if (egg.golden) {
+        bumpEggs(5);
+        sfx.win();
+        for (let i = 0; i < 24; i++) spawnSparkle(egg.x, egg.y, 1);
+        spawnFloatingText(egg.x, egg.y - 12, "+5", "#ffd34a");
+        state.camera.shake = 6;
+      } else {
+        bumpEggs(1);
+        sfx.egg();
+        for (let i = 0; i < 10; i++) spawnSparkle(egg.x, egg.y, 1);
+        spawnFloatingText(egg.x, egg.y - 8, "+1");
+      }
       updateHud(true);
     }
   }
@@ -1103,6 +1148,60 @@ function step() {
     state.camera.shake = 8;
     for (let i = 0; i < 14; i++) spawnSparkle(state.door.x + 15, state.door.y + 50);
     updateHud();
+  }
+
+  // Knockback timer (invulnerabilidad breve)
+  if (state.knockback > 0) state.knockback--;
+
+  // Update enemies (zorros)
+  for (const e of state.enemies) {
+    e.t++;
+    if (e.state === "sleeping") {
+      e.sleepTimer--;
+      if (e.sleepTimer <= 0) {
+        e.state = "patrol";
+      }
+      continue; // dormido = no patrulla
+    }
+    if (e.kind === "fox") {
+      e.x += e.speed * e.dir;
+      if (e.x <= e.range[0]) { e.x = e.range[0]; e.dir = 1; }
+      if (e.x >= e.range[1]) { e.x = e.range[1]; e.dir = -1; }
+      // Colisión con pollito
+      const foxBox = { x: e.x - 24, y: e.y - 8, w: 48, h: 28 };
+      if (aabb(p, foxBox) && state.knockback === 0) {
+        // ¿Pollito viene desde arriba? (vy > 0 = cayendo, y player y < fox y - some margin)
+        const fromAbove = p.vy > 1.5 && p.y + p.h < e.y + 4;
+        if (fromAbove) {
+          // STOMP: zorro se duerme, pollito rebota
+          e.state = "sleeping";
+          e.sleepTimer = 180; // 3s a 60fps
+          p.vy = -8;
+          p.targetSX = 0.85; p.targetSY = 1.2;
+          sfx.quizOk();  // soft happy sound
+          for (let i = 0; i < 12; i++) spawnSparkle(e.x, e.y, 1);
+        } else {
+          // SIDE HIT: knockback + drop 1 huevo (si tiene)
+          p.vx = -e.dir * 5;
+          p.vy = -6;
+          p.x += -e.dir * 8;
+          state.knockback = 45;
+          sfx.quizNo();
+          state.camera.shake = 6;
+          // Dropear 1 huevo si tiene
+          if (state.collected > 0) {
+            state.collected--;
+            updateHud(true);
+            // Crear un "huevo loose" — agregar al array de eggs como recogible
+            state.eggs.push({
+              x: p.x + 20, y: p.y - 10, taken: false, t: 0,
+              loose: true, vx: e.dir * 2, vy: -3, settled: false,
+            });
+            spawnFloatingText(p.x, p.y - 20, "-1", "#e85d5d");
+          }
+        }
+      }
+    }
   }
 
   // Llegar al banderín → arranca cinemática de victoria
@@ -1915,21 +2014,69 @@ function drawEgg(egg) {
   if (egg.taken) return;
   const sx = worldToScreen(egg.x);
   if (sx < -30 || sx > VIEW_W + 30) return;
-  const bob = Math.sin(egg.t * 1.5) * 2;
+  const bob = egg.settled === false ? 0 : Math.sin(egg.t * 1.5) * 2;
   ctx.save(); ctx.translate(sx, egg.y + bob);
   // sombra
   ctx.fillStyle = "rgba(0,0,0,0.15)";
   ctx.beginPath(); ctx.ellipse(0, 16, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
-  // halo brillante
-  ctx.fillStyle = "rgba(255, 255, 200, 0.3)";
-  ctx.beginPath(); ctx.arc(0, 0, 20 + Math.sin(egg.t * 2) * 2, 0, Math.PI * 2); ctx.fill();
-  // huevo
-  ctx.fillStyle = "#fff7d1";
-  ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#d6c084"; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.beginPath(); ctx.ellipse(-4, -5, 3, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+  if (egg.golden) {
+    // halo dorado pulsante grande
+    const pulse = 24 + Math.sin(egg.t * 2) * 4;
+    const grad = ctx.createRadialGradient(0, 0, 4, 0, 0, pulse);
+    grad.addColorStop(0, "rgba(255, 220, 100, 0.7)");
+    grad.addColorStop(0.5, "rgba(255, 200, 60, 0.3)");
+    grad.addColorStop(1, "rgba(255, 200, 60, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0, 0, pulse, 0, Math.PI * 2); ctx.fill();
+    // huevo dorado
+    ctx.fillStyle = "#ffd34a";
+    ctx.beginPath(); ctx.ellipse(0, 0, 12, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#a87420"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 5, 0.4, 0, Math.PI * 2); ctx.fill();
+    // sparkles orbiting
+    for (let i = 0; i < 3; i++) {
+      const a = egg.t * 0.5 + i * (Math.PI * 2 / 3);
+      const px = Math.cos(a) * 18;
+      const py = Math.sin(a) * 12;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+  } else {
+    // halo blanco sutil
+    ctx.fillStyle = "rgba(255, 255, 200, 0.3)";
+    ctx.beginPath(); ctx.arc(0, 0, 20 + Math.sin(egg.t * 2) * 2, 0, Math.PI * 2); ctx.fill();
+    // huevo blanco normal
+    ctx.fillStyle = "#fff7d1";
+    ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#d6c084"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.restore();
+}
+
+function drawFox(fox) {
+  const sx = worldToScreen(fox.x);
+  if (sx < -50 || sx > VIEW_W + 50) return;
+  // sombra
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(sx, fox.y + 18, 18, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const frame = pickFoxFrame(fox);
+  // Dormido: rotate 90deg para que se vea tumbado (opcional, ya tenemos el frame sleep)
+  drawFoxSprite(ctx, sx, fox.y, frame, 3, fox.dir);
+  // Si está dormido, dibujar el "zzz" más visible
+  if (fox.state === "sleeping") {
+    ctx.fillStyle = "rgba(136, 170, 204, 0.9)";
+    ctx.font = "bold 16px system-ui";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const wiggle = Math.sin(fox.t * 0.1) * 2;
+    ctx.fillText("z", sx + 12 + wiggle, fox.y - 16);
+    ctx.fillText("z", sx + 18 - wiggle, fox.y - 22);
+    ctx.fillText("z", sx + 24 + wiggle, fox.y - 28);
+  }
 }
 
 function drawDoor(d) {
@@ -2196,12 +2343,17 @@ function render() {
   for (const p of state.platforms) drawPlatform(p);
   // Huevos
   for (const e of state.eggs) drawEgg(e);
+  // Enemigos (zorros)
+  for (const e of state.enemies) drawFox(e);
   // Objetos
   if (state.door) drawDoor(state.door);
   if (state.quiz) drawQuizMarker(state.quiz);
   if (state.flag) drawFlag(state.flag);
   // Pollito + partículas (encima)
-  drawPollito(state.player);
+  // Si está en knockback, parpadea (cada 4 frames invisible)
+  if (state.knockback === 0 || Math.floor(state.knockback / 4) % 2 === 0) {
+    drawPollito(state.player);
+  }
   drawParticles();
   // Vignette para atmósfera (encima de todo lo del mundo, debajo de UI)
   drawVignette();

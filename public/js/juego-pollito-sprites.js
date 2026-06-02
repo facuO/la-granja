@@ -13,15 +13,22 @@
 
 const PALETTE = {
   ".": null,           // transparente
-  y: "#ffd34a",        // amarillo claro (cuerpo)
+  y: "#ffd34a",        // amarillo claro (cuerpo del pollito)
   Y: "#e8a820",        // amarillo oscuro (sombra del cuerpo)
   o: "#f08a1a",        // naranja (pico, patas)
-  O: "#c46d10",        // naranja oscuro (sombra pico/patas)
+  O: "#c46d10",        // naranja oscuro (sombra)
   r: "#e85d5d",        // rojo (cresta)
   R: "#b04040",        // rojo oscuro (sombra cresta)
-  k: "#222",           // negro (pupila)
-  w: "#fff",           // blanco (sclera)
-  s: "rgba(0,0,0,0.18)", // sombra suave
+  k: "#222",           // negro
+  w: "#fff",           // blanco
+  // Zorro
+  f: "#d97a3e",        // naranja zorro
+  F: "#a85510",        // marrón zorro (sombra)
+  z: "#5b3a1a",        // marrón muy oscuro (patas, cola tip)
+  // Compartidos
+  Z: "#88aacc",        // celeste (Zzz del sleep)
+  G: "#fff8b0",        // amarillo dorado huevo especial
+  H: "#d6c084",        // beige (highlight egg)
 };
 
 // Side-profile facing RIGHT (16x16). Para facing -1, drawSprite hace scale(-1, 1).
@@ -139,6 +146,67 @@ const POLLITO = {
   },
 };
 
+// Zorro 16x16 — side-profile facing right
+const FOX = {
+  size: 16,
+  frames: {
+    walk1: [
+      "................",
+      ".f............f.",
+      "ff............ff",   // orejas izq + cola der
+      "fff..........fff",
+      "fffff......fffff",
+      "ffwwffffffffFfff",   // cara blanca + cuerpo
+      "fkfwwfffffffFFff",   // ojo
+      "ffwwfffffffffFf.",
+      ".ffffffffffffff.",
+      "..ff..fff.fff...",   // patas pos walk1
+      "..ff..fff.fff...",
+      "..zz..zzz.zzz...",
+      "................",
+      "................",
+      "................",
+      "................",
+    ],
+    walk2: [
+      "................",
+      ".f............f.",
+      "ff............ff",
+      "fff..........fff",
+      "fffff......fffff",
+      "ffwwffffffffFfff",
+      "fkfwwfffffffFFff",
+      "ffwwfffffffffFf.",
+      ".ffffffffffffff.",
+      "..fff.fff..fff..",   // patas pos walk2
+      "..fff.fff..fff..",
+      "..zzz.zzz..zzz..",
+      "................",
+      "................",
+      "................",
+      "................",
+    ],
+    sleep: [
+      "................",
+      ".......Z........",
+      "......Z.........",
+      ".....Z..........",
+      "....Z...........",
+      "...Z............",
+      "................",
+      "................",
+      ".ffffffffffff...",   // body horizontal
+      "fffwwffffffFff..",
+      "ffwwwfffffFFFff.",   // mejilla blanca, ojo cerrado (- es línea k abajo)
+      "fkkfffffffFFff..",   // ojo cerrado (línea)
+      ".ffff.fffff.fff.",
+      "..zz...zzz...zz.",
+      "................",
+      "................",
+    ],
+  },
+};
+
 // Offscreen canvas: pre-renderizamos cada frame para no recalcular cada draw
 const SPRITE_CACHE = {};
 function prerender(spriteId, sprite) {
@@ -164,14 +232,11 @@ function prerender(spriteId, sprite) {
   return cache;
 }
 
-/**
- * Dibuja un frame del pollito en (cx, cy) (centro), con scale y facing.
- * scaleX/scaleY adicionales aplican squash/stretch (mismo sistema que antes).
- */
-export function drawPollitoSprite(ctx, cx, cy, frameName, scale = 3, facing = 1, scaleX = 1, scaleY = 1) {
-  const cache = prerender("pollito", POLLITO);
-  const img = cache[frameName] || cache.idle;
-  const size = POLLITO.size;
+// Renderer genérico
+function drawSpriteInternal(ctx, sprite, spriteId, cx, cy, frameName, scale, facing, scaleX, scaleY) {
+  const cache = prerender(spriteId, sprite);
+  const img = cache[frameName] || cache[Object.keys(cache)[0]];
+  const size = sprite.size;
   const w = size * scale * scaleX;
   const h = size * scale * scaleY;
   ctx.save();
@@ -180,6 +245,23 @@ export function drawPollitoSprite(ctx, cx, cy, frameName, scale = 3, facing = 1,
   if (facing === -1) ctx.scale(-1, 1);
   ctx.drawImage(img, -w / 2, -h / 2, w, h);
   ctx.restore();
+}
+
+/** Dibuja un frame del pollito en (cx, cy). */
+export function drawPollitoSprite(ctx, cx, cy, frameName, scale = 3, facing = 1, scaleX = 1, scaleY = 1) {
+  drawSpriteInternal(ctx, POLLITO, "pollito", cx, cy, frameName, scale, facing, scaleX, scaleY);
+}
+
+/** Dibuja un frame del zorro en (cx, cy). */
+export function drawFoxSprite(ctx, cx, cy, frameName, scale = 3, facing = 1) {
+  drawSpriteInternal(ctx, FOX, "fox", cx, cy, frameName, scale, facing, 1, 1);
+}
+
+/** Determina qué frame del zorro mostrar según estado. */
+export function pickFoxFrame(fox) {
+  if (fox.state === "sleeping") return "sleep";
+  // walk1/walk2 alternados según el tiempo
+  return (Math.floor(fox.t / 12) % 2 === 0) ? "walk1" : "walk2";
 }
 
 /**

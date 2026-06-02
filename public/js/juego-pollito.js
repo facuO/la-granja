@@ -29,6 +29,7 @@ const quizOverlay = document.getElementById("quiz-overlay");
 const quizQEl = document.getElementById("quiz-question");
 const quizOptsEl = document.getElementById("quiz-options");
 const quizVisualEl = document.getElementById("quiz-visual");
+const quizHintEl = document.getElementById("quiz-hint");
 const quizFbEl = document.getElementById("quiz-feedback");
 const winOverlay = document.getElementById("win-overlay");
 const winTitleEl = document.getElementById("win-title");
@@ -224,14 +225,15 @@ const WORLDS = [
     door: null,
     quiz: {
       x: 1650, y: 380, w: 40, h: 80,
-      question: "¿Cuál es un sustantivo? Un sustantivo es el nombre de algo o alguien.",
+      question: "¿Cuál palabra nombra a algo o alguien?",
+      hintLine: "Esa palabra es un SUSTANTIVO.",
       options: [
-        { text: "come", pic: 6520 },     // verbo
-        { text: "perro", pic: 2424 },    // ← sustantivo correcto
-        { text: "rápido", pic: 32072 },  // adverbio
+        { text: "come",   pic: 6456 },   // verbo
+        { text: "perro",  pic: 7202 },   // ← sustantivo (correcto)
+        { text: "rápido", pic: 5306 },   // adverbio
       ],
       correct: 1,
-      feedback_ok: "¡Sí! 'Perro' es un sustantivo: nombra a un animal.",
+      feedback_ok: "¡Sí! 'Perro' nombra a un animal. Es un sustantivo.",
       feedback_no: "Esa palabra no nombra a algo. Probá otra.",
     },
     flag: { x: 2280, y: 360, w: 24, h: 100 },
@@ -301,14 +303,14 @@ const WORLDS = [
     door: null,
     quiz: {
       x: 950, y: 380, w: 40, h: 80,
-      question: "¿Cuánto es 12 + 8?",
+      question: "Contá los huevos. ¿Cuánto es 12 + 8?",
       visual: { kind: "addition", a: 12, b: 8 },
       options: [
         { text: "18" }, { text: "20" }, { text: "22" },
       ],
       correct: 1,
       feedback_ok: "¡Sí! 12 + 8 son 20. El puente está armado.",
-      feedback_no: "Ese no es el resultado. Probá otra vez.",
+      feedback_no: "Contá otra vez los huevos. Probá de nuevo.",
     },
     flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
@@ -380,8 +382,8 @@ const WORLDS = [
       x: 1170, y: 380, w: 40, h: 80,
       question: "¿Qué animal pone huevos?",
       options: [
-        { text: "vaca", pic: 7202 },
-        { text: "gallina", pic: 2609 },
+        { text: "vaca",    pic: 2609 },
+        { text: "gallina", pic: 2403 },
         { text: "caballo", pic: 2294 },
       ],
       correct: 1,
@@ -623,6 +625,13 @@ function openQuiz() {
   quizQEl.textContent = state.quiz.question;
   quizFbEl.textContent = "";
   quizOptsEl.innerHTML = "";
+  // Hint educativo (ej. "Esa palabra es un SUSTANTIVO.")
+  if (state.quiz.hintLine) {
+    quizHintEl.textContent = state.quiz.hintLine;
+    quizHintEl.style.display = "block";
+  } else {
+    quizHintEl.style.display = "none";
+  }
   renderQuizVisual(state.quiz.visual);
   const opts = normalizeOptions(state.quiz.options);
   opts.forEach((opt, idx) => {

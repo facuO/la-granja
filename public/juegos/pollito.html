@@ -17,12 +17,19 @@
     .pollito-trail a { color: var(--text); text-decoration: none; padding: 6px 12px;
       border-radius: 8px; background: white; border: 1px solid var(--border); }
     #game-canvas {
-      display: block; width: 100%; height: auto; max-height: 70vh;
+      display: block;
+      width: 100%; height: auto;
+      aspect-ratio: 8 / 5;            /* mantiene proporción, sin estirar */
+      max-height: 70vh;
       background: linear-gradient(180deg, #b9e4ff 0%, #d8f0ff 100%);
       border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.1);
       touch-action: none;
+      image-rendering: -webkit-optimize-contrast;
     }
-    .game-stage { position: relative; }
+    .game-stage {
+      position: relative;
+      max-width: 1024px; margin: 0 auto;
+    }
 
     .overlay {
       position: absolute; inset: 0;

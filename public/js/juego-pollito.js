@@ -1,21 +1,23 @@
-// Aventura del Pollito — platformer multi-mundo accesible para Sofi.
+// Aventura del Pollito — platformer multi-mundo para Sofi.
 //
-// Iteración 3:
-//  - Catálogo de mundos (data-driven). Cada uno con tema, layout, desafío.
-//  - Selector inicial con 4 mundos. Mundos completados quedan marcados.
-//  - Persistencia simple en localStorage.
-//  - Tipos de desafío:
-//      a) Puerta de conteo: juntar N huevos para abrirla (Corral).
-//      b) Quiz in-game: pollito toca una "tabla" → pausa con pregunta
-//         de Lengua/Mate, contesta correcta = sigue (Campo, Estanque...).
-//  - Cada mundo termina con un banderín.
-//
-// Iteración 4 (audio):
-//  - Web Audio API: melodía granjera + SFX (salto, huevo, puerta, win, quiz).
-//  - Default muted. Toggle 🔇/🔊 en el HUD. Persiste preferencia.
+// Iter 6 — "Nintendo polish":
+//  - High-DPI canvas (devicePixelRatio).
+//  - Parallax de 3 capas (lejos, medio, cerca).
+//  - Ambient animals: vaca con bobbing, oveja pastando, mariposas
+//    volando en sinusoide, pájaros cruzando, pato en estanque.
+//  - Decoración por mundo: cerca de madera, gallinero, trigo,
+//    girasoles, juncos, fardos de heno, silo.
+//  - Pollito polish: squash/stretch en salto/aterrizaje, idle breath,
+//    sombra. Particles de polvo + sparkles al juntar huevo.
+//  - Camera lerp + screen shake en eventos.
+//  - Coyote time + jump buffer.
+//  - Música procedural cambia de patrón según el mundo.
 
-import { sfx, startMusic, stopMusic, isMuted, toggleMute } from "/js/juego-pollito-audio.js";
+import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
 
+// ============================================================
+// DOM
+// ============================================================
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
 const hudEl = document.getElementById("hud");
@@ -44,126 +46,92 @@ const statWorldsEl = document.getElementById("stat-worlds");
 const statEggsEl = document.getElementById("stat-eggs");
 const statRunsEl = document.getElementById("stat-runs");
 
-// Botón audio
-function refreshAudioBtn() {
-  audioBtn.textContent = isMuted() ? "🔇" : "🔊";
-  audioBtn.setAttribute("aria-label", isMuted() ? "Encender música" : "Apagar música");
+// ============================================================
+// High-DPI canvas setup
+// ============================================================
+const LOGICAL_W = 800;
+const LOGICAL_H = 500;
+function setupHiDPI() {
+  const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  canvas.width = LOGICAL_W * dpr;
+  canvas.height = LOGICAL_H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = true;
 }
-audioBtn.addEventListener("click", () => {
-  toggleMute();
-  refreshAudioBtn();
-});
-refreshAudioBtn();
+setupHiDPI();
+window.addEventListener("resize", setupHiDPI);
 
-// --- Stats acumulados (localStorage) ---
-const STATS_KEY = "pollito_stats";
-function loadStats() {
-  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { totalEggs: 0, runs: 0 }; }
-  catch { return { totalEggs: 0, runs: 0 }; }
-}
-function saveStats(s) {
-  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch {}
-}
-function bumpRuns() {
-  const s = loadStats(); s.runs = (s.runs || 0) + 1; saveStats(s);
-}
-function bumpEggs(n) {
-  const s = loadStats(); s.totalEggs = (s.totalEggs || 0) + n; saveStats(s);
-}
-
-// --- Splash pollito drawing (canvas pequeño, reuso del estilo del juego) ---
-function drawSplashPollito() {
-  const c = splashPollitoCanvas;
-  const x = c.getContext("2d");
-  x.clearRect(0, 0, c.width, c.height);
-  x.save(); x.translate(60, 60); x.scale(2.6, 2.6);
-  x.fillStyle = "#ffd34a";
-  x.beginPath(); x.ellipse(0, 5, 18, 15, 0, 0, Math.PI * 2); x.fill();
-  x.beginPath(); x.arc(9, -8, 12, 0, Math.PI * 2); x.fill();
-  x.fillStyle = "#f3b620";
-  x.beginPath(); x.ellipse(-3, 6, 8, 6, 0.2, 0, Math.PI * 2); x.fill();
-  x.fillStyle = "#f08a1a";
-  x.beginPath(); x.moveTo(20, -8); x.lineTo(26, -6); x.lineTo(20, -3); x.closePath(); x.fill();
-  x.fillStyle = "#222"; x.beginPath(); x.arc(13, -10, 2, 0, Math.PI * 2); x.fill();
-  x.fillStyle = "white"; x.beginPath(); x.arc(13.5, -10.5, 0.7, 0, Math.PI * 2); x.fill();
-  x.strokeStyle = "#f08a1a"; x.lineWidth = 3; x.lineCap = "round";
-  x.beginPath();
-  x.moveTo(-6, 18); x.lineTo(-6, 23);
-  x.moveTo(6, 18);  x.lineTo(6, 23);
-  x.stroke();
-  x.restore();
-}
-drawSplashPollito();
-
-function refreshSplashStats() {
-  const stats = loadStats();
-  let completed = 0;
-  try { completed = new Set(JSON.parse(localStorage.getItem("pollito_done") || "[]")).size; } catch {}
-  if (stats.runs > 0 || completed > 0) {
-    splashStatsEl.style.display = "grid";
-    statWorldsEl.textContent = `${completed}/4`;
-    statEggsEl.textContent = String(stats.totalEggs || 0);
-    statRunsEl.textContent = String(stats.runs || 0);
-  }
-}
-refreshSplashStats();
-
-splashStartBtn.addEventListener("click", () => {
-  splashOverlay.classList.remove("shown");
-  bumpRuns();
-  showSelector();
-});
-
-// --- Pausa ---
-let paused = false;
-function showPause() {
-  if (state.scene !== "playing") return;
-  paused = true;
-  stopMusic();
-  pauseOverlay.classList.add("shown");
-}
-function hidePause() {
-  paused = false;
-  pauseOverlay.classList.remove("shown");
-  startMusic();
-}
-pauseBtn.addEventListener("click", showPause);
-resumeBtn.addEventListener("click", hidePause);
-pauseToSelectBtn.addEventListener("click", () => {
-  hidePause();
-  showSelector();
-});
-window.addEventListener("keydown", (e) => {
-  if (e.key === "p" || e.key === "P" || e.key === "Escape") {
-    if (state.scene === "playing" && !paused) showPause();
-    else if (paused) hidePause();
-  }
-});
-
-// --- Constantes físicas ---
-const VIEW_W = canvas.width;
-const VIEW_H = canvas.height;
+const VIEW_W = LOGICAL_W;
+const VIEW_H = LOGICAL_H;
 const GRAVITY = 0.55;
 const MOVE_SPEED = 3.4;
 const JUMP_VY = -11.5;
 const MAX_FALL = 12;
+const COYOTE_FRAMES = 6;
+const JUMP_BUFFER_FRAMES = 6;
 
-// --- Catálogo de mundos ---
+// ============================================================
+// Catálogo de mundos
+// ============================================================
 const WORLDS = [
   {
     id: "corral",
     name: "El Corral",
     emoji: "🐔",
     hint: "Juntá 4 huevos para abrir la puerta y llegar al banderín.",
-    width: 2200,
+    width: 2400,
     theme: {
-      groundGrass: "#6cb35e", groundDirt: "#8b5a2b",
-      cloud: "rgba(255,255,255,0.85)",
+      sky: ["#b9e4ff", "#d8f0ff", "#ffeaa6"],
+      grass: "#6cb35e", grassDark: "#4f9c45", dirt: "#8b5a2b",
+      mountain: "#7c9c7e", mountainDark: "#5d7d63",
+      treeTrunk: "#6b4226", treeLeaves: "#5d9c50",
+      cloud: "rgba(255,255,255,0.92)",
     },
+    parallaxFar: [
+      { kind: "mountain", x: 200, scale: 1.2 },
+      { kind: "mountain", x: 800, scale: 0.9 },
+      { kind: "mountain", x: 1400, scale: 1.1 },
+      { kind: "mountain", x: 2000, scale: 0.8 },
+    ],
+    parallaxMid: [
+      { kind: "tree", x: 100, scale: 1 },
+      { kind: "tree", x: 350, scale: 0.85 },
+      { kind: "barn", x: 700, scale: 1 },
+      { kind: "tree", x: 1100, scale: 1.1 },
+      { kind: "tree", x: 1500, scale: 0.9 },
+      { kind: "silo", x: 1900, scale: 1 },
+      { kind: "tree", x: 2200, scale: 0.95 },
+    ],
+    parallaxNear: [
+      { kind: "bush", x: 80 }, { kind: "bush", x: 480 },
+      { kind: "rock", x: 880 }, { kind: "bush", x: 1280 },
+      { kind: "bush", x: 1700 }, { kind: "rock", x: 2100 },
+    ],
+    decor: [
+      { kind: "fence", x: 0, y: 444, len: 8 },
+      { kind: "gallinero", x: 380, y: 396 },
+      { kind: "flower", x: 60, y: 452, color: "#e85d5d" },
+      { kind: "flower", x: 250, y: 452, color: "#ffd34a" },
+      { kind: "flower", x: 1100, y: 452, color: "#d989ff" },
+      { kind: "flower", x: 1450, y: 452, color: "#e85d5d" },
+      { kind: "fence", x: 1640, y: 444, len: 6 },
+      { kind: "flower", x: 1900, y: 452, color: "#ffd34a" },
+      { kind: "flower", x: 2150, y: 452, color: "#d989ff" },
+    ],
+    ambients: [
+      { kind: "cow", x: 200, y: 422 },
+      { kind: "sheep", x: 1750, y: 426 },
+      { kind: "chick", x: 480, y: 442 },
+      { kind: "chick", x: 540, y: 442 },
+      { kind: "butterfly", x: 600, y: 280, hue: "#e85d5d" },
+      { kind: "butterfly", x: 1200, y: 260, hue: "#d989ff" },
+      { kind: "bird", x: 0, y: 100, vx: 1.4 },
+      { kind: "bird", x: -300, y: 140, vx: 1.0 },
+    ],
     platforms: [
       { x: 0,    y: 460, w: 700,  h: 40, kind: "grass" },
       { x: 820,  y: 460, w: 700,  h: 40, kind: "grass" },
-      { x: 1640, y: 460, w: 600,  h: 40, kind: "grass" },
+      { x: 1640, y: 460, w: 760,  h: 40, kind: "grass" },
       { x: 130,  y: 380, w: 120, h: 18, kind: "wood" },
       { x: 320,  y: 330, w: 120, h: 18, kind: "wood" },
       { x: 520,  y: 280, w: 120, h: 18, kind: "wood" },
@@ -181,7 +149,7 @@ const WORLDS = [
     ],
     door: { x: 1530, y: 360, w: 30, h: 100, eggs_required: 4 },
     quiz: null,
-    flag: { x: 2090, y: 360, w: 24, h: 100 },
+    flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
 
   {
@@ -189,15 +157,53 @@ const WORLDS = [
     name: "El Campo",
     emoji: "🌾",
     hint: "Tocá la tabla con la pregunta y respondela para seguir.",
-    width: 2200,
+    width: 2400,
     theme: {
-      groundGrass: "#a3c46a", groundDirt: "#7a5a2b",
-      cloud: "rgba(255,255,255,0.85)",
+      sky: ["#fdebc0", "#fff5d8", "#ffcb80"],
+      grass: "#a3c46a", grassDark: "#7d9c4b", dirt: "#7a5a2b",
+      mountain: "#a8a058", mountainDark: "#7d784a",
+      treeTrunk: "#6b4226", treeLeaves: "#8aa64d",
+      cloud: "rgba(255,250,235,0.92)",
     },
+    parallaxFar: [
+      { kind: "mountain", x: 300, scale: 1.1 },
+      { kind: "mountain", x: 1000, scale: 0.85 },
+      { kind: "mountain", x: 1700, scale: 1 },
+    ],
+    parallaxMid: [
+      { kind: "tree", x: 200, scale: 0.9 },
+      { kind: "tree", x: 800, scale: 1.1 },
+      { kind: "windmill", x: 1300, scale: 1 },
+      { kind: "tree", x: 1800, scale: 0.95 },
+      { kind: "tree", x: 2200, scale: 1 },
+    ],
+    parallaxNear: [
+      { kind: "bush", x: 150 }, { kind: "bush", x: 580 },
+      { kind: "rock", x: 980 }, { kind: "bush", x: 1380 },
+      { kind: "bush", x: 1800 },
+    ],
+    decor: [
+      { kind: "wheat", x: 60, y: 450 }, { kind: "wheat", x: 90, y: 450 },
+      { kind: "wheat", x: 120, y: 450 }, { kind: "sunflower", x: 280, y: 442 },
+      { kind: "sunflower", x: 700, y: 442 }, { kind: "wheat", x: 1100, y: 450 },
+      { kind: "wheat", x: 1130, y: 450 }, { kind: "wheat", x: 1160, y: 450 },
+      { kind: "scarecrow", x: 1450, y: 410 },
+      { kind: "sunflower", x: 1880, y: 442 }, { kind: "wheat", x: 2100, y: 450 },
+      { kind: "wheat", x: 2130, y: 450 },
+    ],
+    ambients: [
+      { kind: "sheep", x: 300, y: 422 },
+      { kind: "sheep", x: 1100, y: 422 },
+      { kind: "butterfly", x: 500, y: 280, hue: "#ffd34a" },
+      { kind: "butterfly", x: 1300, y: 250, hue: "#e85d5d" },
+      { kind: "butterfly", x: 1900, y: 260, hue: "#d989ff" },
+      { kind: "bird", x: -100, y: 110, vx: 1.1 },
+      { kind: "bird", x: -400, y: 80, vx: 1.4 },
+    ],
     platforms: [
       { x: 0,    y: 460, w: 900,  h: 40, kind: "grass" },
       { x: 1020, y: 460, w: 700,  h: 40, kind: "grass" },
-      { x: 1820, y: 460, w: 400,  h: 40, kind: "grass" },
+      { x: 1820, y: 460, w: 580,  h: 40, kind: "grass" },
       { x: 200, y: 370, w: 120, h: 18, kind: "wood" },
       { x: 400, y: 310, w: 120, h: 18, kind: "wood" },
       { x: 600, y: 250, w: 120, h: 18, kind: "wood" },
@@ -220,7 +226,7 @@ const WORLDS = [
       feedback_ok: "¡Sí! 'Perro' es un sustantivo: nombra a un animal.",
       feedback_no: "Esa palabra no es un sustantivo. Probá otra.",
     },
-    flag: { x: 2090, y: 360, w: 24, h: 100 },
+    flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
 
   {
@@ -228,15 +234,49 @@ const WORLDS = [
     name: "El Estanque",
     emoji: "🦆",
     hint: "Resolvé la suma para construir el puente y llegar al banderín.",
-    width: 2200,
+    width: 2400,
     theme: {
-      groundGrass: "#6cb35e", groundDirt: "#5d7e3f",
+      sky: ["#a8d8f0", "#cfeaf5", "#e8d5b0"],
+      grass: "#6cb35e", grassDark: "#4f8c46", dirt: "#5d7e3f",
+      mountain: "#7d9aa6", mountainDark: "#5d7783",
+      treeTrunk: "#5b4226", treeLeaves: "#4f9c50",
       cloud: "rgba(230,245,255,0.95)",
+      water: "#5fb4e0", waterDark: "#3d8db0",
     },
+    parallaxFar: [
+      { kind: "mountain", x: 200, scale: 1.3 },
+      { kind: "mountain", x: 900, scale: 1.0 },
+      { kind: "mountain", x: 1600, scale: 1.2 },
+    ],
+    parallaxMid: [
+      { kind: "tree", x: 150, scale: 1 },
+      { kind: "tree", x: 600, scale: 1.1 },
+      { kind: "tree", x: 1500, scale: 0.95 },
+      { kind: "tree", x: 2000, scale: 1 },
+    ],
+    parallaxNear: [
+      { kind: "bush", x: 100 }, { kind: "rock", x: 1200 },
+      { kind: "bush", x: 1700 }, { kind: "rock", x: 2200 },
+    ],
+    decor: [
+      { kind: "reeds", x: 300, y: 450 },
+      { kind: "reeds", x: 1280, y: 450 },
+      { kind: "lilypad", x: 1050, y: 470 },
+      { kind: "lilypad", x: 1130, y: 472 },
+      { kind: "flower", x: 100, y: 452, color: "#ffd34a" },
+      { kind: "flower", x: 2200, y: 452, color: "#e85d5d" },
+    ],
+    ambients: [
+      { kind: "duck", x: 1080, y: 462 },
+      { kind: "cow", x: 250, y: 422 },
+      { kind: "butterfly", x: 700, y: 270, hue: "#d989ff" },
+      { kind: "dragonfly", x: 1100, y: 380, hue: "#5fb4e0" },
+      { kind: "bird", x: -100, y: 90, vx: 1.0 },
+    ],
     platforms: [
       { x: 0,    y: 460, w: 1000, h: 40, kind: "grass" },
-      // El "puente" se construye al resolver el quiz (placeholder fijo por ahora)
-      { x: 1200, y: 460, w: 1000, h: 40, kind: "grass" },
+      // "pozo de agua" entre 1000-1200 (visual water)
+      { x: 1200, y: 460, w: 1200, h: 40, kind: "grass" },
       { x: 200, y: 370, w: 120, h: 18, kind: "wood" },
       { x: 420, y: 310, w: 120, h: 18, kind: "wood" },
       { x: 640, y: 250, w: 120, h: 18, kind: "wood" },
@@ -244,6 +284,7 @@ const WORLDS = [
       { x: 1520, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 1740, y: 260, w: 120, h: 18, kind: "wood" },
     ],
+    waterPits: [{ x: 1000, y: 460, w: 200, h: 40 }],
     eggs: [
       { x: 250, y: 340 }, { x: 470, y: 280 }, { x: 1360, y: 350 },
     ],
@@ -256,7 +297,7 @@ const WORLDS = [
       feedback_ok: "¡Sí! 12 + 8 son 20. El puente está armado.",
       feedback_no: "Ese no es el resultado. Probá otra vez.",
     },
-    flag: { x: 2080, y: 360, w: 24, h: 100 },
+    flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
 
   {
@@ -264,15 +305,51 @@ const WORLDS = [
     name: "El Granero",
     emoji: "🏚️",
     hint: "Identificá el animal correcto y abrí el granero.",
-    width: 2200,
+    width: 2400,
     theme: {
-      groundGrass: "#8da34c", groundDirt: "#6b4226",
+      sky: ["#f5d59c", "#fbe5b8", "#cb8f4f"],
+      grass: "#8da34c", grassDark: "#6b8232", dirt: "#6b4226",
+      mountain: "#8d7a4c", mountainDark: "#6b5a32",
+      treeTrunk: "#503018", treeLeaves: "#7a8a3a",
       cloud: "rgba(255,250,230,0.9)",
     },
+    parallaxFar: [
+      { kind: "mountain", x: 250, scale: 1 },
+      { kind: "mountain", x: 900, scale: 0.85 },
+      { kind: "mountain", x: 1500, scale: 1.1 },
+    ],
+    parallaxMid: [
+      { kind: "barn", x: 250, scale: 1.1 },
+      { kind: "silo", x: 700, scale: 1 },
+      { kind: "tree", x: 1100, scale: 0.95 },
+      { kind: "barn", x: 1700, scale: 1 },
+      { kind: "tree", x: 2200, scale: 1 },
+    ],
+    parallaxNear: [
+      { kind: "bush", x: 200 }, { kind: "rock", x: 800 },
+      { kind: "bush", x: 1400 }, { kind: "rock", x: 2100 },
+    ],
+    decor: [
+      { kind: "hay", x: 150, y: 432 },
+      { kind: "hay", x: 220, y: 432 },
+      { kind: "hay", x: 900, y: 432 },
+      { kind: "hay", x: 1380, y: 432 },
+      { kind: "hay", x: 1900, y: 432 },
+      { kind: "fence", x: 0, y: 444, len: 6 },
+      { kind: "fence", x: 1240, y: 444, len: 5 },
+    ],
+    ambients: [
+      { kind: "cow", x: 400, y: 422 },
+      { kind: "horse", x: 1500, y: 416 },
+      { kind: "chick", x: 700, y: 442 },
+      { kind: "chick", x: 740, y: 442 },
+      { kind: "chick", x: 720, y: 444 },
+      { kind: "bird", x: -200, y: 110, vx: 1.2 },
+    ],
     platforms: [
       { x: 0,    y: 460, w: 1100, h: 40, kind: "grass" },
-      { x: 1240, y: 460, w: 600,  h: 40, kind: "grass" },
-      { x: 1960, y: 460, w: 260,  h: 40, kind: "grass" },
+      { x: 1240, y: 460, w: 700,  h: 40, kind: "grass" },
+      { x: 1960, y: 460, w: 440,  h: 40, kind: "grass" },
       { x: 220, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 420, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 620, y: 260, w: 120, h: 18, kind: "wood" },
@@ -293,24 +370,60 @@ const WORLDS = [
       feedback_ok: "¡Sí! Las gallinas son las que ponen huevos.",
       feedback_no: "Ese animal no pone huevos. Probá otra vez.",
     },
-    flag: { x: 2100, y: 360, w: 24, h: 100 },
+    flag: { x: 2300, y: 360, w: 24, h: 100 },
   },
 ];
 
-// --- Estado ---
+// ============================================================
+// Estado
+// ============================================================
 const state = {
-  scene: "select",      // "select" | "playing" | "quiz" | "won"
+  scene: "splash",
   worldIdx: -1,
   world: null,
-  player: { x: 60, y: 420, w: 36, h: 36, vx: 0, vy: 0, onGround: false, facing: 1, flap: 0 },
-  camera: { x: 0 },
-  eggs: [], door: null, quiz: null, flag: null, platforms: [], theme: null,
+  player: {
+    x: 60, y: 420, w: 32, h: 32, vx: 0, vy: 0,
+    onGround: false, facing: 1, flap: 0,
+    scaleX: 1, scaleY: 1, targetSX: 1, targetSY: 1,
+    coyote: 0, jumpBuffer: 0, walkAnim: 0,
+  },
+  camera: { x: 0, targetX: 0, shake: 0 },
+  platforms: [], eggs: [], door: null, quiz: null, flag: null, theme: null,
+  parallaxFar: [], parallaxMid: [], parallaxNear: [],
+  decor: [], ambients: [], waterPits: [],
   collected: 0,
   quizSolved: false,
   hint: "",
+  particles: [],
+  globalT: 0,
 };
 
-// --- Persistencia simple ---
+let paused = false;
+
+// ============================================================
+// Audio button
+// ============================================================
+function refreshAudioBtn() {
+  audioBtn.textContent = isMuted() ? "🔇" : "🔊";
+  audioBtn.setAttribute("aria-label", isMuted() ? "Encender música" : "Apagar música");
+}
+audioBtn.addEventListener("click", async () => {
+  await toggleMute();
+  refreshAudioBtn();
+});
+refreshAudioBtn();
+
+// ============================================================
+// Stats persistencia
+// ============================================================
+const STATS_KEY = "pollito_stats";
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { totalEggs: 0, runs: 0 }; }
+  catch { return { totalEggs: 0, runs: 0 }; }
+}
+function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch {} }
+function bumpRuns() { const s = loadStats(); s.runs = (s.runs || 0) + 1; saveStats(s); }
+function bumpEggs(n) { const s = loadStats(); s.totalEggs = (s.totalEggs || 0) + n; saveStats(s); }
 function loadCompleted() {
   try { return new Set(JSON.parse(localStorage.getItem("pollito_done") || "[]")); }
   catch { return new Set(); }
@@ -319,7 +432,73 @@ function saveCompleted(set) {
   try { localStorage.setItem("pollito_done", JSON.stringify([...set])); } catch {}
 }
 
-// --- Selector de mundos ---
+// ============================================================
+// Splash pollito (canvas chico, dibujo grande del personaje)
+// ============================================================
+function drawSplashPollito() {
+  const c = splashPollitoCanvas;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = 120 * dpr; c.height = 120 * dpr;
+  c.style.width = "120px"; c.style.height = "120px";
+  const x = c.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.clearRect(0, 0, 120, 120);
+  x.save(); x.translate(60, 70); x.scale(2.6, 2.6);
+  // sombra
+  x.fillStyle = "rgba(0,0,0,0.15)";
+  x.beginPath(); x.ellipse(0, 22, 16, 4, 0, 0, Math.PI * 2); x.fill();
+  // cuerpo
+  x.fillStyle = "#ffd34a";
+  x.beginPath(); x.ellipse(0, 5, 18, 15, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.arc(9, -8, 12, 0, Math.PI * 2); x.fill();
+  // ala
+  x.fillStyle = "#f3b620";
+  x.beginPath(); x.ellipse(-3, 6, 8, 6, 0.2, 0, Math.PI * 2); x.fill();
+  // pico
+  x.fillStyle = "#f08a1a";
+  x.beginPath(); x.moveTo(20, -8); x.lineTo(26, -6); x.lineTo(20, -3); x.closePath(); x.fill();
+  // ojo
+  x.fillStyle = "#222"; x.beginPath(); x.arc(13, -10, 2, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "white"; x.beginPath(); x.arc(13.5, -10.5, 0.7, 0, Math.PI * 2); x.fill();
+  // cresta pequeña
+  x.fillStyle = "#e85d5d";
+  x.beginPath();
+  x.moveTo(8, -19); x.quadraticCurveTo(11, -23, 14, -19);
+  x.quadraticCurveTo(11, -21, 8, -19);
+  x.fill();
+  // patas
+  x.strokeStyle = "#f08a1a"; x.lineWidth = 3; x.lineCap = "round";
+  x.beginPath();
+  x.moveTo(-6, 18); x.lineTo(-6, 23);
+  x.moveTo(6, 18);  x.lineTo(6, 23);
+  x.stroke();
+  x.restore();
+}
+drawSplashPollito();
+
+function refreshSplashStats() {
+  const stats = loadStats();
+  const completed = loadCompleted().size;
+  if (stats.runs > 0 || completed > 0) {
+    splashStatsEl.style.display = "grid";
+    statWorldsEl.textContent = `${completed}/4`;
+    statEggsEl.textContent = String(stats.totalEggs || 0);
+    statRunsEl.textContent = String(stats.runs || 0);
+  }
+}
+refreshSplashStats();
+
+splashStartBtn.addEventListener("click", async () => {
+  // Aprovechar el gesto del usuario para desbloquear audio
+  await unlock();
+  splashOverlay.classList.remove("shown");
+  bumpRuns();
+  showSelector();
+});
+
+// ============================================================
+// Selector / Pausa / Quiz / Win
+// ============================================================
 function renderSelector() {
   const done = loadCompleted();
   worldGrid.innerHTML = "";
@@ -349,44 +528,54 @@ function showSelector() {
   renderSelector();
 }
 
-// --- Iniciar mundo ---
 function startWorld(idx) {
   const w = WORLDS[idx];
   state.scene = "playing";
   state.worldIdx = idx;
   state.world = w;
   state.platforms = w.platforms;
-  state.eggs = w.eggs.map((e) => ({ ...e, taken: false }));
+  state.eggs = w.eggs.map((e) => ({ ...e, taken: false, t: 0 }));
   state.door = w.door ? { ...w.door, opened: false } : null;
   state.quiz = w.quiz ? { ...w.quiz, solved: false } : null;
   state.flag = w.flag;
   state.theme = w.theme;
+  state.parallaxFar = w.parallaxFar || [];
+  state.parallaxMid = w.parallaxMid || [];
+  state.parallaxNear = w.parallaxNear || [];
+  state.decor = w.decor || [];
+  state.ambients = (w.ambients || []).map((a) => ({ ...a, t: Math.random() * Math.PI * 2 }));
+  state.waterPits = w.waterPits || [];
   state.player.x = 60; state.player.y = 420;
   state.player.vx = 0; state.player.vy = 0; state.player.onGround = false;
-  state.camera.x = 0;
+  state.player.scaleX = 1; state.player.scaleY = 1;
+  state.player.targetSX = 1; state.player.targetSY = 1;
+  state.player.coyote = 0; state.player.jumpBuffer = 0;
+  state.camera.x = 0; state.camera.targetX = 0; state.camera.shake = 0;
   state.collected = 0;
   state.quizSolved = false;
   state.hint = w.hint;
+  state.particles = [];
   selectOverlay.classList.remove("shown");
   winOverlay.classList.remove("shown");
   quizOverlay.classList.remove("shown");
   worldPillEl.textContent = `${w.emoji} ${w.name}`;
   pauseBtn.classList.add("visible");
   updateHud();
+  setMusicPattern(w.id);
   startMusic();
 }
 
 function updateHud() {
-  if (state.scene !== "playing") { hudEl.textContent = ""; return; }
+  if (state.scene !== "playing" && state.scene !== "won") { hudEl.textContent = ""; return; }
   let txt = `🥚 ${state.collected}`;
   if (state.eggs.length) txt += ` / ${state.eggs.length}`;
   if (state.door && !state.door.opened) txt += `  ·  🚪 faltan ${Math.max(0, state.door.eggs_required - state.collected)}`;
   hudEl.textContent = txt;
 }
 
-// --- Quiz overlay ---
 function openQuiz() {
   state.scene = "quiz";
+  stopMusic();
   quizQEl.textContent = state.quiz.question;
   quizFbEl.textContent = "";
   quizOptsEl.innerHTML = "";
@@ -409,17 +598,46 @@ function answerQuiz(idx) {
     setTimeout(() => {
       quizOverlay.classList.remove("shown");
       state.scene = "playing";
-      // Empujar al pollito a la derecha del quiz para que pase
       state.player.x = state.quiz.x + state.quiz.w + 5;
       state.hint = "¡Bien! Andá hasta el banderín.";
-    }, 1200);
+      startMusic();
+      // Sparkles celebratorios
+      for (let i = 0; i < 18; i++) spawnSparkle(state.quiz.x + 20, state.quiz.y + 30);
+    }, 1100);
   } else {
     quizFbEl.textContent = state.quiz.feedback_no;
     sfx.quizNo();
   }
 }
 
-// --- Input ---
+// ============================================================
+// Pausa
+// ============================================================
+function showPause() {
+  if (state.scene !== "playing") return;
+  paused = true;
+  stopMusic();
+  pauseOverlay.classList.add("shown");
+}
+function hidePause() {
+  paused = false;
+  pauseOverlay.classList.remove("shown");
+  startMusic();
+}
+pauseBtn.addEventListener("click", showPause);
+resumeBtn.addEventListener("click", hidePause);
+pauseToSelectBtn.addEventListener("click", () => { hidePause(); showSelector(); });
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+    if (state.scene === "playing" && !paused) showPause();
+    else if (paused) hidePause();
+  }
+});
+
+// ============================================================
+// Input
+// ============================================================
 const keys = { left: false, right: false, jump: false };
 function setKey(name, val) { keys[name] = val; }
 window.addEventListener("keydown", (e) => {
@@ -449,24 +667,154 @@ bindButton("btn-jump", "jump");
 restartBtn.addEventListener("click", () => startWorld(state.worldIdx));
 backToSelectBtn.addEventListener("click", showSelector);
 
-// --- Física + colisión ---
+// ============================================================
+// Particles
+// ============================================================
+function spawnDust(x, y, n = 6) {
+  for (let i = 0; i < n; i++) {
+    state.particles.push({
+      kind: "dust",
+      x: x + (Math.random() - 0.5) * 16,
+      y: y - Math.random() * 4,
+      vx: (Math.random() - 0.5) * 1.4,
+      vy: -Math.random() * 1.2,
+      life: 24 + Math.random() * 8,
+      maxLife: 32,
+      r: 3 + Math.random() * 2,
+    });
+  }
+}
+function spawnSparkle(x, y, n = 1) {
+  const colors = ["#ffd34a", "#fff", "#ffe69b", "#f3b620"];
+  for (let i = 0; i < n; i++) {
+    state.particles.push({
+      kind: "sparkle",
+      x: x + (Math.random() - 0.5) * 8,
+      y: y + (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 3,
+      vy: -1 - Math.random() * 2.5,
+      life: 30 + Math.random() * 10,
+      maxLife: 40,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      r: 2 + Math.random() * 2,
+    });
+  }
+}
+function spawnConfetti(x, y, n = 60) {
+  const colors = ["#ffd34a", "#e85d5d", "#5fb4e0", "#7ed957", "#d989ff", "#ff8c42"];
+  for (let i = 0; i < n; i++) {
+    state.particles.push({
+      kind: "confetti",
+      x, y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: -3 - Math.random() * 5,
+      life: 80 + Math.random() * 40,
+      maxLife: 120,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      r: 3 + Math.random() * 2,
+      rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 0.4,
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += (p.kind === "confetti" ? 0.18 : 0.08);
+    p.vx *= 0.98;
+    if (p.rot !== undefined) p.rot += p.vrot;
+    p.life--;
+    if (p.life <= 0) state.particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of state.particles) {
+    const sx = worldToScreen(p.x);
+    if (sx < -20 || sx > VIEW_W + 20) continue;
+    const alpha = Math.max(0, p.life / p.maxLife);
+    if (p.kind === "dust") {
+      ctx.fillStyle = `rgba(190, 165, 130, ${alpha * 0.6})`;
+      ctx.beginPath(); ctx.arc(sx, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "sparkle") {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.translate(sx, p.y);
+      const s = p.r * (0.7 + alpha * 0.5);
+      ctx.beginPath();
+      // estrella de 4 puntas
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const rr = (i % 2 === 0) ? s : s * 0.4;
+        const px = Math.cos(a) * rr;
+        const py = Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    } else if (p.kind === "confetti") {
+      ctx.save();
+      ctx.translate(sx, p.y);
+      ctx.rotate(p.rot || 0);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = alpha;
+      ctx.fillRect(-p.r, -p.r * 0.4, p.r * 2, p.r * 0.8);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ============================================================
+// Física
+// ============================================================
 function aabb(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
 function step() {
+  state.globalT++;
+  // Animar ambients y particles siempre (también después de ganar, para que el confetti caiga)
+  for (const a of state.ambients) a.t += 0.05;
+  updateParticles();
+  state.camera.shake *= 0.85;
+
   if (state.scene !== "playing" || paused) return;
   const p = state.player;
   const W = state.world.width;
 
+  // Movimiento horizontal
   if (keys.left) { p.vx = -MOVE_SPEED; p.facing = -1; }
   else if (keys.right) { p.vx = MOVE_SPEED; p.facing = 1; }
   else p.vx = 0;
-  if (keys.jump && p.onGround) { p.vy = JUMP_VY; p.onGround = false; sfx.jump(); }
+
+  // Jump buffer: si tocó saltar, lo registramos por unos frames
+  if (keys.jump) p.jumpBuffer = JUMP_BUFFER_FRAMES;
+  else p.jumpBuffer = Math.max(0, p.jumpBuffer - 1);
+
+  // Coyote time: descontar
+  if (p.onGround) p.coyote = COYOTE_FRAMES;
+  else p.coyote = Math.max(0, p.coyote - 1);
+
+  // Saltar si hay buffer Y coyote disponible
+  if (p.jumpBuffer > 0 && p.coyote > 0) {
+    p.vy = JUMP_VY;
+    p.onGround = false;
+    p.jumpBuffer = 0; p.coyote = 0;
+    p.targetSX = 0.8; p.targetSY = 1.25;
+    sfx.jump();
+    spawnDust(p.x + p.w / 2, p.y + p.h, 4);
+  }
 
   p.vy += GRAVITY;
   if (p.vy > MAX_FALL) p.vy = MAX_FALL;
 
+  // Colisión X
   p.x += p.vx;
   for (const plat of state.platforms) {
     if (aabb(p, plat)) {
@@ -478,52 +826,85 @@ function step() {
     if (p.vx > 0) p.x = state.door.x - p.w;
     else if (p.vx < 0) p.x = state.door.x + state.door.w;
   }
-  // Quiz: si no está resuelto, bloquea como una puerta
   if (state.quiz && !state.quiz.solved && aabb(p, state.quiz)) {
     if (p.vx > 0) p.x = state.quiz.x - p.w;
     else if (p.vx < 0) p.x = state.quiz.x + state.quiz.w;
-    // Si tocó el quiz, abrir overlay
     openQuiz();
     p.vx = 0;
   }
   if (p.x < 0) p.x = 0;
   if (p.x + p.w > W) p.x = W - p.w;
 
+  // Colisión Y
   p.y += p.vy;
+  const wasOnGround = p.onGround;
   p.onGround = false;
   for (const plat of state.platforms) {
     if (aabb(p, plat)) {
-      if (p.vy > 0) { p.y = plat.y - p.h; p.vy = 0; p.onGround = true; }
-      else if (p.vy < 0) { p.y = plat.y + plat.h; p.vy = 0; }
+      if (p.vy > 0) {
+        const justLanded = !wasOnGround;
+        p.y = plat.y - p.h;
+        if (justLanded && p.vy > 4) {
+          p.targetSX = 1.25; p.targetSY = 0.75;
+          sfx.land();
+          spawnDust(p.x + p.w / 2, p.y + p.h, 6);
+        }
+        p.vy = 0; p.onGround = true;
+      } else if (p.vy < 0) { p.y = plat.y + plat.h; p.vy = 0; }
     }
   }
+  // Caer al pozo o al agua: respawn
   if (p.y > VIEW_H + 100) { p.x = 60; p.y = 420; p.vx = 0; p.vy = 0; }
 
+  // Tween squash/stretch back to neutral
+  p.scaleX += (p.targetSX - p.scaleX) * 0.18;
+  p.scaleY += (p.targetSY - p.scaleY) * 0.18;
+  p.targetSX += (1 - p.targetSX) * 0.12;
+  p.targetSY += (1 - p.targetSY) * 0.12;
+
+  // Walk anim
+  if (Math.abs(p.vx) > 0.1 && p.onGround) p.walkAnim += 0.3;
+  p.flap = (p.flap + 1) % 30;
+
+  // Idle breath
+  if (Math.abs(p.vx) < 0.1 && p.onGround) {
+    p.scaleY = 1 + Math.sin(state.globalT * 0.06) * 0.02;
+    p.scaleX = 1 + Math.sin(state.globalT * 0.06) * -0.015;
+  }
+
+  // Recoger huevos
   for (const egg of state.eggs) {
     if (egg.taken) continue;
+    egg.t += 0.06;
     const box = { x: egg.x - 12, y: egg.y - 14, w: 24, h: 28 };
     if (aabb(p, box)) {
       egg.taken = true;
       state.collected++;
       bumpEggs(1);
       sfx.egg();
+      for (let i = 0; i < 10; i++) spawnSparkle(egg.x, egg.y, 1);
       updateHud();
     }
   }
 
+  // Abrir puerta
   if (state.door && !state.door.opened && state.collected >= state.door.eggs_required) {
     state.door.opened = true;
     state.hint = "¡Puerta abierta! Andá hasta el banderín.";
     sfx.door();
+    state.camera.shake = 8;
+    for (let i = 0; i < 14; i++) spawnSparkle(state.door.x + 15, state.door.y + 50);
     updateHud();
   }
 
+  // Llegar al banderín
   if (state.flag && state.scene === "playing" && aabb(p, state.flag)) {
-    // Win condition: si hay desafío, debe estar resuelto
-    const challengeOk = (!state.door || state.door.opened) && (!state.quiz || state.quiz.solved);
-    if (challengeOk) {
+    const ok = (!state.door || state.door.opened) && (!state.quiz || state.quiz.solved);
+    if (ok) {
       state.scene = "won";
       sfx.win();
+      state.camera.shake = 12;
+      spawnConfetti(state.flag.x + 10, state.flag.y + 30, 80);
       stopMusic();
       const done = loadCompleted();
       done.add(state.world.id);
@@ -531,29 +912,62 @@ function step() {
       const next = WORLDS.find((w) => !done.has(w.id));
       winTitleEl.textContent = `🎉 ¡Completaste ${state.world.name}!`;
       winMsgEl.textContent = next ? `Probá el próximo: ${next.emoji} ${next.name}.` : "Completaste todos los mundos. ¡Increíble!";
-      setTimeout(() => winOverlay.classList.add("shown"), 400);
+      setTimeout(() => winOverlay.classList.add("shown"), 700);
     }
   }
 
-  p.flap = (p.flap + 1) % 30;
-  const targetX = p.x + p.w / 2 - VIEW_W / 2;
-  state.camera.x = Math.max(0, Math.min(W - VIEW_W, targetX));
+  // Cámara con lerp + lookahead
+  const lookahead = p.facing * 80;
+  state.camera.targetX = Math.max(0, Math.min(W - VIEW_W, p.x + p.w / 2 - VIEW_W / 2 + lookahead));
+  state.camera.x += (state.camera.targetX - state.camera.x) * 0.12;
+
+  // Ambient sound triggers (raros, suaves)
+  if (state.globalT % 600 === 100 && !isMuted()) {
+    const hasCow = state.ambients.some((a) => a.kind === "cow");
+    const hasSheep = state.ambients.some((a) => a.kind === "sheep");
+    if (hasCow && Math.random() < 0.3) sfx.moo();
+    else if (hasSheep && Math.random() < 0.3) sfx.baa();
+  }
+
 }
 
-// --- Render ---
+// ============================================================
+// Render
+// ============================================================
+function worldToScreen(x) {
+  const shake = state.camera.shake > 0.2 ? (Math.random() - 0.5) * state.camera.shake : 0;
+  return x - state.camera.x + shake;
+}
+
 function drawSky() {
   if (!state.theme) return;
-  const camX = state.camera.x;
-  ctx.fillStyle = state.theme.cloud;
-  drawCloud(120 - camX * 0.3, 70, 1);
-  drawCloud(560 - camX * 0.3, 100, 0.9);
-  drawCloud(380 - camX * 0.3, 50, 0.7);
-  drawCloud(1100 - camX * 0.3, 80, 1);
-  drawCloud(1700 - camX * 0.3, 100, 0.85);
+  const [c1, c2, c3] = state.theme.sky;
+  const grad = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(0.65, c2);
+  grad.addColorStop(1, c3);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  // Sol fijo
+  const sunX = 700, sunY = 90;
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 60);
+  sunGrad.addColorStop(0, "#fff5b8");
+  sunGrad.addColorStop(0.4, "#ffd76b");
+  sunGrad.addColorStop(1, "rgba(255, 215, 107, 0)");
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 60, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#ffd76b";
-  ctx.beginPath(); ctx.arc(720, 80, 32, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sunX, sunY, 26, 0, Math.PI * 2); ctx.fill();
+  // Nubes con parallax muy lento
+  ctx.fillStyle = state.theme.cloud;
+  const camX = state.camera.x;
+  drawCloud(120 - camX * 0.15, 70, 1);
+  drawCloud(560 - camX * 0.15, 100, 0.9);
+  drawCloud(380 - camX * 0.15, 50, 0.7);
+  drawCloud(1100 - camX * 0.15, 80, 1);
+  drawCloud(1700 - camX * 0.15, 100, 0.85);
+  drawCloud(2300 - camX * 0.15, 75, 0.95);
 }
-
 function drawCloud(cx, cy, scale) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
   ctx.beginPath();
@@ -565,33 +979,666 @@ function drawCloud(cx, cy, scale) {
   ctx.restore();
 }
 
-function worldToScreen(x) { return x - state.camera.x; }
+// Parallax: itera capa y dibuja cada elemento con offset modulado
+function drawParallaxLayer(items, factor, drawFn) {
+  for (const it of items) {
+    const sx = it.x - state.camera.x * factor;
+    if (sx < -200 || sx > VIEW_W + 200) continue;
+    drawFn(sx, it);
+  }
+}
 
+function drawMountain(sx, it) {
+  const scale = it.scale || 1;
+  const w = 260 * scale, h = 180 * scale;
+  const x = sx;
+  const baseY = 460;
+  ctx.fillStyle = state.theme.mountainDark;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  ctx.lineTo(x + w * 0.45, baseY - h);
+  ctx.lineTo(x + w * 0.7, baseY - h * 0.6);
+  ctx.lineTo(x + w, baseY);
+  ctx.closePath(); ctx.fill();
+  // capa de luz
+  ctx.fillStyle = state.theme.mountain;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.45, baseY - h);
+  ctx.lineTo(x + w * 0.5, baseY - h * 0.95);
+  ctx.lineTo(x + w * 0.95, baseY);
+  ctx.lineTo(x + w, baseY);
+  ctx.closePath(); ctx.fill();
+  // nieve en el pico
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.45, baseY - h);
+  ctx.lineTo(x + w * 0.4, baseY - h * 0.86);
+  ctx.lineTo(x + w * 0.5, baseY - h * 0.92);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawTree(sx, it) {
+  const scale = it.scale || 1;
+  const baseY = 460;
+  const trunkW = 16 * scale, trunkH = 50 * scale;
+  ctx.fillStyle = state.theme.treeTrunk;
+  ctx.fillRect(sx - trunkW / 2, baseY - trunkH, trunkW, trunkH);
+  // copa: 3 círculos
+  ctx.fillStyle = state.theme.treeLeaves;
+  const cr = 30 * scale;
+  ctx.beginPath();
+  ctx.arc(sx - 14 * scale, baseY - trunkH - 5, cr * 0.9, 0, Math.PI * 2);
+  ctx.arc(sx + 14 * scale, baseY - trunkH - 5, cr * 0.9, 0, Math.PI * 2);
+  ctx.arc(sx, baseY - trunkH - 20 * scale, cr, 0, Math.PI * 2);
+  ctx.fill();
+  // brillito
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.beginPath(); ctx.arc(sx - 4 * scale, baseY - trunkH - 24 * scale, cr * 0.4, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawBarn(sx, it) {
+  const scale = it.scale || 1;
+  const baseY = 460;
+  const w = 110 * scale, h = 80 * scale;
+  // techo
+  ctx.fillStyle = "#5b2a1a";
+  ctx.beginPath();
+  ctx.moveTo(sx, baseY - h);
+  ctx.lineTo(sx + w / 2, baseY - h - 40 * scale);
+  ctx.lineTo(sx + w, baseY - h);
+  ctx.closePath(); ctx.fill();
+  // body
+  ctx.fillStyle = "#c44e3b";
+  ctx.fillRect(sx, baseY - h, w, h);
+  // ventana
+  ctx.fillStyle = "#fff8d0";
+  ctx.fillRect(sx + w / 2 - 12 * scale, baseY - h + 12 * scale, 24 * scale, 24 * scale);
+  // puerta
+  ctx.fillStyle = "#5b2a1a";
+  ctx.fillRect(sx + w / 2 - 18 * scale, baseY - 40 * scale, 36 * scale, 40 * scale);
+  // tablones blanco
+  ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx, baseY - h * 0.6); ctx.lineTo(sx + w, baseY - h * 0.6);
+  ctx.moveTo(sx, baseY - h * 0.3); ctx.lineTo(sx + w, baseY - h * 0.3);
+  ctx.stroke();
+}
+
+function drawSilo(sx, it) {
+  const scale = it.scale || 1;
+  const baseY = 460;
+  const w = 50 * scale, h = 110 * scale;
+  ctx.fillStyle = "#bfb8a8";
+  ctx.fillRect(sx, baseY - h, w, h);
+  ctx.fillStyle = "#5b5040";
+  ctx.beginPath();
+  ctx.ellipse(sx + w / 2, baseY - h, w / 2, 14 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // anillos
+  ctx.strokeStyle = "rgba(0,0,0,0.15)"; ctx.lineWidth = 1.5;
+  for (let i = 1; i <= 4; i++) {
+    const yy = baseY - h + (h / 5) * i;
+    ctx.beginPath(); ctx.moveTo(sx, yy); ctx.lineTo(sx + w, yy); ctx.stroke();
+  }
+}
+
+function drawWindmill(sx, it) {
+  const scale = it.scale || 1;
+  const baseY = 460;
+  // Mástil triangular
+  ctx.fillStyle = "#8a7a5a";
+  ctx.beginPath();
+  ctx.moveTo(sx + 5 * scale, baseY);
+  ctx.lineTo(sx + 22 * scale, baseY - 100 * scale);
+  ctx.lineTo(sx + 38 * scale, baseY);
+  ctx.closePath(); ctx.fill();
+  // Aspas (rotando lento con globalT)
+  const cx = sx + 22 * scale, cy = baseY - 100 * scale;
+  const rot = state.globalT * 0.012;
+  ctx.fillStyle = "#fffcf0";
+  ctx.strokeStyle = "#8a7a5a"; ctx.lineWidth = 2;
+  for (let i = 0; i < 4; i++) {
+    const a = rot + i * Math.PI / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(36 * scale, -8 * scale);
+    ctx.lineTo(40 * scale, 0);
+    ctx.lineTo(36 * scale, 8 * scale);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  ctx.fillStyle = "#5b4226";
+  ctx.beginPath(); ctx.arc(cx, cy, 5 * scale, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawBush(sx) {
+  const baseY = 460;
+  ctx.fillStyle = state.theme.grassDark;
+  ctx.beginPath();
+  ctx.arc(sx, baseY - 4, 16, 0, Math.PI * 2);
+  ctx.arc(sx - 12, baseY, 12, 0, Math.PI * 2);
+  ctx.arc(sx + 12, baseY, 12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = state.theme.grass;
+  ctx.beginPath();
+  ctx.arc(sx + 4, baseY - 8, 8, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRock(sx) {
+  const baseY = 460;
+  ctx.fillStyle = "#9c9088";
+  ctx.beginPath();
+  ctx.ellipse(sx, baseY - 4, 18, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#bdb1a5";
+  ctx.beginPath();
+  ctx.ellipse(sx - 4, baseY - 8, 8, 5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Decoración foreground (mismo plano que el juego)
+function drawDecor(d) {
+  const sx = worldToScreen(d.x);
+  if (sx < -150 || sx > VIEW_W + 150) return;
+  if (d.kind === "fence") drawFence(sx, d);
+  else if (d.kind === "gallinero") drawGallinero(sx, d);
+  else if (d.kind === "flower") drawFlower(sx, d);
+  else if (d.kind === "wheat") drawWheat(sx, d);
+  else if (d.kind === "sunflower") drawSunflower(sx, d);
+  else if (d.kind === "scarecrow") drawScarecrow(sx, d);
+  else if (d.kind === "reeds") drawReeds(sx, d);
+  else if (d.kind === "lilypad") drawLilypad(sx, d);
+  else if (d.kind === "hay") drawHay(sx, d);
+}
+
+function drawFence(sx, d) {
+  const len = d.len || 4;
+  const segW = 36;
+  ctx.fillStyle = "#a87447";
+  ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 1.5;
+  // horizontales
+  ctx.fillRect(sx, d.y - 2, segW * len, 4);
+  ctx.strokeRect(sx, d.y - 2, segW * len, 4);
+  ctx.fillRect(sx, d.y + 10, segW * len, 4);
+  ctx.strokeRect(sx, d.y + 10, segW * len, 4);
+  // verticales
+  for (let i = 0; i < len; i++) {
+    ctx.beginPath();
+    ctx.moveTo(sx + i * segW + 6, d.y - 10);
+    ctx.lineTo(sx + i * segW + 12, d.y + 16);
+    ctx.lineTo(sx + i * segW + 18, d.y - 10);
+    ctx.closePath();
+    ctx.fillStyle = "#a87447"; ctx.fill(); ctx.stroke();
+  }
+}
+
+function drawGallinero(sx, d) {
+  // casita pequeña con techo + entrada redonda
+  const x = sx, y = d.y;
+  ctx.fillStyle = "#c44e3b";
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 30, y - 24);
+  ctx.lineTo(x + 60, y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#e8c87d";
+  ctx.fillRect(x, y, 60, 48);
+  ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.2;
+  for (let i = 8; i < 60; i += 10) {
+    ctx.beginPath(); ctx.moveTo(x + i, y); ctx.lineTo(x + i, y + 48); ctx.stroke();
+  }
+  // entrada
+  ctx.fillStyle = "#3a2a1a";
+  ctx.beginPath();
+  ctx.arc(x + 30, y + 38, 12, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(x + 18, y + 38, 24, 10);
+  // perchita
+  ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x + 22, y + 50); ctx.lineTo(x + 38, y + 50); ctx.stroke();
+}
+
+function drawFlower(sx, d) {
+  const baseY = d.y;
+  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 14); ctx.stroke();
+  // hojita
+  ctx.fillStyle = "#4f8c46";
+  ctx.beginPath(); ctx.ellipse(sx - 4, baseY - 6, 4, 2, 0.4, 0, Math.PI * 2); ctx.fill();
+  // pétalos
+  ctx.fillStyle = d.color || "#e85d5d";
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.ellipse(sx + Math.cos(a) * 4, baseY - 16 + Math.sin(a) * 4, 3.5, 5, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#ffd34a";
+  ctx.beginPath(); ctx.arc(sx, baseY - 16, 2.5, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawWheat(sx, d) {
+  const baseY = d.y;
+  ctx.strokeStyle = "#d6a04a"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 26); ctx.stroke();
+  // espiga
+  ctx.fillStyle = "#e8b850";
+  ctx.beginPath(); ctx.ellipse(sx, baseY - 30, 4, 8, 0, 0, Math.PI * 2); ctx.fill();
+  // granos
+  ctx.fillStyle = "#a87420";
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath(); ctx.ellipse(sx + i * 1.5, baseY - 30 + i * 3, 1, 2, 0, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawSunflower(sx, d) {
+  const baseY = d.y;
+  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 36); ctx.stroke();
+  // hoja
+  ctx.fillStyle = "#5da650";
+  ctx.beginPath(); ctx.ellipse(sx - 7, baseY - 14, 7, 3, 0.5, 0, Math.PI * 2); ctx.fill();
+  // pétalos
+  ctx.fillStyle = "#ffd34a";
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.ellipse(sx + Math.cos(a) * 6, baseY - 40 + Math.sin(a) * 6, 4, 7, a, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#5b3a1a";
+  ctx.beginPath(); ctx.arc(sx, baseY - 40, 6, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawScarecrow(sx, d) {
+  const x = sx, y = d.y;
+  // cruz
+  ctx.fillStyle = "#6b4226";
+  ctx.fillRect(x + 8, y, 4, 50);
+  ctx.fillRect(x, y + 18, 20, 4);
+  // ropa
+  ctx.fillStyle = "#4a5db7";
+  ctx.fillRect(x + 2, y + 8, 16, 18);
+  // cabeza
+  ctx.fillStyle = "#e8c87d";
+  ctx.beginPath(); ctx.arc(x + 10, y + 4, 8, 0, Math.PI * 2); ctx.fill();
+  // sombrero
+  ctx.fillStyle = "#8a6f3a";
+  ctx.beginPath();
+  ctx.moveTo(x + 2, y - 2); ctx.lineTo(x + 10, y - 12); ctx.lineTo(x + 18, y - 2);
+  ctx.closePath(); ctx.fill();
+  ctx.fillRect(x - 1, y - 2, 22, 3);
+  // cara
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(x + 7, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + 13, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawReeds(sx, d) {
+  const baseY = d.y;
+  ctx.strokeStyle = "#5d7e3f"; ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const x = sx + i * 6;
+    const sway = Math.sin(state.globalT * 0.03 + i) * 2;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.quadraticCurveTo(x + sway, baseY - 14, x + sway * 1.5, baseY - 32);
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#3a2a1a";
+  for (let i = 0; i < 5; i++) {
+    const x = sx + i * 6;
+    const sway = Math.sin(state.globalT * 0.03 + i) * 2;
+    ctx.beginPath();
+    ctx.ellipse(x + sway * 1.5, baseY - 34, 1.2, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawLilypad(sx, d) {
+  const baseY = d.y;
+  ctx.fillStyle = "#3d8c46";
+  ctx.beginPath();
+  ctx.ellipse(sx, baseY, 22, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(sx - 4, baseY - 1, 8, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawHay(sx, d) {
+  const baseY = d.y;
+  ctx.fillStyle = "#d6a04a";
+  ctx.beginPath();
+  ctx.ellipse(sx, baseY + 12, 26, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.2;
+  for (let i = -3; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(sx + i * 7, baseY);
+    ctx.lineTo(sx + i * 7, baseY + 24);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(107,66,38,0.7)";
+  ctx.beginPath(); ctx.moveTo(sx - 26, baseY + 12); ctx.lineTo(sx + 26, baseY + 12); ctx.stroke();
+}
+
+// ===== Plataformas =====
 function drawPlatform(p) {
   const sx = worldToScreen(p.x);
   if (sx + p.w < 0 || sx > VIEW_W) return;
   if (p.kind === "grass") {
-    ctx.fillStyle = state.theme.groundDirt;
+    ctx.fillStyle = state.theme.dirt;
     ctx.fillRect(sx, p.y + 12, p.w, p.h - 12);
-    ctx.fillStyle = state.theme.groundGrass;
-    ctx.fillRect(sx, p.y, p.w, 14);
+    // textura tierra (puntitos)
     ctx.fillStyle = "rgba(0,0,0,0.15)";
-    for (let x = sx + 5; x < sx + p.w; x += 18) ctx.fillRect(x, p.y - 3, 3, 6);
+    for (let i = 0; i < p.w; i += 22) {
+      ctx.beginPath(); ctx.arc(sx + i + 8, p.y + 24, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx + i + 16, p.y + 32, 1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = state.theme.grass;
+    ctx.fillRect(sx, p.y, p.w, 14);
+    ctx.fillStyle = state.theme.grassDark;
+    for (let x = sx + 5; x < sx + p.w; x += 14) {
+      ctx.fillRect(x, p.y - 3, 2.5, 5);
+      ctx.fillRect(x + 6, p.y - 4, 1.5, 6);
+    }
   } else if (p.kind === "wood") {
+    // sombra
+    ctx.fillStyle = "rgba(0,0,0,0.15)";
+    ctx.fillRect(sx, p.y + p.h, p.w, 3);
+    // body
     ctx.fillStyle = "#a87447";
     ctx.fillRect(sx, p.y, p.w, p.h);
     ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2;
     ctx.strokeRect(sx + 1, p.y + 1, p.w - 2, p.h - 2);
     ctx.strokeStyle = "rgba(107, 66, 38, 0.5)";
-    ctx.beginPath(); ctx.moveTo(sx, p.y + p.h / 2); ctx.lineTo(sx + p.w, p.y + p.h / 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx, p.y + p.h / 2); ctx.lineTo(sx + p.w, p.y + p.h / 2); ctx.stroke();
+    // clavos
+    ctx.fillStyle = "#3a2a1a";
+    ctx.beginPath(); ctx.arc(sx + 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx + p.w - 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
   }
 }
 
+// Agua en pozos (estanque)
+function drawWaterPit(pit) {
+  const sx = worldToScreen(pit.x);
+  if (sx + pit.w < 0 || sx > VIEW_W) return;
+  ctx.fillStyle = state.theme.waterDark || "#3d8db0";
+  ctx.fillRect(sx, pit.y, pit.w, pit.h);
+  // brillito animado
+  const t = state.globalT;
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  for (let i = 0; i < pit.w; i += 12) {
+    const yy = pit.y + 4 + Math.sin(t * 0.05 + i * 0.2) * 2;
+    ctx.fillRect(sx + i + 3, yy, 6, 1.5);
+  }
+}
+
+// ===== Ambient animals =====
+function drawAmbient(a) {
+  const sx = worldToScreen(a.x);
+  if (sx < -120 || sx > VIEW_W + 120) {
+    if (a.kind !== "bird") return;
+  }
+  if (a.kind === "cow") drawCow(sx, a);
+  else if (a.kind === "sheep") drawSheep(sx, a);
+  else if (a.kind === "horse") drawHorse(sx, a);
+  else if (a.kind === "duck") drawDuck(sx, a);
+  else if (a.kind === "chick") drawChick(sx, a);
+  else if (a.kind === "butterfly") drawButterfly(sx, a);
+  else if (a.kind === "dragonfly") drawDragonfly(sx, a);
+  else if (a.kind === "bird") drawBird(sx, a);
+}
+
+function drawCow(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 0.6) * 0.8;
+  // cuerpo
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 28, 16, 0, 0, Math.PI * 2); ctx.fill();
+  // manchas
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.ellipse(sx - 10, y - 2 + bob, 8, 5, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sx + 8, y + 4 + bob, 6, 4, -0.4, 0, Math.PI * 2); ctx.fill();
+  // cabeza
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.ellipse(sx - 28, y - 4 + bob, 12, 10, 0, 0, Math.PI * 2); ctx.fill();
+  // hocico
+  ctx.fillStyle = "#f8c2c8";
+  ctx.beginPath(); ctx.ellipse(sx - 36, y - 1 + bob, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx - 37, y - 1 + bob, 0.8, 0, Math.PI * 2); ctx.fill();
+  // cuernos
+  ctx.strokeStyle = "#a87447"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx - 32, y - 12 + bob); ctx.lineTo(sx - 30, y - 16 + bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx - 26, y - 12 + bob); ctx.lineTo(sx - 24, y - 16 + bob); ctx.stroke();
+  // ojo
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx - 30, y - 6 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
+  // patas
+  ctx.fillStyle = "#222";
+  ctx.fillRect(sx - 18, y + 12, 4, 12);
+  ctx.fillRect(sx - 6, y + 14, 4, 10);
+  ctx.fillRect(sx + 8, y + 14, 4, 10);
+  ctx.fillRect(sx + 18, y + 12, 4, 12);
+  // cola
+  ctx.strokeStyle = "#222"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx + 28, y - 2 + bob);
+  ctx.quadraticCurveTo(sx + 36, y + 6, sx + 32, y + 12);
+  ctx.stroke();
+}
+
+function drawSheep(sx, a) {
+  const y = a.y;
+  const nibble = Math.sin(a.t * 1.2) * 1.5;
+  // lana
+  ctx.fillStyle = "#fff";
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.arc(sx + i * 8, y - 2, 9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(sx - 4, y - 10, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 4, y - 10, 7, 0, Math.PI * 2); ctx.fill();
+  // cabeza (mirando abajo, comiendo pastito)
+  ctx.fillStyle = "#3a3026";
+  ctx.beginPath();
+  ctx.ellipse(sx - 22, y + 2 + nibble, 7, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // oreja
+  ctx.beginPath();
+  ctx.ellipse(sx - 22, y - 5 + nibble, 2, 4, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // ojo
+  ctx.fillStyle = "white";
+  ctx.beginPath(); ctx.arc(sx - 24, y + 1 + nibble, 1.2, 0, Math.PI * 2); ctx.fill();
+  // patas
+  ctx.fillStyle = "#3a3026";
+  ctx.fillRect(sx - 14, y + 10, 3, 10);
+  ctx.fillRect(sx - 4, y + 12, 3, 8);
+  ctx.fillRect(sx + 6, y + 12, 3, 8);
+  ctx.fillRect(sx + 14, y + 10, 3, 10);
+}
+
+function drawHorse(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 0.4) * 0.6;
+  // cuerpo
+  ctx.fillStyle = "#8a5a30";
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 30, 14, 0, 0, Math.PI * 2); ctx.fill();
+  // cuello
+  ctx.beginPath();
+  ctx.moveTo(sx - 22, y - 6 + bob);
+  ctx.quadraticCurveTo(sx - 36, y - 26 + bob, sx - 30, y - 22 + bob);
+  ctx.quadraticCurveTo(sx - 24, y - 14 + bob, sx - 16, y - 4 + bob);
+  ctx.fill();
+  // cabeza
+  ctx.beginPath();
+  ctx.ellipse(sx - 36, y - 22 + bob, 10, 7, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // crin
+  ctx.fillStyle = "#3a2010";
+  ctx.beginPath();
+  ctx.moveTo(sx - 30, y - 24 + bob);
+  ctx.lineTo(sx - 24, y - 30 + bob);
+  ctx.lineTo(sx - 20, y - 22 + bob);
+  ctx.lineTo(sx - 14, y - 20 + bob);
+  ctx.lineTo(sx - 18, y - 12 + bob);
+  ctx.closePath(); ctx.fill();
+  // ojo
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx - 38, y - 22 + bob, 1.3, 0, Math.PI * 2); ctx.fill();
+  // patas
+  ctx.fillStyle = "#8a5a30";
+  ctx.fillRect(sx - 22, y + 10, 4, 14);
+  ctx.fillRect(sx - 10, y + 12, 4, 12);
+  ctx.fillRect(sx + 8, y + 12, 4, 12);
+  ctx.fillRect(sx + 22, y + 10, 4, 14);
+  ctx.fillStyle = "#3a2010";
+  ctx.fillRect(sx - 22, y + 22, 4, 2);
+  ctx.fillRect(sx + 22, y + 22, 4, 2);
+  ctx.fillRect(sx - 10, y + 22, 4, 2);
+  ctx.fillRect(sx + 8, y + 22, 4, 2);
+  // cola
+  ctx.fillStyle = "#3a2010";
+  ctx.beginPath();
+  ctx.moveTo(sx + 28, y - 4 + bob);
+  ctx.quadraticCurveTo(sx + 40, y + 8, sx + 34, y + 16);
+  ctx.lineTo(sx + 28, y + 6);
+  ctx.fill();
+}
+
+function drawDuck(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 1.5) * 1.2;
+  // cuerpo flotando
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 16, 10, 0, 0, Math.PI * 2); ctx.fill();
+  // cabeza
+  ctx.fillStyle = "#3a7a3a";
+  ctx.beginPath(); ctx.arc(sx + 12, y - 6 + bob, 7, 0, Math.PI * 2); ctx.fill();
+  // pico
+  ctx.fillStyle = "#ffb030";
+  ctx.beginPath();
+  ctx.moveTo(sx + 17, y - 6 + bob);
+  ctx.lineTo(sx + 24, y - 5 + bob);
+  ctx.lineTo(sx + 17, y - 3 + bob);
+  ctx.closePath(); ctx.fill();
+  // ojo
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx + 13, y - 7 + bob, 1, 0, Math.PI * 2); ctx.fill();
+  // cola
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.moveTo(sx - 12, y - 4 + bob);
+  ctx.lineTo(sx - 18, y - 8 + bob);
+  ctx.lineTo(sx - 14, y + bob);
+  ctx.closePath(); ctx.fill();
+  // reflejos del agua
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx - 18, y + 12 + bob);
+  ctx.lineTo(sx + 18, y + 12 + bob);
+  ctx.stroke();
+}
+
+function drawChick(sx, a) {
+  const y = a.y;
+  const hop = Math.abs(Math.sin(a.t * 3)) * 2;
+  ctx.fillStyle = "#ffe080";
+  ctx.beginPath(); ctx.ellipse(sx, y - hop, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 3, y - 4 - hop, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#f08a1a";
+  ctx.beginPath();
+  ctx.moveTo(sx + 7, y - 4 - hop);
+  ctx.lineTo(sx + 10, y - 3 - hop);
+  ctx.lineTo(sx + 7, y - 2 - hop);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx + 5, y - 5 - hop, 0.8, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx - 2, y + 4 - hop); ctx.lineTo(sx - 2, y + 7 - hop);
+  ctx.moveTo(sx + 2, y + 4 - hop); ctx.lineTo(sx + 2, y + 7 - hop);
+  ctx.stroke();
+}
+
+function drawButterfly(sx, a) {
+  const y = a.y + Math.sin(a.t * 1.2) * 10;
+  const flap = Math.sin(a.t * 4) * 0.6 + 0.5;
+  ctx.fillStyle = a.hue || "#e85d5d";
+  ctx.save(); ctx.translate(sx, y);
+  // alas
+  ctx.scale(flap, 1);
+  ctx.beginPath(); ctx.ellipse(-6, -4, 7, 9, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(6, -4, 7, 9, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-5, 5, 5, 6, -0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5, 5, 5, 6, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // cuerpo
+  ctx.fillStyle = "#2a1d10";
+  ctx.beginPath(); ctx.ellipse(sx, y, 1.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawDragonfly(sx, a) {
+  const y = a.y + Math.sin(a.t * 2) * 6;
+  ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 1;
+  ctx.fillStyle = "rgba(180,220,255,0.6)";
+  // alas vibrando rápido (parecen translúcidas)
+  for (const sgn of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(sx + sgn * 8, y - 2, 8, 3, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(sx + sgn * 8, y + 2, 7, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+  // cuerpo
+  ctx.fillStyle = a.hue || "#5fb4e0";
+  ctx.beginPath(); ctx.ellipse(sx, y, 2.5, 8, 0, 0, Math.PI * 2); ctx.fill();
+  // cabeza
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx, y - 6, 1.8, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawBird(sx, a) {
+  // pájaro que cruza el cielo
+  a.x += a.vx;
+  if (a.x > state.world.width + 100) a.x = -100;
+  const y = a.y + Math.sin(a.t * 2) * 3;
+  const flap = Math.sin(a.t * 6) * 4;
+  ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(sx - 8, y + flap);
+  ctx.quadraticCurveTo(sx - 4, y - 2, sx, y);
+  ctx.quadraticCurveTo(sx + 4, y - 2, sx + 8, y + flap);
+  ctx.stroke();
+}
+
+// ===== Huevos, puerta, quiz marker, banderín =====
 function drawEgg(egg) {
   if (egg.taken) return;
   const sx = worldToScreen(egg.x);
   if (sx < -30 || sx > VIEW_W + 30) return;
-  ctx.save(); ctx.translate(sx, egg.y);
+  const bob = Math.sin(egg.t * 1.5) * 2;
+  ctx.save(); ctx.translate(sx, egg.y + bob);
+  // sombra
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  ctx.beginPath(); ctx.ellipse(0, 16, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // halo brillante
+  ctx.fillStyle = "rgba(255, 255, 200, 0.3)";
+  ctx.beginPath(); ctx.arc(0, 0, 20 + Math.sin(egg.t * 2) * 2, 0, Math.PI * 2); ctx.fill();
+  // huevo
   ctx.fillStyle = "#fff7d1";
   ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#d6c084"; ctx.lineWidth = 1.5; ctx.stroke();
@@ -603,15 +1650,27 @@ function drawEgg(egg) {
 function drawDoor(d) {
   const sx = worldToScreen(d.x);
   if (sx + d.w < 0 || sx > VIEW_W) return;
+  // marco
   ctx.fillStyle = "#5b3a1a";
-  ctx.fillRect(sx - 4, d.y - 4, d.w + 8, d.h + 4);
+  ctx.fillRect(sx - 6, d.y - 6, d.w + 12, d.h + 6);
+  ctx.fillStyle = "#3a2010";
+  ctx.fillRect(sx - 8, d.y - 8, d.w + 16, 4);
   if (!d.opened) {
     ctx.fillStyle = "#a87447";
     ctx.fillRect(sx, d.y, d.w, d.h);
+    // tablones verticales
+    ctx.strokeStyle = "rgba(60,30,15,0.5)"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx + d.w / 2, d.y); ctx.lineTo(sx + d.w / 2, d.y + d.h);
+    ctx.stroke();
+    // manija
     ctx.fillStyle = "#ffd76b";
     ctx.beginPath(); ctx.arc(sx + d.w - 6, d.y + d.h / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+    // candado con número
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.fillRect(sx + d.w / 2 - 14, d.y + d.h / 2 - 14, 28, 28);
+    ctx.strokeStyle = "#5b3a1a"; ctx.lineWidth = 2;
+    ctx.strokeRect(sx + d.w / 2 - 14, d.y + d.h / 2 - 14, 28, 28);
     ctx.fillStyle = "#5b3a1a";
     ctx.font = "bold 18px system-ui";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -619,15 +1678,22 @@ function drawDoor(d) {
   } else {
     ctx.fillStyle = "#2a1d10";
     ctx.fillRect(sx, d.y, d.w, d.h);
+    // tilde
+    ctx.fillStyle = "#7ed957";
+    ctx.font = "bold 26px system-ui";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("✓", sx + d.w / 2, d.y + d.h / 2);
   }
 }
 
 function drawQuizMarker(q) {
   const sx = worldToScreen(q.x);
   if (sx + q.w < 0 || sx > VIEW_W) return;
+  // poste
+  ctx.fillStyle = "#5b3a1a";
+  ctx.fillRect(sx + q.w / 2 - 3, q.y + q.h, 6, 20);
   if (q.solved) {
-    // marca completada (tilde)
-    ctx.fillStyle = "rgba(108, 179, 94, 0.5)";
+    ctx.fillStyle = "rgba(108, 179, 94, 0.85)";
     ctx.fillRect(sx, q.y, q.w, q.h);
     ctx.fillStyle = "#fff";
     ctx.font = "bold 22px system-ui";
@@ -635,13 +1701,17 @@ function drawQuizMarker(q) {
     ctx.fillText("✓", sx + q.w / 2, q.y + q.h / 2);
     return;
   }
-  // Tabla con signo de pregunta
+  // tabla (papel pinned a poste)
   ctx.fillStyle = "#5b3a1a";
-  ctx.fillRect(sx - 2, q.y - 2, q.w + 4, q.h + 4);
-  ctx.fillStyle = "#e8c87d";
+  ctx.fillRect(sx - 4, q.y - 4, q.w + 8, q.h + 8);
+  ctx.fillStyle = "#fff8d0";
   ctx.fillRect(sx, q.y, q.w, q.h);
+  ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(sx, q.y, q.w, q.h);
+  // pulsación atractora
+  const pulse = 1 + Math.sin(state.globalT * 0.12) * 0.08;
   ctx.fillStyle = "#5b3a1a";
-  ctx.font = "bold 28px system-ui";
+  ctx.font = `bold ${Math.round(28 * pulse)}px system-ui`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText("?", sx + q.w / 2, q.y + q.h / 2);
 }
@@ -649,38 +1719,79 @@ function drawQuizMarker(q) {
 function drawFlag(f) {
   const sx = worldToScreen(f.x);
   if (sx + f.w < 0 || sx > VIEW_W) return;
+  // asta con base
+  ctx.fillStyle = "#5b3a1a";
+  ctx.fillRect(sx - 6, f.y + f.h - 4, 16, 6);
   ctx.fillStyle = "#7a4f2b";
   ctx.fillRect(sx, f.y, 4, f.h);
+  // bandera ondeando
+  const wave = Math.sin(state.globalT * 0.08) * 4;
   ctx.fillStyle = "#e85d5d";
   ctx.beginPath();
   ctx.moveTo(sx + 4, f.y + 4);
-  ctx.lineTo(sx + 4, f.y + 36);
-  ctx.lineTo(sx + 34, f.y + 20);
+  ctx.lineTo(sx + 4, f.y + 38);
+  ctx.quadraticCurveTo(sx + 22, f.y + 28 + wave, sx + 38, f.y + 20);
+  ctx.quadraticCurveTo(sx + 22, f.y + 16 + wave, sx + 4, f.y + 4);
   ctx.closePath(); ctx.fill();
+  // pollito mini en la bandera
   ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.arc(sx + 14, f.y + 20, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 16, f.y + 22, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#f08a1a";
+  ctx.beginPath();
+  ctx.moveTo(sx + 22, f.y + 22); ctx.lineTo(sx + 26, f.y + 21);
+  ctx.lineTo(sx + 22, f.y + 23); ctx.closePath(); ctx.fill();
 }
 
+// ===== Pollito (con squash, sombra, idle breath) =====
 function drawPollito(p) {
-  ctx.save();
   const cx = worldToScreen(p.x) + p.w / 2;
   const cy = p.y + p.h / 2;
+  // sombra (siempre en el piso bajo el pollito)
+  const groundY = p.y + p.h;
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  const shadowScale = p.onGround ? 1 : Math.max(0.3, 1 - (groundY - p.y) / 100);
+  ctx.beginPath();
+  ctx.ellipse(cx, groundY + 1, 14 * shadowScale, 3 * shadowScale, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
   ctx.translate(cx, cy);
-  if (p.facing === -1) ctx.scale(-1, 1);
+  ctx.scale(p.facing * p.scaleX, p.scaleY);
+
+  // cuerpo
   ctx.fillStyle = "#ffd34a";
   ctx.beginPath(); ctx.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(8, -8, 10, 0, Math.PI * 2); ctx.fill();
+  // contorno suave
+  ctx.strokeStyle = "rgba(180,120,0,0.4)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(8, -8, 10, 0, Math.PI * 2); ctx.stroke();
+  // ala con flap
   ctx.fillStyle = "#f3b620";
-  const flapY = (p.flap < 15) ? 4 : 6;
+  const flapY = Math.sin(p.walkAnim) * 2 + ((p.flap < 15) ? 4 : 6);
   ctx.beginPath(); ctx.ellipse(-2, flapY, 7, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+  // pico
   ctx.fillStyle = "#f08a1a";
-  ctx.beginPath(); ctx.moveTo(17, -8); ctx.lineTo(22, -6); ctx.lineTo(17, -4); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#222"; ctx.beginPath(); ctx.arc(11, -10, 1.8, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(11.5, -10.5, 0.7, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(-5, 16); ctx.lineTo(-5, 20);
-  ctx.moveTo(5, 16);  ctx.lineTo(5, 20);
+  ctx.moveTo(17, -8); ctx.lineTo(22, -6); ctx.lineTo(17, -4);
+  ctx.closePath(); ctx.fill();
+  // cresta
+  ctx.fillStyle = "#e85d5d";
+  ctx.beginPath();
+  ctx.moveTo(6, -16); ctx.quadraticCurveTo(8, -20, 10, -16);
+  ctx.quadraticCurveTo(8, -18, 6, -16);
+  ctx.fill();
+  // ojo
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(11, -10, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "white";
+  ctx.beginPath(); ctx.arc(11.5, -10.5, 0.7, 0, Math.PI * 2); ctx.fill();
+  // patas con ciclo de caminata
+  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+  const legPhase = p.onGround && Math.abs(p.vx) > 0.1 ? Math.sin(p.walkAnim) * 2 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-5, 16); ctx.lineTo(-5 + legPhase, 20);
+  ctx.moveTo(5, 16);  ctx.lineTo(5 - legPhase, 20);
   ctx.stroke();
   ctx.restore();
 }
@@ -692,7 +1803,8 @@ function drawHintBanner() {
   const w = Math.min(VIEW_W - 40, ctx.measureText(text).width + 30);
   const x = (VIEW_W - w) / 2;
   const y = VIEW_H - 56;
-  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  // sombra suave
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
   ctx.fillRect(x, y, w, 32);
   ctx.fillStyle = "white";
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -701,15 +1813,44 @@ function drawHintBanner() {
 
 function render() {
   ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-  if (state.scene === "select") return; // overlay HTML cubre todo
+  if (state.scene === "splash" || state.scene === "select") return;
   drawSky();
+  // Parallax capas (de lejos a cerca)
+  drawParallaxLayer(state.parallaxFar, 0.25, (sx, it) => drawMountain(sx, it));
+  drawParallaxLayer(state.parallaxMid, 0.55, (sx, it) => {
+    if (it.kind === "tree") drawTree(sx, it);
+    else if (it.kind === "barn") drawBarn(sx, it);
+    else if (it.kind === "silo") drawSilo(sx, it);
+    else if (it.kind === "windmill") drawWindmill(sx, it);
+  });
+  drawParallaxLayer(state.parallaxNear, 0.85, (sx, it) => {
+    if (it.kind === "bush") drawBush(sx);
+    else if (it.kind === "rock") drawRock(sx);
+  });
+  // Ambient animals (en plano del juego)
+  for (const a of state.ambients) drawAmbient(a);
+  // Decoración foreground
+  for (const d of state.decor) drawDecor(d);
+  // Agua
+  for (const pit of state.waterPits) drawWaterPit(pit);
+  // Plataformas
   for (const p of state.platforms) drawPlatform(p);
+  // Huevos
   for (const e of state.eggs) drawEgg(e);
+  // Objetos
   if (state.door) drawDoor(state.door);
   if (state.quiz) drawQuizMarker(state.quiz);
   if (state.flag) drawFlag(state.flag);
+  // Pollito + partículas (encima)
   drawPollito(state.player);
+  drawParticles();
+  // UI hint
   drawHintBanner();
+  // Indicador de pausa
+  if (paused) {
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  }
 }
 
 function loop() {
@@ -719,5 +1860,4 @@ function loop() {
 }
 
 // Splash queda visible al cargar (HTML lo arranca con .shown).
-// El selector se muestra cuando se hace click en "Empezar".
 loop();

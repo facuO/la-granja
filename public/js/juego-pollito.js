@@ -136,7 +136,8 @@ const WORLDS = [
       { x: 320,  y: 330, w: 120, h: 18, kind: "wood" },
       { x: 520,  y: 280, w: 120, h: 18, kind: "wood" },
       { x: 720,  y: 380, w: 80,  h: 18, kind: "wood" },
-      { x: 830,  y: 320, w: 80,  h: 18, kind: "wood" },
+      // Plataforma móvil sobre el pozo
+      { x: 740, y: 320, w: 80, h: 18, kind: "wood", moving: { axis: "x", range: [740, 880], speed: 1.2, dir: 1 } },
       { x: 980,  y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1180, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 1340, y: 260, w: 120, h: 18, kind: "wood" },
@@ -206,7 +207,8 @@ const WORLDS = [
       { x: 1820, y: 460, w: 580,  h: 40, kind: "grass" },
       { x: 200, y: 370, w: 120, h: 18, kind: "wood" },
       { x: 400, y: 310, w: 120, h: 18, kind: "wood" },
-      { x: 600, y: 250, w: 120, h: 18, kind: "wood" },
+      // Plataforma móvil vertical entre 250 y 330
+      { x: 600, y: 250, w: 120, h: 18, kind: "wood", moving: { axis: "y", range: [220, 320], speed: 1.0, dir: 1 } },
       { x: 920, y: 380, w: 80,  h: 18, kind: "wood" },
       { x: 1100, y: 330, w: 120, h: 18, kind: "wood" },
       { x: 1300, y: 270, w: 120, h: 18, kind: "wood" },
@@ -280,6 +282,8 @@ const WORLDS = [
       { x: 200, y: 370, w: 120, h: 18, kind: "wood" },
       { x: 420, y: 310, w: 120, h: 18, kind: "wood" },
       { x: 640, y: 250, w: 120, h: 18, kind: "wood" },
+      // Lirio gigante flotante (móvil horizontal) sobre el agua
+      { x: 1000, y: 440, w: 80, h: 14, kind: "lily", moving: { axis: "x", range: [1000, 1120], speed: 0.9, dir: 1 } },
       { x: 1300, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1520, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 1740, y: 260, w: 120, h: 18, kind: "wood" },
@@ -353,7 +357,8 @@ const WORLDS = [
       { x: 220, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 420, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 620, y: 260, w: 120, h: 18, kind: "wood" },
-      { x: 820, y: 320, w: 120, h: 18, kind: "wood" },
+      // Carro de heno móvil (horizontal lento)
+      { x: 820, y: 320, w: 120, h: 18, kind: "wood", moving: { axis: "x", range: [820, 1000], speed: 0.8, dir: 1 } },
       { x: 1340, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1540, y: 320, w: 120, h: 18, kind: "wood" },
       { x: 1740, y: 260, w: 120, h: 18, kind: "wood" },
@@ -537,7 +542,7 @@ function startWorld(idx) {
   state.eggs = w.eggs.map((e) => ({ ...e, taken: false, t: 0 }));
   state.door = w.door ? { ...w.door, opened: false } : null;
   state.quiz = w.quiz ? { ...w.quiz, solved: false } : null;
-  state.flag = w.flag;
+  state.flag = { ...w.flag, descend: 0 };
   state.theme = w.theme;
   state.parallaxFar = w.parallaxFar || [];
   state.parallaxMid = w.parallaxMid || [];
@@ -555,6 +560,15 @@ function startWorld(idx) {
   state.quizSolved = false;
   state.hint = w.hint;
   state.particles = [];
+  state.winTimer = 0;
+  // Reset moving platforms a su posición inicial (range[0])
+  for (const plat of state.platforms) {
+    if (plat.moving) {
+      if (plat.moving.axis === "x") plat.x = plat.moving.range[0];
+      else plat.y = plat.moving.range[0];
+      plat.moving.dir = 1;
+    }
+  }
   selectOverlay.classList.remove("shown");
   winOverlay.classList.remove("shown");
   quizOverlay.classList.remove("shown");
@@ -565,12 +579,17 @@ function startWorld(idx) {
   startMusic();
 }
 
-function updateHud() {
+function updateHud(bump = false) {
   if (state.scene !== "playing" && state.scene !== "won") { hudEl.textContent = ""; return; }
   let txt = `🥚 ${state.collected}`;
   if (state.eggs.length) txt += ` / ${state.eggs.length}`;
   if (state.door && !state.door.opened) txt += `  ·  🚪 faltan ${Math.max(0, state.door.eggs_required - state.collected)}`;
   hudEl.textContent = txt;
+  if (bump) {
+    hudEl.classList.remove("bump");
+    void hudEl.offsetWidth;  // forzar reflow para reiniciar animation
+    hudEl.classList.add("bump");
+  }
 }
 
 function openQuiz() {
@@ -781,8 +800,73 @@ function step() {
   state.globalT++;
   // Animar ambients y particles siempre (también después de ganar, para que el confetti caiga)
   for (const a of state.ambients) a.t += 0.05;
+  // Pájaros avanzan en el cielo aún en pausa/ganado (es ambiente, no gameplay)
+  for (const a of state.ambients) {
+    if (a.kind === "bird") {
+      a.x += a.vx;
+      if (a.x > (state.world ? state.world.width : 2400) + 100) a.x = -100;
+    }
+  }
   updateParticles();
   state.camera.shake *= 0.85;
+
+  // Mover plataformas móviles incluso durante cinemáticas
+  if (state.world) {
+    for (const plat of state.platforms) {
+      if (!plat.moving) continue;
+      const m = plat.moving;
+      if (m.axis === "x") {
+        plat.x += m.speed * m.dir;
+        if (plat.x <= m.range[0]) { plat.x = m.range[0]; m.dir = 1; }
+        if (plat.x >= m.range[1]) { plat.x = m.range[1]; m.dir = -1; }
+      } else {
+        plat.y += m.speed * m.dir;
+        if (plat.y <= m.range[0]) { plat.y = m.range[0]; m.dir = 1; }
+        if (plat.y >= m.range[1]) { plat.y = m.range[1]; m.dir = -1; }
+      }
+    }
+  }
+
+  // Cinemática de victoria
+  if (state.scene === "winning") {
+    const p = state.player;
+    // Banderín baja gradualmente
+    state.flag.descend = (state.flag.descend || 0) + 1.2;
+    state.flag.descend = Math.min(state.flag.descend, 60);
+    // Pollito pega un saltito de victoria periódicamente
+    if (p.onGround && state.globalT % 30 === 0) {
+      p.vy = JUMP_VY * 0.55;
+      sfx.jump();
+    }
+    p.vy += GRAVITY; if (p.vy > MAX_FALL) p.vy = MAX_FALL;
+    p.y += p.vy;
+    p.onGround = false;
+    for (const plat of state.platforms) {
+      if (aabb(p, plat)) {
+        if (p.vy > 0) { p.y = plat.y - p.h; p.vy = 0; p.onGround = true; }
+      }
+    }
+    // Cuenta regresiva para mostrar overlay
+    state.winTimer = (state.winTimer || 0) + 1;
+    if (state.winTimer === 1) {
+      // Confetti más cada cierto frame
+      const done = loadCompleted();
+      done.add(state.world.id);
+      saveCompleted(done);
+    }
+    if (state.winTimer % 16 === 0 && state.winTimer < 80) {
+      spawnConfetti(state.flag.x + 10, state.flag.y + 30, 25);
+    }
+    if (state.winTimer === 80) {
+      const done = loadCompleted();
+      const next = WORLDS.find((w) => !done.has(w.id));
+      winTitleEl.textContent = `🎉 ¡Completaste ${state.world.name}!`;
+      winMsgEl.textContent = next ? `Probá el próximo: ${next.emoji} ${next.name}.` : "Completaste todos los mundos. ¡Increíble!";
+      state.scene = "won";
+      winOverlay.classList.add("shown");
+    }
+    return;
+  }
 
   if (state.scene !== "playing" || paused) return;
   const p = state.player;
@@ -839,6 +923,7 @@ function step() {
   p.y += p.vy;
   const wasOnGround = p.onGround;
   p.onGround = false;
+  p.carrier = null;
   for (const plat of state.platforms) {
     if (aabb(p, plat)) {
       if (p.vy > 0) {
@@ -850,8 +935,14 @@ function step() {
           spawnDust(p.x + p.w / 2, p.y + p.h, 6);
         }
         p.vy = 0; p.onGround = true;
+        if (plat.moving) p.carrier = plat;
       } else if (p.vy < 0) { p.y = plat.y + plat.h; p.vy = 0; }
     }
+  }
+  // Si está sobre una plataforma móvil, lo arrastra con ella
+  if (p.carrier && p.carrier.moving) {
+    const m = p.carrier.moving;
+    if (m.axis === "x") p.x += m.speed * m.dir;
   }
   // Caer al pozo o al agua: respawn
   if (p.y > VIEW_H + 100) { p.x = 60; p.y = 420; p.vx = 0; p.vy = 0; }
@@ -862,7 +953,7 @@ function step() {
   p.targetSX += (1 - p.targetSX) * 0.12;
   p.targetSY += (1 - p.targetSY) * 0.12;
 
-  // Walk anim
+  // Walk anim (sin sonido — habría que diseñar uno suave; lo dejamos para iter futura)
   if (Math.abs(p.vx) > 0.1 && p.onGround) p.walkAnim += 0.3;
   p.flap = (p.flap + 1) % 30;
 
@@ -883,7 +974,7 @@ function step() {
       bumpEggs(1);
       sfx.egg();
       for (let i = 0; i < 10; i++) spawnSparkle(egg.x, egg.y, 1);
-      updateHud();
+      updateHud(true);
     }
   }
 
@@ -897,22 +988,18 @@ function step() {
     updateHud();
   }
 
-  // Llegar al banderín
+  // Llegar al banderín → arranca cinemática de victoria
   if (state.flag && state.scene === "playing" && aabb(p, state.flag)) {
     const ok = (!state.door || state.door.opened) && (!state.quiz || state.quiz.solved);
     if (ok) {
-      state.scene = "won";
+      state.scene = "winning";
+      state.hint = "";
+      state.flag.descend = 0;           // banderín comenzará a bajar
+      state.flag.startY = state.flag.y;
       sfx.win();
       state.camera.shake = 12;
-      spawnConfetti(state.flag.x + 10, state.flag.y + 30, 80);
+      spawnConfetti(state.flag.x + 10, state.flag.y + 30, 50);
       stopMusic();
-      const done = loadCompleted();
-      done.add(state.world.id);
-      saveCompleted(done);
-      const next = WORLDS.find((w) => !done.has(w.id));
-      winTitleEl.textContent = `🎉 ¡Completaste ${state.world.name}!`;
-      winMsgEl.textContent = next ? `Probá el próximo: ${next.emoji} ${next.name}.` : "Completaste todos los mundos. ¡Increíble!";
-      setTimeout(() => winOverlay.classList.add("shown"), 700);
     }
   }
 
@@ -1353,7 +1440,7 @@ function drawPlatform(p) {
     ctx.fillStyle = "rgba(0,0,0,0.15)";
     ctx.fillRect(sx, p.y + p.h, p.w, 3);
     // body
-    ctx.fillStyle = "#a87447";
+    ctx.fillStyle = p.moving ? "#c08855" : "#a87447";
     ctx.fillRect(sx, p.y, p.w, p.h);
     ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2;
     ctx.strokeRect(sx + 1, p.y + 1, p.w - 2, p.h - 2);
@@ -1364,6 +1451,46 @@ function drawPlatform(p) {
     ctx.fillStyle = "#3a2a1a";
     ctx.beginPath(); ctx.arc(sx + 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(sx + p.w - 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
+    // Indicador de plataforma móvil: flechitas en los bordes
+    if (p.moving) {
+      ctx.fillStyle = "#fff8d0";
+      const m = p.moving;
+      if (m.axis === "x") {
+        // flechita izq + der
+        ctx.beginPath();
+        ctx.moveTo(sx + 4, p.y + p.h / 2 - 4); ctx.lineTo(sx + 9, p.y + p.h / 2);
+        ctx.lineTo(sx + 4, p.y + p.h / 2 + 4); ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(sx + p.w - 4, p.y + p.h / 2 - 4); ctx.lineTo(sx + p.w - 9, p.y + p.h / 2);
+        ctx.lineTo(sx + p.w - 4, p.y + p.h / 2 + 4); ctx.closePath(); ctx.fill();
+      } else {
+        // flechita arriba + abajo
+        ctx.beginPath();
+        ctx.moveTo(sx + p.w / 2 - 4, p.y + 4); ctx.lineTo(sx + p.w / 2, p.y + 9);
+        ctx.lineTo(sx + p.w / 2 + 4, p.y + 4); ctx.closePath(); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(sx + p.w / 2 - 4, p.y + p.h - 4); ctx.lineTo(sx + p.w / 2, p.y + p.h - 9);
+        ctx.lineTo(sx + p.w / 2 + 4, p.y + p.h - 4); ctx.closePath(); ctx.fill();
+      }
+    }
+  } else if (p.kind === "lily") {
+    // Lirio gigante (solo Estanque, móvil)
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.beginPath(); ctx.ellipse(sx + p.w / 2, p.y + p.h + 4, p.w / 2 + 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#3d8c46";
+    ctx.beginPath(); ctx.ellipse(sx + p.w / 2, p.y + p.h / 2, p.w / 2, p.h, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#52a55a";
+    ctx.beginPath(); ctx.ellipse(sx + p.w / 2 - 6, p.y + 4, p.w / 3, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // flor blanca encima
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.ellipse(sx + p.w / 2 + Math.cos(a) * 4, p.y + 4 + Math.sin(a) * 2, 3, 2, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#ffd34a";
+    ctx.beginPath(); ctx.arc(sx + p.w / 2, p.y + 4, 2, 0, Math.PI * 2); ctx.fill();
   }
 }
 
@@ -1612,9 +1739,7 @@ function drawDragonfly(sx, a) {
 }
 
 function drawBird(sx, a) {
-  // pájaro que cruza el cielo
-  a.x += a.vx;
-  if (a.x > state.world.width + 100) a.x = -100;
+  // movimiento se actualiza en step(); acá solo dibujamos
   const y = a.y + Math.sin(a.t * 2) * 3;
   const flap = Math.sin(a.t * 6) * 4;
   ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 2; ctx.lineCap = "round";
@@ -1724,22 +1849,27 @@ function drawFlag(f) {
   ctx.fillRect(sx - 6, f.y + f.h - 4, 16, 6);
   ctx.fillStyle = "#7a4f2b";
   ctx.fillRect(sx, f.y, 4, f.h);
-  // bandera ondeando
+  // top topper
+  ctx.fillStyle = "#ffd34a";
+  ctx.beginPath(); ctx.arc(sx + 2, f.y, 3, 0, Math.PI * 2); ctx.fill();
+  // bandera ondeando — su Y varía con descend (cinemática)
+  const descend = f.descend || 0;
+  const flagY = f.y + 4 + descend;
   const wave = Math.sin(state.globalT * 0.08) * 4;
   ctx.fillStyle = "#e85d5d";
   ctx.beginPath();
-  ctx.moveTo(sx + 4, f.y + 4);
-  ctx.lineTo(sx + 4, f.y + 38);
-  ctx.quadraticCurveTo(sx + 22, f.y + 28 + wave, sx + 38, f.y + 20);
-  ctx.quadraticCurveTo(sx + 22, f.y + 16 + wave, sx + 4, f.y + 4);
+  ctx.moveTo(sx + 4, flagY);
+  ctx.lineTo(sx + 4, flagY + 34);
+  ctx.quadraticCurveTo(sx + 22, flagY + 24 + wave, sx + 38, flagY + 16);
+  ctx.quadraticCurveTo(sx + 22, flagY + 12 + wave, sx + 4, flagY);
   ctx.closePath(); ctx.fill();
   // pollito mini en la bandera
   ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.arc(sx + 16, f.y + 22, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 16, flagY + 18, 6, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#f08a1a";
   ctx.beginPath();
-  ctx.moveTo(sx + 22, f.y + 22); ctx.lineTo(sx + 26, f.y + 21);
-  ctx.lineTo(sx + 22, f.y + 23); ctx.closePath(); ctx.fill();
+  ctx.moveTo(sx + 22, flagY + 18); ctx.lineTo(sx + 26, flagY + 17);
+  ctx.lineTo(sx + 22, flagY + 19); ctx.closePath(); ctx.fill();
 }
 
 // ===== Pollito (con squash, sombra, idle breath) =====

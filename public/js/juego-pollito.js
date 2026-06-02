@@ -2045,9 +2045,108 @@ function drawHintBanner() {
   ctx.fillText(text, VIEW_W / 2, y + 16);
 }
 
+// Splash/Select: dibujamos una escena idle de fondo para que el HTML overlay
+// no flote sobre un canvas negro
+let splashClouds = [
+  { x: 100, y: 70, scale: 1, vx: 0.12 },
+  { x: 320, y: 50, scale: 0.7, vx: 0.08 },
+  { x: 540, y: 100, scale: 0.9, vx: 0.1 },
+  { x: 700, y: 70, scale: 1, vx: 0.14 },
+];
+let splashBirds = [
+  { x: 100, y: 110, vx: 0.6, t: 0 },
+  { x: -200, y: 80, vx: 0.5, t: 1.3 },
+];
+function drawSplashBackground() {
+  // sky gradient (cálido)
+  const grad = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+  grad.addColorStop(0, "#fed8a8");
+  grad.addColorStop(0.45, "#ffe9c1");
+  grad.addColorStop(1, "#a3c46a");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  // sol
+  ctx.save();
+  ctx.translate(700, 110);
+  ctx.fillStyle = "rgba(255, 245, 184, 0.2)";
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + state.globalT * 0.004;
+    ctx.save(); ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0, -28); ctx.lineTo(10, -80); ctx.lineTo(-10, -80);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+  const sunGrad = ctx.createRadialGradient(700, 110, 5, 700, 110, 70);
+  sunGrad.addColorStop(0, "#fff5b8");
+  sunGrad.addColorStop(0.4, "#ffd76b");
+  sunGrad.addColorStop(1, "rgba(255, 215, 107, 0)");
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath(); ctx.arc(700, 110, 70, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffd76b";
+  ctx.beginPath(); ctx.arc(700, 110, 32, 0, Math.PI * 2); ctx.fill();
+  // nubes drift
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  for (const c of splashClouds) {
+    c.x += c.vx;
+    if (c.x > VIEW_W + 80) c.x = -80;
+    drawCloud(c.x, c.y, c.scale);
+  }
+  // siluetas de colinas
+  ctx.fillStyle = "#8da34c";
+  ctx.beginPath();
+  ctx.moveTo(0, 360);
+  ctx.quadraticCurveTo(150, 280, 280, 340);
+  ctx.quadraticCurveTo(400, 380, 540, 320);
+  ctx.quadraticCurveTo(680, 290, 800, 340);
+  ctx.lineTo(800, VIEW_H);
+  ctx.lineTo(0, VIEW_H);
+  ctx.closePath(); ctx.fill();
+  // pasto + suelo
+  ctx.fillStyle = "#7a9c4b";
+  ctx.fillRect(0, 380, VIEW_W, 30);
+  ctx.fillStyle = "#a3c46a";
+  ctx.fillRect(0, 410, VIEW_W, VIEW_H - 410);
+  // grass tufts
+  ctx.fillStyle = "#5d8c3c";
+  for (let i = 0; i < VIEW_W; i += 22) {
+    ctx.fillRect(i + 5, 380 - 2, 2, 4);
+    ctx.fillRect(i + 12, 380 - 3, 2, 5);
+  }
+  // flores aleatorias
+  const flowerColors = ["#e85d5d", "#ffd34a", "#d989ff"];
+  for (let i = 0; i < 18; i++) {
+    const fx = (i * 47) % VIEW_W;
+    const fy = 420 + (i % 3) * 12;
+    const col = flowerColors[i % 3];
+    ctx.fillStyle = "#4f8c46";
+    ctx.fillRect(fx, fy, 1.5, 6);
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(fx + 0.5, fy - 1, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  // pajaros idle
+  ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  for (const b of splashBirds) {
+    b.x += b.vx;
+    b.t += 0.08;
+    if (b.x > VIEW_W + 50) b.x = -50;
+    const y = b.y + Math.sin(b.t) * 3;
+    const flap = Math.sin(b.t * 5) * 4;
+    ctx.beginPath();
+    ctx.moveTo(b.x - 8, y + flap);
+    ctx.quadraticCurveTo(b.x - 4, y - 2, b.x, y);
+    ctx.quadraticCurveTo(b.x + 4, y - 2, b.x + 8, y + flap);
+    ctx.stroke();
+  }
+}
+
 function render() {
   ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-  if (state.scene === "splash" || state.scene === "select") return;
+  if (state.scene === "splash" || state.scene === "select") {
+    drawSplashBackground();
+    return;
+  }
   drawSky();
   // Parallax capas (de lejos a cerca)
   drawParallaxLayer(state.parallaxFar, 0.25, (sx, it) => drawMountain(sx, it));

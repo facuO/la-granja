@@ -32,6 +32,17 @@ const winMsgEl = document.getElementById("win-msg");
 const restartBtn = document.getElementById("restart-btn");
 const backToSelectBtn = document.getElementById("back-to-select");
 const audioBtn = document.getElementById("audio-btn");
+const pauseBtn = document.getElementById("pause-btn");
+const pauseOverlay = document.getElementById("pause-overlay");
+const resumeBtn = document.getElementById("resume-btn");
+const pauseToSelectBtn = document.getElementById("pause-to-select");
+const splashOverlay = document.getElementById("splash-overlay");
+const splashStartBtn = document.getElementById("splash-start-btn");
+const splashStatsEl = document.getElementById("splash-stats");
+const splashPollitoCanvas = document.getElementById("splash-pollito-canvas");
+const statWorldsEl = document.getElementById("stat-worlds");
+const statEggsEl = document.getElementById("stat-eggs");
+const statRunsEl = document.getElementById("stat-runs");
 
 // Botón audio
 function refreshAudioBtn() {
@@ -43,6 +54,91 @@ audioBtn.addEventListener("click", () => {
   refreshAudioBtn();
 });
 refreshAudioBtn();
+
+// --- Stats acumulados (localStorage) ---
+const STATS_KEY = "pollito_stats";
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { totalEggs: 0, runs: 0 }; }
+  catch { return { totalEggs: 0, runs: 0 }; }
+}
+function saveStats(s) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch {}
+}
+function bumpRuns() {
+  const s = loadStats(); s.runs = (s.runs || 0) + 1; saveStats(s);
+}
+function bumpEggs(n) {
+  const s = loadStats(); s.totalEggs = (s.totalEggs || 0) + n; saveStats(s);
+}
+
+// --- Splash pollito drawing (canvas pequeño, reuso del estilo del juego) ---
+function drawSplashPollito() {
+  const c = splashPollitoCanvas;
+  const x = c.getContext("2d");
+  x.clearRect(0, 0, c.width, c.height);
+  x.save(); x.translate(60, 60); x.scale(2.6, 2.6);
+  x.fillStyle = "#ffd34a";
+  x.beginPath(); x.ellipse(0, 5, 18, 15, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.arc(9, -8, 12, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#f3b620";
+  x.beginPath(); x.ellipse(-3, 6, 8, 6, 0.2, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#f08a1a";
+  x.beginPath(); x.moveTo(20, -8); x.lineTo(26, -6); x.lineTo(20, -3); x.closePath(); x.fill();
+  x.fillStyle = "#222"; x.beginPath(); x.arc(13, -10, 2, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "white"; x.beginPath(); x.arc(13.5, -10.5, 0.7, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = "#f08a1a"; x.lineWidth = 3; x.lineCap = "round";
+  x.beginPath();
+  x.moveTo(-6, 18); x.lineTo(-6, 23);
+  x.moveTo(6, 18);  x.lineTo(6, 23);
+  x.stroke();
+  x.restore();
+}
+drawSplashPollito();
+
+function refreshSplashStats() {
+  const stats = loadStats();
+  let completed = 0;
+  try { completed = new Set(JSON.parse(localStorage.getItem("pollito_done") || "[]")).size; } catch {}
+  if (stats.runs > 0 || completed > 0) {
+    splashStatsEl.style.display = "grid";
+    statWorldsEl.textContent = `${completed}/4`;
+    statEggsEl.textContent = String(stats.totalEggs || 0);
+    statRunsEl.textContent = String(stats.runs || 0);
+  }
+}
+refreshSplashStats();
+
+splashStartBtn.addEventListener("click", () => {
+  splashOverlay.classList.remove("shown");
+  bumpRuns();
+  showSelector();
+});
+
+// --- Pausa ---
+let paused = false;
+function showPause() {
+  if (state.scene !== "playing") return;
+  paused = true;
+  stopMusic();
+  pauseOverlay.classList.add("shown");
+}
+function hidePause() {
+  paused = false;
+  pauseOverlay.classList.remove("shown");
+  startMusic();
+}
+pauseBtn.addEventListener("click", showPause);
+resumeBtn.addEventListener("click", hidePause);
+pauseToSelectBtn.addEventListener("click", () => {
+  hidePause();
+  showSelector();
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+    if (state.scene === "playing" && !paused) showPause();
+    else if (paused) hidePause();
+  }
+});
 
 // --- Constantes físicas ---
 const VIEW_W = canvas.width;
@@ -247,6 +343,8 @@ function showSelector() {
   state.scene = "select";
   winOverlay.classList.remove("shown");
   quizOverlay.classList.remove("shown");
+  pauseBtn.classList.remove("visible");
+  worldPillEl.textContent = "";
   stopMusic();
   renderSelector();
 }
@@ -273,6 +371,7 @@ function startWorld(idx) {
   winOverlay.classList.remove("shown");
   quizOverlay.classList.remove("shown");
   worldPillEl.textContent = `${w.emoji} ${w.name}`;
+  pauseBtn.classList.add("visible");
   updateHud();
   startMusic();
 }
@@ -356,7 +455,7 @@ function aabb(a, b) {
 }
 
 function step() {
-  if (state.scene !== "playing") return;
+  if (state.scene !== "playing" || paused) return;
   const p = state.player;
   const W = state.world.width;
 
@@ -406,6 +505,7 @@ function step() {
     if (aabb(p, box)) {
       egg.taken = true;
       state.collected++;
+      bumpEggs(1);
       sfx.egg();
       updateHud();
     }
@@ -618,5 +718,6 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-showSelector();
+// Splash queda visible al cargar (HTML lo arranca con .shown).
+// El selector se muestra cuando se hace click en "Empezar".
 loop();

@@ -102,6 +102,56 @@
       cursor: pointer; min-height: 38px;
     }
     .audio-btn:hover { border-color: var(--accent-strong); }
+
+    /* Splash de bienvenida */
+    .splash-card {
+      background: linear-gradient(180deg, #fff7d1 0%, #fff 100%);
+      padding: 28px 24px; border-radius: 18px; max-width: 460px; width: 100%;
+      text-align: center; border: 3px solid #ffd34a;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+    }
+    .splash-title {
+      font-size: 2rem; font-weight: 700; margin: 0 0 6px;
+      color: #5b3a1a; letter-spacing: 0.02em;
+    }
+    .splash-sub { color: var(--text-soft); margin: 0 0 18px; }
+    .splash-pollito {
+      display: block; margin: 8px auto 14px;
+      width: 120px; height: 120px;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .splash-start {
+      background: #ffd34a; color: #5b3a1a;
+      border: 2px solid #f3b620; border-radius: 12px;
+      padding: 14px 32px; font-size: 1.3rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.04em;
+    }
+    .splash-start:hover { background: #fff; }
+    .splash-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-top: 18px;
+      padding-top: 14px; border-top: 1px solid var(--border);
+    }
+    .splash-stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+    .splash-stat-label { font-size: 0.78rem; color: var(--text-soft); text-transform: uppercase; }
+
+    /* Botón pausa + overlay */
+    .pause-btn {
+      position: absolute; top: 12px; right: 110px;
+      background: rgba(255,255,255,0.9);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 1.2rem; line-height: 1;
+      cursor: pointer; min-height: 38px;
+      display: none;
+    }
+    .pause-btn.visible { display: block; }
+    .pause-btn:hover { border-color: var(--accent-strong); }
   </style>
 </head>
 <body class="pollito-body">
@@ -119,9 +169,46 @@
       <div class="hud" id="hud"></div>
       <div class="world-pill" id="world-pill"></div>
       <button class="audio-btn" id="audio-btn" aria-label="Encender música">🔇</button>
+      <button class="pause-btn" id="pause-btn" aria-label="Pausar">⏸</button>
+
+      <!-- Splash de bienvenida -->
+      <div class="overlay shown" id="splash-overlay">
+        <div class="splash-card">
+          <canvas class="splash-pollito" id="splash-pollito-canvas" width="120" height="120"></canvas>
+          <h1 class="splash-title">Aventura del Pollito</h1>
+          <p class="splash-sub">Una aventura por la granja.</p>
+          <button class="splash-start" id="splash-start-btn">▶ Empezar</button>
+          <div class="splash-stats" id="splash-stats" style="display:none;">
+            <div>
+              <div class="splash-stat-value" id="stat-worlds">0/4</div>
+              <div class="splash-stat-label">Mundos</div>
+            </div>
+            <div>
+              <div class="splash-stat-value" id="stat-eggs">0</div>
+              <div class="splash-stat-label">Huevos</div>
+            </div>
+            <div>
+              <div class="splash-stat-value" id="stat-runs">0</div>
+              <div class="splash-stat-label">Partidas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pausa -->
+      <div class="overlay" id="pause-overlay">
+        <div class="overlay-card">
+          <h2>⏸ Pausa</h2>
+          <p>Cuando quieras seguir, tocá Continuar.</p>
+          <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <button id="resume-btn">▶ Continuar</button>
+            <button id="pause-to-select">← Elegir otro mundo</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Selector de mundos -->
-      <div class="overlay shown" id="select-overlay">
+      <div class="overlay" id="select-overlay">
         <div class="overlay-card">
           <h2>🐤 Elegí un mundo</h2>
           <p>Cada mundo tiene su propio desafío.</p>

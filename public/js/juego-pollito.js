@@ -719,6 +719,29 @@ function spawnSparkle(x, y, n = 1) {
     });
   }
 }
+function spawnFloatingText(x, y, text, color = "#ffd34a") {
+  state.particles.push({
+    kind: "text",
+    x, y,
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: -1.6,
+    life: 50, maxLife: 50,
+    text, color,
+  });
+}
+function spawnFeather(x, y, facing = 1) {
+  state.particles.push({
+    kind: "feather",
+    x, y,
+    vx: -facing * (1 + Math.random()),
+    vy: -1 - Math.random() * 0.8,
+    life: 70, maxLife: 70,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 0.15,
+    flutter: Math.random() * Math.PI * 2,
+  });
+}
+
 function spawnConfetti(x, y, n = 60) {
   const colors = ["#ffd34a", "#e85d5d", "#5fb4e0", "#7ed957", "#d989ff", "#ff8c42"];
   for (let i = 0; i < n; i++) {
@@ -740,11 +763,23 @@ function spawnConfetti(x, y, n = 60) {
 function updateParticles() {
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const p = state.particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += (p.kind === "confetti" ? 0.18 : 0.08);
-    p.vx *= 0.98;
-    if (p.rot !== undefined) p.rot += p.vrot;
+    if (p.kind === "text") {
+      p.x += p.vx; p.y += p.vy;
+      p.vy *= 0.96;
+    } else if (p.kind === "feather") {
+      p.flutter += 0.15;
+      p.x += p.vx + Math.sin(p.flutter) * 0.5;
+      p.y += p.vy;
+      p.vy = Math.min(p.vy + 0.02, 0.4);
+      p.vx *= 0.99;
+      if (p.rot !== undefined) p.rot += p.vrot;
+    } else {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += (p.kind === "confetti" ? 0.18 : 0.08);
+      p.vx *= 0.98;
+      if (p.rot !== undefined) p.rot += p.vrot;
+    }
     p.life--;
     if (p.life <= 0) state.particles.splice(i, 1);
   }
@@ -785,6 +820,30 @@ function drawParticles() {
       ctx.fillRect(-p.r, -p.r * 0.4, p.r * 2, p.r * 0.8);
       ctx.restore();
       ctx.globalAlpha = 1;
+    } else if (p.kind === "text") {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "bold 22px system-ui";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#5b3a1a";
+      ctx.fillText(p.text, sx + 1, p.y + 1);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.text, sx, p.y);
+      ctx.restore();
+    } else if (p.kind === "feather") {
+      ctx.save();
+      ctx.translate(sx, p.y);
+      ctx.rotate(p.rot || 0);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#ffd34a";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#f3b620"; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(-6, 0); ctx.lineTo(6, 0);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 }
@@ -893,6 +952,7 @@ function step() {
     p.targetSX = 0.8; p.targetSY = 1.25;
     sfx.jump();
     spawnDust(p.x + p.w / 2, p.y + p.h, 4);
+    spawnFeather(p.x + p.w / 2, p.y + p.h / 2, p.facing);
   }
 
   p.vy += GRAVITY;
@@ -974,6 +1034,7 @@ function step() {
       bumpEggs(1);
       sfx.egg();
       for (let i = 0; i < 10; i++) spawnSparkle(egg.x, egg.y, 1);
+      spawnFloatingText(egg.x, egg.y - 8, "+1");
       updateHud(true);
     }
   }
@@ -1035,8 +1096,22 @@ function drawSky() {
   grad.addColorStop(1, c3);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  // Sol fijo
+  // Sol con glow + rayos sutiles
   const sunX = 700, sunY = 90;
+  // rayos
+  ctx.save();
+  ctx.translate(sunX, sunY);
+  ctx.fillStyle = "rgba(255, 245, 184, 0.18)";
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + state.globalT * 0.003;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(0, -20); ctx.lineTo(8, -80); ctx.lineTo(-8, -80);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
   const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 60);
   sunGrad.addColorStop(0, "#fff5b8");
   sunGrad.addColorStop(0.4, "#ffd76b");
@@ -1054,6 +1129,14 @@ function drawSky() {
   drawCloud(1100 - camX * 0.15, 80, 1);
   drawCloud(1700 - camX * 0.15, 100, 0.85);
   drawCloud(2300 - camX * 0.15, 75, 0.95);
+}
+
+function drawVignette() {
+  const grad = ctx.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.35, VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.85);
+  grad.addColorStop(0, "rgba(0,0,0,0)");
+  grad.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 }
 function drawCloud(cx, cy, scale) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
@@ -1494,18 +1577,39 @@ function drawPlatform(p) {
   }
 }
 
-// Agua en pozos (estanque)
+// Agua en pozos (estanque) — con ondas animadas + reflejos
 function drawWaterPit(pit) {
   const sx = worldToScreen(pit.x);
   if (sx + pit.w < 0 || sx > VIEW_W) return;
-  ctx.fillStyle = state.theme.waterDark || "#3d8db0";
-  ctx.fillRect(sx, pit.y, pit.w, pit.h);
-  // brillito animado
+  // Profundidad con gradiente
+  const grad = ctx.createLinearGradient(0, pit.y, 0, pit.y + pit.h);
+  grad.addColorStop(0, state.theme.water || "#5fb4e0");
+  grad.addColorStop(1, state.theme.waterDark || "#3d8db0");
+  ctx.fillStyle = grad;
+  ctx.fillRect(sx, pit.y + 4, pit.w, pit.h - 4);
+  // Superficie ondulada
+  ctx.fillStyle = state.theme.water || "#5fb4e0";
+  ctx.beginPath();
+  ctx.moveTo(sx, pit.y + 4);
   const t = state.globalT;
-  ctx.fillStyle = "rgba(255,255,255,0.3)";
-  for (let i = 0; i < pit.w; i += 12) {
-    const yy = pit.y + 4 + Math.sin(t * 0.05 + i * 0.2) * 2;
-    ctx.fillRect(sx + i + 3, yy, 6, 1.5);
+  for (let i = 0; i <= pit.w; i += 8) {
+    const yy = pit.y + 4 + Math.sin(t * 0.06 + i * 0.15) * 2.5;
+    ctx.lineTo(sx + i, yy);
+  }
+  ctx.lineTo(sx + pit.w, pit.y + 12);
+  ctx.lineTo(sx, pit.y + 12);
+  ctx.closePath(); ctx.fill();
+  // Brillitos
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  for (let i = 0; i < pit.w; i += 16) {
+    const yy = pit.y + 8 + Math.sin(t * 0.05 + i * 0.2) * 1.5;
+    ctx.fillRect(sx + i + 4, yy, 6, 1.5);
+  }
+  // Reflejo más sutil
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  for (let i = 0; i < pit.w; i += 22) {
+    const yy = pit.y + 20 + Math.sin(t * 0.04 + i * 0.18) * 2;
+    ctx.fillRect(sx + i + 6, yy, 8, 1);
   }
 }
 
@@ -1974,6 +2078,8 @@ function render() {
   // Pollito + partículas (encima)
   drawPollito(state.player);
   drawParticles();
+  // Vignette para atmósfera (encima de todo lo del mundo, debajo de UI)
+  drawVignette();
   // UI hint
   drawHintBanner();
   // Indicador de pausa

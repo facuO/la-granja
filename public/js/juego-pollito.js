@@ -14,6 +14,7 @@
 //  - Música procedural cambia de patrón según el mundo.
 
 import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
+import { drawPollitoSprite, pickPollitoFrame } from "/js/juego-pollito-sprites.js";
 
 // ============================================================
 // DOM
@@ -458,7 +459,7 @@ function saveCompleted(set) {
 }
 
 // ============================================================
-// Splash pollito (canvas chico, dibujo grande del personaje)
+// Splash pollito (sprite pixel art grande)
 // ============================================================
 function drawSplashPollito() {
   const c = splashPollitoCanvas;
@@ -468,36 +469,8 @@ function drawSplashPollito() {
   const x = c.getContext("2d");
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.clearRect(0, 0, 120, 120);
-  x.save(); x.translate(60, 70); x.scale(2.6, 2.6);
-  // sombra
-  x.fillStyle = "rgba(0,0,0,0.15)";
-  x.beginPath(); x.ellipse(0, 22, 16, 4, 0, 0, Math.PI * 2); x.fill();
-  // cuerpo
-  x.fillStyle = "#ffd34a";
-  x.beginPath(); x.ellipse(0, 5, 18, 15, 0, 0, Math.PI * 2); x.fill();
-  x.beginPath(); x.arc(9, -8, 12, 0, Math.PI * 2); x.fill();
-  // ala
-  x.fillStyle = "#f3b620";
-  x.beginPath(); x.ellipse(-3, 6, 8, 6, 0.2, 0, Math.PI * 2); x.fill();
-  // pico
-  x.fillStyle = "#f08a1a";
-  x.beginPath(); x.moveTo(20, -8); x.lineTo(26, -6); x.lineTo(20, -3); x.closePath(); x.fill();
-  // ojo
-  x.fillStyle = "#222"; x.beginPath(); x.arc(13, -10, 2, 0, Math.PI * 2); x.fill();
-  x.fillStyle = "white"; x.beginPath(); x.arc(13.5, -10.5, 0.7, 0, Math.PI * 2); x.fill();
-  // cresta pequeña
-  x.fillStyle = "#e85d5d";
-  x.beginPath();
-  x.moveTo(8, -19); x.quadraticCurveTo(11, -23, 14, -19);
-  x.quadraticCurveTo(11, -21, 8, -19);
-  x.fill();
-  // patas
-  x.strokeStyle = "#f08a1a"; x.lineWidth = 3; x.lineCap = "round";
-  x.beginPath();
-  x.moveTo(-6, 18); x.lineTo(-6, 23);
-  x.moveTo(6, 18);  x.lineTo(6, 23);
-  x.stroke();
-  x.restore();
+  // Sprite del pollito en idle, scale 6 (16x16 → 96x96)
+  drawPollitoSprite(x, 60, 60, "idle", 6, 1, 1, 1);
 }
 drawSplashPollito();
 
@@ -2050,58 +2023,21 @@ function drawFlag(f) {
   ctx.lineTo(sx + 22, flagY + 19); ctx.closePath(); ctx.fill();
 }
 
-// ===== Pollito (con squash, sombra, idle breath) =====
+// ===== Pollito (pixel art sprites — iter 10) =====
 function drawPollito(p) {
   const cx = worldToScreen(p.x) + p.w / 2;
   const cy = p.y + p.h / 2;
-  // sombra (siempre en el piso bajo el pollito)
+  // Sombra (elipse en el piso)
   const groundY = p.y + p.h;
   ctx.fillStyle = "rgba(0,0,0,0.22)";
-  const shadowScale = p.onGround ? 1 : Math.max(0.3, 1 - (groundY - p.y) / 100);
+  const shadowScale = p.onGround ? 1 : Math.max(0.3, 1 - Math.abs(p.vy) / 12);
   ctx.beginPath();
   ctx.ellipse(cx, groundY + 1, 14 * shadowScale, 3 * shadowScale, 0, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(p.facing * p.scaleX, p.scaleY);
-
-  // cuerpo
-  ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(8, -8, 10, 0, Math.PI * 2); ctx.fill();
-  // contorno suave
-  ctx.strokeStyle = "rgba(180,120,0,0.4)"; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(8, -8, 10, 0, Math.PI * 2); ctx.stroke();
-  // ala con flap
-  ctx.fillStyle = "#f3b620";
-  const flapY = Math.sin(p.walkAnim) * 2 + ((p.flap < 15) ? 4 : 6);
-  ctx.beginPath(); ctx.ellipse(-2, flapY, 7, 5, 0.2, 0, Math.PI * 2); ctx.fill();
-  // pico
-  ctx.fillStyle = "#f08a1a";
-  ctx.beginPath();
-  ctx.moveTo(17, -8); ctx.lineTo(22, -6); ctx.lineTo(17, -4);
-  ctx.closePath(); ctx.fill();
-  // cresta
-  ctx.fillStyle = "#e85d5d";
-  ctx.beginPath();
-  ctx.moveTo(6, -16); ctx.quadraticCurveTo(8, -20, 10, -16);
-  ctx.quadraticCurveTo(8, -18, 6, -16);
-  ctx.fill();
-  // ojo
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(11, -10, 1.8, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "white";
-  ctx.beginPath(); ctx.arc(11.5, -10.5, 0.7, 0, Math.PI * 2); ctx.fill();
-  // patas con ciclo de caminata
-  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
-  const legPhase = p.onGround && Math.abs(p.vx) > 0.1 ? Math.sin(p.walkAnim) * 2 : 0;
-  ctx.beginPath();
-  ctx.moveTo(-5, 16); ctx.lineTo(-5 + legPhase, 20);
-  ctx.moveTo(5, 16);  ctx.lineTo(5 - legPhase, 20);
-  ctx.stroke();
-  ctx.restore();
+  // Sprite frame elegido por estado
+  const frame = pickPollitoFrame(p, state.scene);
+  // Scale 3 → 16px sprite → 48px en pantalla (acorde al p.w=32 + un poco más para visibilidad)
+  drawPollitoSprite(ctx, cx, cy, frame, 3, p.facing, p.scaleX, p.scaleY);
 }
 
 function drawHintBanner() {

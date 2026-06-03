@@ -208,8 +208,14 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
       if (dateStr) {
         const [y, m, d] = dateStr.split("-").map(Number);
         date = new Date(y, m - 1, d);
-        if (isNaN(date.getTime())) {
-          return reply.code(400).send({ error: "invalid date" });
+        // Strict check: reject overflows como 2026-13-99 o 2026-02-30 que JS reinterpreta.
+        if (
+          isNaN(date.getTime()) ||
+          date.getFullYear() !== y ||
+          date.getMonth() + 1 !== m ||
+          date.getDate() !== d
+        ) {
+          return reply.code(400).send({ ok: false, reason: "invalid date" });
         }
       } else {
         date = new Date();

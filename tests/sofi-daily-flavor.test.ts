@@ -93,11 +93,29 @@ describe("GET /api/sofi/daily-flavor", () => {
     expect(body.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("rejecta date param inválido", async () => {
+  it("rejecta date param con formato inválido", async () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/sofi/daily-flavor?date=no-soy-fecha",
-      cookies: { sofi_device: sofiCookie },
+      headers: { cookie: sofiCookie },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejecta date param con overflow (2026-13-99)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/sofi/daily-flavor?date=2026-13-99",
+      headers: { cookie: sofiCookie },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("rejecta date param con día inválido para el mes (2026-02-30)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/sofi/daily-flavor?date=2026-02-30",
+      headers: { cookie: sofiCookie },
     });
     expect(res.statusCode).toBe(400);
   });

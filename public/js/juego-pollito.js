@@ -1359,6 +1359,8 @@ function drawVignette() {
 }
 function drawCloud(cx, cy, scale) {
   const OUT = "#2a1d10";
+  // state.theme es null en el splash/select — fallback a blanco para no crashear
+  const cloudColor = (state.theme && state.theme.cloud) || "rgba(255,255,255,0.92)";
   ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
   // 4 arcos en path único para contorno integrado
   ctx.beginPath();
@@ -1366,7 +1368,7 @@ function drawCloud(cx, cy, scale) {
   ctx.arc(20, -4, 22, 0, Math.PI * 2);
   ctx.arc(44, 0, 18, 0, Math.PI * 2);
   ctx.arc(22, 10, 18, 0, Math.PI * 2);
-  ctx.fillStyle = state.theme.cloud; ctx.fill();
+  ctx.fillStyle = cloudColor; ctx.fill();
   ctx.strokeStyle = OUT; ctx.lineWidth = 1.4 / scale;
   ctx.stroke();
   ctx.restore();

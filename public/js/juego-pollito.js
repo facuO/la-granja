@@ -1844,6 +1844,9 @@ function drawAmbient(a) {
   else if (a.kind === "horse") drawHorse(sx, a);
   else if (a.kind === "duck") drawDuck(sx, a);
   else if (a.kind === "chick") drawChick(sx, a);
+  else if (a.kind === "pig") drawPig(sx, a);
+  else if (a.kind === "goat") drawGoat(sx, a);
+  else if (a.kind === "cat") drawCat(sx, a);
   else if (a.kind === "butterfly") drawButterfly(sx, a);
   else if (a.kind === "dragonfly") drawDragonfly(sx, a);
   else if (a.kind === "bird") drawBird(sx, a);
@@ -2065,28 +2068,193 @@ function drawChick(sx, a) {
   ctx.stroke();
 }
 
+function drawPig(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 0.5) * 0.6;
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 20, 22, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo redondito
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 24, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#f5b8b0"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cabeza redonda
+  ctx.beginPath(); ctx.arc(sx - 22, y - 2 + bob, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "#f5b8b0"; ctx.fill(); ctx.stroke();
+  // Hocico (círculo más oscuro con 2 puntos)
+  ctx.beginPath(); ctx.ellipse(sx - 30, y - 1 + bob, 5, 4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#d68a82"; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 31, y - 1 + bob, 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx - 29, y - 1 + bob, 0.7, 0, Math.PI * 2); ctx.fill();
+  // Orejas (triángulos)
+  ctx.fillStyle = "#f5b8b0";
+  ctx.beginPath();
+  ctx.moveTo(sx - 26, y - 11 + bob); ctx.lineTo(sx - 22, y - 16 + bob); ctx.lineTo(sx - 19, y - 9 + bob);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sx - 16, y - 9 + bob); ctx.lineTo(sx - 14, y - 14 + bob); ctx.lineTo(sx - 12, y - 8 + bob);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 24, y - 4 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
+  // Patas
+  ctx.fillStyle = "#f5b8b0";
+  for (const lx of [-14, -2, 10, 20]) {
+    ctx.beginPath(); ctx.rect(sx + lx, y + 10, 4, 10);
+    ctx.fill(); ctx.stroke();
+  }
+  // Colita rizada
+  ctx.strokeStyle = "#d68a82"; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(sx + 26, y - 2 + bob, 3, 0, Math.PI * 1.5);
+  ctx.stroke();
+}
+
+function drawGoat(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 0.7) * 0.6;
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 22, 20, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 22, 13, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#cfc7b4"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cabeza alargada
+  ctx.beginPath(); ctx.ellipse(sx - 22, y - 4 + bob, 10, 7, -0.2, 0, Math.PI * 2);
+  ctx.fillStyle = "#cfc7b4"; ctx.fill(); ctx.stroke();
+  // Hocico
+  ctx.beginPath(); ctx.ellipse(sx - 30, y - 2 + bob, 4, 3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#7a705a"; ctx.fill();
+  // Cuernos curvos
+  ctx.strokeStyle = "#7a705a"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(sx - 22, y - 11 + bob);
+  ctx.quadraticCurveTo(sx - 18, y - 18 + bob, sx - 14, y - 14 + bob);
+  ctx.stroke();
+  // Barba (pequeño triángulo bajo el hocico)
+  ctx.fillStyle = "#cfc7b4";
+  ctx.beginPath();
+  ctx.moveTo(sx - 30, y + 1 + bob);
+  ctx.lineTo(sx - 30, y + 5 + bob);
+  ctx.lineTo(sx - 28, y + 2 + bob);
+  ctx.closePath();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 24, y - 5 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
+  // Patas
+  ctx.fillStyle = "#cfc7b4"; ctx.lineWidth = 1.2;
+  for (const lx of [-14, -4, 6, 14]) {
+    ctx.beginPath(); ctx.rect(sx + lx, y + 10, 3, 12);
+    ctx.fill(); ctx.stroke();
+  }
+  // Cola corta
+  ctx.fillStyle = "#cfc7b4";
+  ctx.beginPath(); ctx.ellipse(sx + 22, y - 4 + bob, 3, 4, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+}
+
+function drawCat(sx, a) {
+  const y = a.y;
+  const bob = Math.sin(a.t * 0.5) * 0.5;
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 16, 14, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo (gato sentado)
+  ctx.beginPath(); ctx.ellipse(sx, y + 4 + bob, 12, 12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#e89048"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Rayas en el cuerpo
+  ctx.strokeStyle = "#a85a20"; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(sx - 8, y + bob); ctx.lineTo(sx + 8, y + bob);
+  ctx.moveTo(sx - 7, y + 5 + bob); ctx.lineTo(sx + 7, y + 5 + bob);
+  ctx.stroke();
+  // Cabeza
+  ctx.beginPath(); ctx.arc(sx, y - 6 + bob, 8, 0, Math.PI * 2);
+  ctx.fillStyle = "#e89048"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.4;
+  ctx.fill(); ctx.stroke();
+  // Orejas triangulares
+  ctx.fillStyle = "#e89048";
+  ctx.beginPath();
+  ctx.moveTo(sx - 7, y - 12 + bob); ctx.lineTo(sx - 5, y - 18 + bob); ctx.lineTo(sx - 2, y - 11 + bob);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(sx + 2, y - 11 + bob); ctx.lineTo(sx + 5, y - 18 + bob); ctx.lineTo(sx + 7, y - 12 + bob);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Ojos
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(sx - 3, y - 7 + bob, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 3, y - 7 + bob, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 3, y - 7 + bob, 0.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 3, y - 7 + bob, 0.8, 0, Math.PI * 2); ctx.fill();
+  // Nariz triangular pequeña
+  ctx.fillStyle = "#f8c2c8";
+  ctx.beginPath();
+  ctx.moveTo(sx - 1, y - 4 + bob); ctx.lineTo(sx + 1, y - 4 + bob); ctx.lineTo(sx, y - 2 + bob);
+  ctx.closePath(); ctx.fill();
+  // Bigotes
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(sx - 8, y - 3 + bob); ctx.lineTo(sx - 3, y - 3 + bob);
+  ctx.moveTo(sx + 3, y - 3 + bob); ctx.lineTo(sx + 8, y - 3 + bob);
+  ctx.stroke();
+  // Cola enrollada al frente
+  ctx.strokeStyle = "#e89048"; ctx.lineWidth = 4; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(sx + 10, y + 10 + bob);
+  ctx.quadraticCurveTo(sx + 18, y + 6 + bob, sx + 16, y + bob);
+  ctx.stroke();
+  ctx.strokeStyle = "#a85a20"; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(sx + 12, y + 9 + bob); ctx.lineTo(sx + 17, y + 5 + bob);
+  ctx.stroke();
+}
+
 function drawButterfly(sx, a) {
   const y = a.y + Math.sin(a.t * 1.2) * 10;
   const flap = Math.sin(a.t * 4) * 0.6 + 0.5;
-  ctx.fillStyle = a.hue || "#e85d5d";
-  ctx.save(); ctx.translate(sx, y);
-  // alas
+  const OUT = "#2a1d10";
+  const hue = a.hue || "#e85d5d";
+  ctx.save();
+  ctx.translate(sx, y);
   ctx.scale(flap, 1);
-  ctx.beginPath(); ctx.ellipse(-6, -4, 7, 9, 0.3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(6, -4, 7, 9, -0.3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(-5, 5, 5, 6, -0.3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(5, 5, 5, 6, 0.3, 0, Math.PI * 2); ctx.fill();
+  // 4 alas en path único para contorno limpio
+  ctx.beginPath();
+  ctx.ellipse(-6, -4, 7, 9, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(6, -4, 7, 9, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(-5, 5, 5, 6, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(5, 5, 5, 6, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = hue; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
   ctx.restore();
-  // cuerpo
-  ctx.fillStyle = "#2a1d10";
-  ctx.beginPath(); ctx.ellipse(sx, y, 1.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo (negro, sin escala de flap)
+  ctx.beginPath();
+  ctx.ellipse(sx, y, 1.5, 7, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#2a1d10"; ctx.fill();
+  // Antenas
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx - 0.8, y - 6); ctx.lineTo(sx - 2, y - 9);
+  ctx.moveTo(sx + 0.8, y - 6); ctx.lineTo(sx + 2, y - 9);
+  ctx.stroke();
 }
 
 function drawDragonfly(sx, a) {
   const y = a.y + Math.sin(a.t * 2) * 6;
-  ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 1;
-  ctx.fillStyle = "rgba(180,220,255,0.6)";
-  // alas vibrando rápido (parecen translúcidas)
+  const OUT = "#2a1d10";
+  const hue = a.hue || "#5fb4e0";
+  // Alas (4 elipses translúcidas con contorno)
+  ctx.fillStyle = "rgba(180,220,255,0.55)";
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1;
   for (const sgn of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(sx + sgn * 8, y - 2, 8, 3, 0, 0, Math.PI * 2);
@@ -2095,23 +2263,26 @@ function drawDragonfly(sx, a) {
     ctx.ellipse(sx + sgn * 8, y + 2, 7, 2.5, 0, 0, Math.PI * 2);
     ctx.fill(); ctx.stroke();
   }
-  // cuerpo
-  ctx.fillStyle = a.hue || "#5fb4e0";
-  ctx.beginPath(); ctx.ellipse(sx, y, 2.5, 8, 0, 0, Math.PI * 2); ctx.fill();
-  // cabeza
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx, y - 6, 1.8, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo alargado
+  ctx.beginPath();
+  ctx.ellipse(sx, y, 2.5, 8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = hue; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
+  // Cabeza
+  ctx.beginPath();
+  ctx.arc(sx, y - 6, 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = "#222"; ctx.fill(); ctx.stroke();
 }
 
 function drawBird(sx, a) {
-  // movimiento se actualiza en step(); acá solo dibujamos
   const y = a.y + Math.sin(a.t * 2) * 3;
   const flap = Math.sin(a.t * 6) * 4;
-  ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  // Solo silueta — un "V" suave con contorno
+  ctx.strokeStyle = "#2a1d10"; ctx.lineWidth = 2; ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(sx - 8, y + flap);
-  ctx.quadraticCurveTo(sx - 4, y - 2, sx, y);
-  ctx.quadraticCurveTo(sx + 4, y - 2, sx + 8, y + flap);
+  ctx.moveTo(sx - 9, y + flap);
+  ctx.quadraticCurveTo(sx - 4, y - 3, sx, y);
+  ctx.quadraticCurveTo(sx + 4, y - 3, sx + 9, y + flap);
   ctx.stroke();
 }
 

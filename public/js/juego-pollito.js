@@ -436,6 +436,7 @@ const state = {
 };
 
 let DAILY_FLAVOR = null;
+let _bannerShown = false;
 
 function applyFlavorToWorld(worldId) {
   if (!DAILY_FLAVOR || !DAILY_FLAVOR.palette[worldId]) return;
@@ -571,10 +572,11 @@ function startWorld(idx) {
   state.door = w.door ? { ...w.door, opened: false } : null;
   state.quiz = w.quiz ? { ...w.quiz, solved: false } : null;
   state.flag = { ...w.flag, descend: 0 };
-  state.theme = w.theme;
+  state.theme = { ...w.theme };
   applyFlavorToWorld(w.id);
-  if (DAILY_FLAVOR && DAILY_FLAVOR.specialEvent) {
+  if (DAILY_FLAVOR && DAILY_FLAVOR.specialEvent && !_bannerShown) {
     showFlavorBanner(DAILY_FLAVOR.specialEvent.banner);
+    _bannerShown = true;
   }
   state.parallaxFar = w.parallaxFar || [];
   state.parallaxMid = w.parallaxMid || [];
@@ -2398,8 +2400,9 @@ getTodayFlavor().then((f) => {
   if (f) {
     DAILY_FLAVOR = f;
     if (state.world) applyFlavorToWorld(state.world.id);
-    if (f.specialEvent && (state.scene === "splash" || state.scene === "select")) {
+    if (f.specialEvent && !_bannerShown && (state.scene === "splash" || state.scene === "select")) {
       showFlavorBanner(f.specialEvent.banner);
+      _bannerShown = true;
     }
   }
 });

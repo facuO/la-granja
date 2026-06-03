@@ -6,6 +6,7 @@ import { getSubjectsForSofi } from "../services/subjects.js";
 import { startSession, nextBlock, finishSession } from "../services/sessions.js";
 import { askTutor, type ChatMessage } from "../services/real-chat.js";
 import { getAllStubBlocks } from "../services/stub-tutor.js";
+import { getDailyFlavor } from "../services/daily-flavor.js";
 
 export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
@@ -188,5 +189,33 @@ export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(500).send({ ok: false, reason: msg });
       }
     }
+  );
+
+  fastify.get<{ Querystring: { date?: string } }>(
+    "/api/sofi/daily-flavor",
+    {
+      preHandler: requireSofi,
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const dateStr = req.query.date;
+      let date: Date;
+      if (dateStr) {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        date = new Date(y, m - 1, d);
+        if (isNaN(date.getTime())) {
+          return reply.code(400).send({ error: "invalid date" });
+        }
+      } else {
+        date = new Date();
+      }
+      const flavor = await getDailyFlavor(date);
+      return reply.send(flavor);
+    },
   );
 };

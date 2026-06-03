@@ -15,6 +15,7 @@
 
 import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
 import { drawPollitoSprite, pickPollitoFrame, drawFoxSprite, pickFoxFrame } from "/js/juego-pollito-sprites.js";
+import { getTodayFlavor } from "/js/juego-pollito-flavor.js";
 
 // ============================================================
 // DOM
@@ -48,6 +49,7 @@ const splashPollitoCanvas = document.getElementById("splash-pollito-canvas");
 const statWorldsEl = document.getElementById("stat-worlds");
 const statEggsEl = document.getElementById("stat-eggs");
 const statRunsEl = document.getElementById("stat-runs");
+const flavorBannerEl = document.getElementById("flavor-banner");
 
 // ============================================================
 // High-DPI canvas setup
@@ -433,6 +435,20 @@ const state = {
   globalT: 0,
 };
 
+let DAILY_FLAVOR = null;
+
+function applyFlavorToWorld(worldId) {
+  if (!DAILY_FLAVOR || !DAILY_FLAVOR.palette[worldId]) return;
+  if (!state.theme) return;
+  state.theme.sky = DAILY_FLAVOR.palette[worldId].sky;
+}
+
+function showFlavorBanner(text) {
+  flavorBannerEl.textContent = text;
+  flavorBannerEl.classList.add("shown");
+  setTimeout(() => flavorBannerEl.classList.remove("shown"), 6000);
+}
+
 // Setea un hint con timer auto-dismiss (~4s) y fade out en los últimos 30 frames.
 function setHint(text, frames = 240) {
   state.hint = text;
@@ -556,6 +572,10 @@ function startWorld(idx) {
   state.quiz = w.quiz ? { ...w.quiz, solved: false } : null;
   state.flag = { ...w.flag, descend: 0 };
   state.theme = w.theme;
+  applyFlavorToWorld(w.id);
+  if (DAILY_FLAVOR && DAILY_FLAVOR.specialEvent) {
+    showFlavorBanner(DAILY_FLAVOR.specialEvent.banner);
+  }
   state.parallaxFar = w.parallaxFar || [];
   state.parallaxMid = w.parallaxMid || [];
   state.parallaxNear = w.parallaxNear || [];
@@ -2372,6 +2392,17 @@ function loop() {
   render();
   requestAnimationFrame(loop);
 }
+
+// Daily Flavor: arrancar el fetch en background. No bloquea el loop.
+getTodayFlavor().then((f) => {
+  if (f) {
+    DAILY_FLAVOR = f;
+    if (state.world) applyFlavorToWorld(state.world.id);
+    if (f.specialEvent && (state.scene === "splash" || state.scene === "select")) {
+      showFlavorBanner(f.specialEvent.banner);
+    }
+  }
+});
 
 // Splash queda visible al cargar (HTML lo arranca con .shown).
 loop();

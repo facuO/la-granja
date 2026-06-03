@@ -242,6 +242,26 @@
     .splash-stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
     .splash-stat-label { font-size: 0.78rem; color: var(--text-soft); text-transform: uppercase; }
 
+    .flavor-banner {
+      position: absolute;
+      top: 56px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(180deg, #fff4c0, #ffe69b);
+      color: #5b3a1a;
+      padding: 8px 18px; border-radius: 10px;
+      border: 2px solid #ffd34a;
+      font-weight: 700; font-size: 0.95rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+      z-index: 6;
+      display: none;
+      white-space: nowrap;
+      animation: bannerIn 0.4s ease-out;
+    }
+    .flavor-banner.shown { display: block; }
+    @keyframes bannerIn {
+      0% { opacity: 0; transform: translate(-50%, -10px); }
+      100% { opacity: 1; transform: translate(-50%, 0); }
+    }
+
   </style>
 </head>
 <body class="pollito-body">
@@ -258,6 +278,7 @@
       <canvas id="game-canvas" width="800" height="500" aria-label="Aventura del Pollito"></canvas>
       <div class="hud" id="hud"></div>
       <div class="world-pill" id="world-pill"></div>
+      <div class="flavor-banner" id="flavor-banner"></div>
       <div class="top-right-tools">
         <button class="pause-btn" id="pause-btn" aria-label="Pausar">⏸</button>
         <button class="audio-btn" id="audio-btn" aria-label="Encender música">🔇</button>

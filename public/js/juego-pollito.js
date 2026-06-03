@@ -1358,13 +1358,17 @@ function drawVignette() {
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 }
 function drawCloud(cx, cy, scale) {
+  const OUT = "#2a1d10";
   ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
+  // 4 arcos en path único para contorno integrado
   ctx.beginPath();
   ctx.arc(0, 0, 18, 0, Math.PI * 2);
   ctx.arc(20, -4, 22, 0, Math.PI * 2);
   ctx.arc(44, 0, 18, 0, Math.PI * 2);
   ctx.arc(22, 10, 18, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = state.theme.cloud; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4 / scale;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1380,48 +1384,60 @@ function drawParallaxLayer(items, factor, drawFn) {
 function drawMountain(sx, it) {
   const scale = it.scale || 1;
   const w = 260 * scale, h = 180 * scale;
-  const x = sx;
   const baseY = 460;
-  ctx.fillStyle = state.theme.mountainDark;
+  const OUT = "#2a1d10";
+  // Cuerpo principal con contorno
   ctx.beginPath();
-  ctx.moveTo(x, baseY);
-  ctx.lineTo(x + w * 0.45, baseY - h);
-  ctx.lineTo(x + w * 0.7, baseY - h * 0.6);
-  ctx.lineTo(x + w, baseY);
-  ctx.closePath(); ctx.fill();
-  // capa de luz
-  ctx.fillStyle = state.theme.mountain;
+  ctx.moveTo(sx, baseY);
+  ctx.lineTo(sx + w * 0.45, baseY - h);
+  ctx.lineTo(sx + w * 0.7, baseY - h * 0.6);
+  ctx.lineTo(sx + w, baseY);
+  ctx.closePath();
+  ctx.fillStyle = state.theme.mountainDark; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cara iluminada (sin re-stroke para no duplicar contorno interno)
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.45, baseY - h);
-  ctx.lineTo(x + w * 0.5, baseY - h * 0.95);
-  ctx.lineTo(x + w * 0.95, baseY);
-  ctx.lineTo(x + w, baseY);
-  ctx.closePath(); ctx.fill();
-  // nieve en el pico
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.moveTo(sx + w * 0.45, baseY - h);
+  ctx.lineTo(sx + w * 0.5, baseY - h * 0.95);
+  ctx.lineTo(sx + w * 0.95, baseY);
+  ctx.lineTo(sx + w, baseY);
+  ctx.closePath();
+  ctx.fillStyle = state.theme.mountain; ctx.fill();
+  // Pico nevado (triángulo blanco con contorno)
   ctx.beginPath();
-  ctx.moveTo(x + w * 0.45, baseY - h);
-  ctx.lineTo(x + w * 0.4, baseY - h * 0.86);
-  ctx.lineTo(x + w * 0.5, baseY - h * 0.92);
-  ctx.closePath(); ctx.fill();
+  ctx.moveTo(sx + w * 0.45, baseY - h);
+  ctx.lineTo(sx + w * 0.4, baseY - h * 0.86);
+  ctx.lineTo(sx + w * 0.5, baseY - h * 0.92);
+  ctx.closePath();
+  ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
 }
 
 function drawTree(sx, it) {
   const scale = it.scale || 1;
   const baseY = 460;
   const trunkW = 16 * scale, trunkH = 50 * scale;
-  ctx.fillStyle = state.theme.treeTrunk;
-  ctx.fillRect(sx - trunkW / 2, baseY - trunkH, trunkW, trunkH);
-  // copa: 3 círculos
-  ctx.fillStyle = state.theme.treeLeaves;
+  const OUT = "#2a1d10";
+  // Tronco
+  ctx.beginPath();
+  ctx.rect(sx - trunkW / 2, baseY - trunkH, trunkW, trunkH);
+  ctx.fillStyle = state.theme.treeTrunk; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Línea vertical en el tronco (textura)
+  ctx.strokeStyle = "rgba(60,30,15,0.4)"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx, baseY - trunkH); ctx.lineTo(sx, baseY);
+  ctx.stroke();
+  // Copa (3 círculos en path único para contorno limpio)
   const cr = 30 * scale;
   ctx.beginPath();
   ctx.arc(sx - 14 * scale, baseY - trunkH - 5, cr * 0.9, 0, Math.PI * 2);
   ctx.arc(sx + 14 * scale, baseY - trunkH - 5, cr * 0.9, 0, Math.PI * 2);
   ctx.arc(sx, baseY - trunkH - 20 * scale, cr, 0, Math.PI * 2);
-  ctx.fill();
-  // brillito
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.fillStyle = state.theme.treeLeaves; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Highlight plano (sin contorno)
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
   ctx.beginPath(); ctx.arc(sx - 4 * scale, baseY - trunkH - 24 * scale, cr * 0.4, 0, Math.PI * 2); ctx.fill();
 }
 
@@ -1429,63 +1445,93 @@ function drawBarn(sx, it) {
   const scale = it.scale || 1;
   const baseY = 460;
   const w = 110 * scale, h = 80 * scale;
-  // techo
-  ctx.fillStyle = "#5b2a1a";
+  const OUT = "#2a1d10";
+  // Techo triangular oscuro
   ctx.beginPath();
   ctx.moveTo(sx, baseY - h);
   ctx.lineTo(sx + w / 2, baseY - h - 40 * scale);
   ctx.lineTo(sx + w, baseY - h);
-  ctx.closePath(); ctx.fill();
-  // body
-  ctx.fillStyle = "#c44e3b";
-  ctx.fillRect(sx, baseY - h, w, h);
-  // ventana
-  ctx.fillStyle = "#fff8d0";
-  ctx.fillRect(sx + w / 2 - 12 * scale, baseY - h + 12 * scale, 24 * scale, 24 * scale);
-  // puerta
-  ctx.fillStyle = "#5b2a1a";
-  ctx.fillRect(sx + w / 2 - 18 * scale, baseY - 40 * scale, 36 * scale, 40 * scale);
-  // tablones blanco
-  ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 1.5;
+  ctx.closePath();
+  ctx.fillStyle = "#5b2a1a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cuerpo rojo
+  ctx.beginPath(); ctx.rect(sx, baseY - h, w, h);
+  ctx.fillStyle = "#c44e3b"; ctx.fill(); ctx.stroke();
+  // Bandas blancas decorativas (líneas — no son fill)
+  ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(sx, baseY - h * 0.6); ctx.lineTo(sx + w, baseY - h * 0.6);
   ctx.moveTo(sx, baseY - h * 0.3); ctx.lineTo(sx + w, baseY - h * 0.3);
   ctx.stroke();
+  // Ventana superior
+  ctx.beginPath();
+  ctx.rect(sx + w / 2 - 12 * scale, baseY - h + 12 * scale, 24 * scale, 24 * scale);
+  ctx.fillStyle = "#fff8d0"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cruz de la ventana
+  ctx.strokeStyle = "#5b3a1a"; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(sx + w / 2, baseY - h + 12 * scale); ctx.lineTo(sx + w / 2, baseY - h + 36 * scale);
+  ctx.moveTo(sx + w / 2 - 12 * scale, baseY - h + 24 * scale); ctx.lineTo(sx + w / 2 + 12 * scale, baseY - h + 24 * scale);
+  ctx.stroke();
+  // Puerta grande
+  ctx.beginPath();
+  ctx.rect(sx + w / 2 - 18 * scale, baseY - 40 * scale, 36 * scale, 40 * scale);
+  ctx.fillStyle = "#5b2a1a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Línea media puerta (apertura)
+  ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(sx + w / 2, baseY - 40 * scale); ctx.lineTo(sx + w / 2, baseY); ctx.stroke();
 }
 
 function drawSilo(sx, it) {
   const scale = it.scale || 1;
   const baseY = 460;
   const w = 50 * scale, h = 110 * scale;
-  ctx.fillStyle = "#bfb8a8";
-  ctx.fillRect(sx, baseY - h, w, h);
-  ctx.fillStyle = "#5b5040";
-  ctx.beginPath();
-  ctx.ellipse(sx + w / 2, baseY - h, w / 2, 14 * scale, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // anillos
-  ctx.strokeStyle = "rgba(0,0,0,0.15)"; ctx.lineWidth = 1.5;
+  const OUT = "#2a1d10";
+  // Cuerpo cilíndrico (rectángulo)
+  ctx.beginPath(); ctx.rect(sx, baseY - h, w, h);
+  ctx.fillStyle = "#bfb8a8"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cúpula superior (medio círculo aplanado)
+  ctx.beginPath(); ctx.ellipse(sx + w / 2, baseY - h, w / 2, 14 * scale, 0, Math.PI, 0);
+  ctx.fillStyle = "#5b5040"; ctx.fill();
+  ctx.stroke();
+  // Anillos horizontales
+  ctx.strokeStyle = "rgba(60,40,30,0.5)"; ctx.lineWidth = 1.2;
   for (let i = 1; i <= 4; i++) {
     const yy = baseY - h + (h / 5) * i;
     ctx.beginPath(); ctx.moveTo(sx, yy); ctx.lineTo(sx + w, yy); ctx.stroke();
   }
+  // Punta tipo escotilla arriba (rect chiquito)
+  ctx.beginPath();
+  ctx.rect(sx + w / 2 - 3, baseY - h - 18 * scale, 6, 6 * scale);
+  ctx.fillStyle = "#5b5040"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
 }
 
 function drawWindmill(sx, it) {
   const scale = it.scale || 1;
   const baseY = 460;
-  // Mástil triangular
-  ctx.fillStyle = "#8a7a5a";
+  const OUT = "#2a1d10";
+  // Mástil (triángulo angosto)
   ctx.beginPath();
   ctx.moveTo(sx + 5 * scale, baseY);
   ctx.lineTo(sx + 22 * scale, baseY - 100 * scale);
   ctx.lineTo(sx + 38 * scale, baseY);
-  ctx.closePath(); ctx.fill();
-  // Aspas (rotando lento con globalT)
+  ctx.closePath();
+  ctx.fillStyle = "#8a7a5a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Travesaños horizontales (textura)
+  ctx.strokeStyle = "rgba(60,40,30,0.5)"; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx + 9 * scale, baseY - 70 * scale); ctx.lineTo(sx + 34 * scale, baseY - 70 * scale);
+  ctx.moveTo(sx + 12 * scale, baseY - 40 * scale); ctx.lineTo(sx + 32 * scale, baseY - 40 * scale);
+  ctx.stroke();
+  // Aspas (4 elipses rotando)
   const cx = sx + 22 * scale, cy = baseY - 100 * scale;
   const rot = state.globalT * 0.012;
-  ctx.fillStyle = "#fffcf0";
-  ctx.strokeStyle = "#8a7a5a"; ctx.lineWidth = 2;
+  ctx.fillStyle = "#fffcf0"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.4;
   for (let i = 0; i < 4; i++) {
     const a = rot + i * Math.PI / 2;
     ctx.save();
@@ -1496,37 +1542,41 @@ function drawWindmill(sx, it) {
     ctx.lineTo(36 * scale, -8 * scale);
     ctx.lineTo(40 * scale, 0);
     ctx.lineTo(36 * scale, 8 * scale);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
     ctx.restore();
   }
-  ctx.fillStyle = "#5b4226";
-  ctx.beginPath(); ctx.arc(cx, cy, 5 * scale, 0, Math.PI * 2); ctx.fill();
+  // Centro
+  ctx.beginPath(); ctx.arc(cx, cy, 5 * scale, 0, Math.PI * 2);
+  ctx.fillStyle = "#5b4226"; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
 }
 
 function drawBush(sx) {
   const baseY = 460;
-  ctx.fillStyle = state.theme.grassDark;
+  const OUT = "#2a1d10";
+  // 3 círculos en path único para contorno integrado
   ctx.beginPath();
   ctx.arc(sx, baseY - 4, 16, 0, Math.PI * 2);
   ctx.arc(sx - 12, baseY, 12, 0, Math.PI * 2);
   ctx.arc(sx + 12, baseY, 12, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = state.theme.grass;
-  ctx.beginPath();
-  ctx.arc(sx + 4, baseY - 8, 8, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = state.theme.grassDark; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Highlight más claro (sin contorno)
+  ctx.beginPath(); ctx.arc(sx + 4, baseY - 8, 8, 0, Math.PI * 2);
+  ctx.fillStyle = state.theme.grass; ctx.fill();
 }
 
 function drawRock(sx) {
   const baseY = 460;
-  ctx.fillStyle = "#9c9088";
-  ctx.beginPath();
-  ctx.ellipse(sx, baseY - 4, 18, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#bdb1a5";
-  ctx.beginPath();
-  ctx.ellipse(sx - 4, baseY - 8, 8, 5, 0.3, 0, Math.PI * 2);
-  ctx.fill();
+  const OUT = "#2a1d10";
+  // Piedra (elipse grande)
+  ctx.beginPath(); ctx.ellipse(sx, baseY - 4, 18, 12, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#9c9088"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Highlight plano arriba
+  ctx.beginPath(); ctx.ellipse(sx - 4, baseY - 8, 8, 5, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "#bdb1a5"; ctx.fill();
 }
 
 // Decoración foreground (mismo plano que el juego)
@@ -1547,129 +1597,171 @@ function drawDecor(d) {
 function drawFence(sx, d) {
   const len = d.len || 4;
   const segW = 36;
-  ctx.fillStyle = "#a87447";
-  ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 1.5;
-  // horizontales
-  ctx.fillRect(sx, d.y - 2, segW * len, 4);
-  ctx.strokeRect(sx, d.y - 2, segW * len, 4);
-  ctx.fillRect(sx, d.y + 10, segW * len, 4);
-  ctx.strokeRect(sx, d.y + 10, segW * len, 4);
-  // verticales
+  const OUT = "#2a1d10";
+  // Travesaños horizontales con contorno
+  ctx.fillStyle = "#a87447"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.rect(sx, d.y - 2, segW * len, 4);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(sx, d.y + 10, segW * len, 4);
+  ctx.fill(); ctx.stroke();
+  // Estacas verticales (forma pentagonal)
   for (let i = 0; i < len; i++) {
     ctx.beginPath();
-    ctx.moveTo(sx + i * segW + 6, d.y - 10);
-    ctx.lineTo(sx + i * segW + 12, d.y + 16);
-    ctx.lineTo(sx + i * segW + 18, d.y - 10);
+    const baseX = sx + i * segW;
+    ctx.moveTo(baseX + 6, d.y - 10);
+    ctx.lineTo(baseX + 12, d.y - 14);
+    ctx.lineTo(baseX + 18, d.y - 10);
+    ctx.lineTo(baseX + 18, d.y + 16);
+    ctx.lineTo(baseX + 6, d.y + 16);
     ctx.closePath();
-    ctx.fillStyle = "#a87447"; ctx.fill(); ctx.stroke();
+    ctx.fill(); ctx.stroke();
   }
 }
 
 function drawGallinero(sx, d) {
-  // casita pequeña con techo + entrada redonda
   const x = sx, y = d.y;
-  ctx.fillStyle = "#c44e3b";
+  const OUT = "#2a1d10";
+  // Techo triangular rojo
   ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + 30, y - 24);
-  ctx.lineTo(x + 60, y);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#e8c87d";
-  ctx.fillRect(x, y, 60, 48);
-  ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.2;
-  for (let i = 8; i < 60; i += 10) {
+  ctx.moveTo(x - 4, y); ctx.lineTo(x + 30, y - 26); ctx.lineTo(x + 64, y);
+  ctx.closePath();
+  ctx.fillStyle = "#c44e3b"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Body amarillo
+  ctx.beginPath(); ctx.rect(x, y, 60, 48);
+  ctx.fillStyle = "#e8c87d"; ctx.fill(); ctx.stroke();
+  // Tablones verticales (líneas)
+  ctx.strokeStyle = "rgba(60,30,15,0.5)"; ctx.lineWidth = 1.2;
+  for (let i = 12; i < 60; i += 12) {
     ctx.beginPath(); ctx.moveTo(x + i, y); ctx.lineTo(x + i, y + 48); ctx.stroke();
   }
-  // entrada
-  ctx.fillStyle = "#3a2a1a";
+  // Entrada redondeada
   ctx.beginPath();
   ctx.arc(x + 30, y + 38, 12, Math.PI, 0);
-  ctx.fill();
-  ctx.fillRect(x + 18, y + 38, 24, 10);
-  // perchita
-  ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2;
+  ctx.lineTo(x + 18, y + 48);
+  ctx.lineTo(x + 42, y + 48);
+  ctx.closePath();
+  ctx.fillStyle = "#3a2a1a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Percha
+  ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(x + 22, y + 50); ctx.lineTo(x + 38, y + 50); ctx.stroke();
 }
 
 function drawFlower(sx, d) {
   const baseY = d.y;
-  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 2;
+  const OUT = "#2a1d10";
+  // Tallo
+  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 2; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 14); ctx.stroke();
-  // hojita
-  ctx.fillStyle = "#4f8c46";
-  ctx.beginPath(); ctx.ellipse(sx - 4, baseY - 6, 4, 2, 0.4, 0, Math.PI * 2); ctx.fill();
-  // pétalos
-  ctx.fillStyle = d.color || "#e85d5d";
+  // Hoja
+  ctx.beginPath(); ctx.ellipse(sx - 4, baseY - 6, 4, 2, 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = "#4f8c46"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1; ctx.stroke();
+  // 5 pétalos (path único)
+  ctx.beginPath();
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.ellipse(sx + Math.cos(a) * 4, baseY - 16 + Math.sin(a) * 4, 3.5, 5, a, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.ellipse(sx + Math.cos(a) * 4, baseY - 16 + Math.sin(a) * 4, 4, 5, a, 0, Math.PI * 2);
   }
-  ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.arc(sx, baseY - 16, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = d.color || "#e85d5d"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // Centro
+  ctx.beginPath(); ctx.arc(sx, baseY - 16, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd34a"; ctx.fill(); ctx.stroke();
 }
 
 function drawWheat(sx, d) {
   const baseY = d.y;
-  ctx.strokeStyle = "#d6a04a"; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 26); ctx.stroke();
-  // espiga
-  ctx.fillStyle = "#e8b850";
-  ctx.beginPath(); ctx.ellipse(sx, baseY - 30, 4, 8, 0, 0, Math.PI * 2); ctx.fill();
-  // granos
+  const OUT = "#2a1d10";
+  // Tallo curvo
+  ctx.strokeStyle = "#a87420"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(sx, baseY);
+  ctx.quadraticCurveTo(sx + 1, baseY - 14, sx, baseY - 28);
+  ctx.stroke();
+  // Espiga
+  ctx.beginPath(); ctx.ellipse(sx, baseY - 30, 4, 9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#e8b850"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // Granos individuales (puntitos sin contorno)
   ctx.fillStyle = "#a87420";
   for (let i = -2; i <= 2; i++) {
-    ctx.beginPath(); ctx.ellipse(sx + i * 1.5, baseY - 30 + i * 3, 1, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sx + i * 1.5, baseY - 30 + i * 3, 1, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+  // Aristas (líneas finas hacia arriba)
+  ctx.strokeStyle = "#a87420"; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(sx - 1, baseY - 36); ctx.lineTo(sx - 3, baseY - 40);
+  ctx.moveTo(sx + 1, baseY - 36); ctx.lineTo(sx + 3, baseY - 40);
+  ctx.stroke();
 }
 
 function drawSunflower(sx, d) {
   const baseY = d.y;
-  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 3;
+  const OUT = "#2a1d10";
+  // Tallo grueso
+  ctx.strokeStyle = "#4f8c46"; ctx.lineWidth = 3.5; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(sx, baseY - 36); ctx.stroke();
-  // hoja
-  ctx.fillStyle = "#5da650";
-  ctx.beginPath(); ctx.ellipse(sx - 7, baseY - 14, 7, 3, 0.5, 0, Math.PI * 2); ctx.fill();
-  // pétalos
-  ctx.fillStyle = "#ffd34a";
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.ellipse(sx + Math.cos(a) * 6, baseY - 40 + Math.sin(a) * 6, 4, 7, a, 0, Math.PI * 2);
-    ctx.fill();
+  // Hoja grande
+  ctx.beginPath(); ctx.ellipse(sx - 7, baseY - 14, 7, 3, 0.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#5da650"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // 12 pétalos (path único)
+  ctx.beginPath();
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.ellipse(sx + Math.cos(a) * 6, baseY - 40 + Math.sin(a) * 6, 4.5, 7, a, 0, Math.PI * 2);
   }
-  ctx.fillStyle = "#5b3a1a";
-  ctx.beginPath(); ctx.arc(sx, baseY - 40, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffd34a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // Centro marrón
+  ctx.beginPath(); ctx.arc(sx, baseY - 40, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#5b3a1a"; ctx.fill(); ctx.stroke();
+  // Texturita centro (puntitos)
+  ctx.fillStyle = "#3a2a1a";
+  for (const [dx, dy] of [[-2, -1], [2, -1], [0, 1], [-2, 2], [2, 2]]) {
+    ctx.beginPath(); ctx.arc(sx + dx, baseY - 40 + dy, 0.8, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function drawScarecrow(sx, d) {
   const x = sx, y = d.y;
-  // cruz
-  ctx.fillStyle = "#6b4226";
-  ctx.fillRect(x + 8, y, 4, 50);
-  ctx.fillRect(x, y + 18, 20, 4);
-  // ropa
-  ctx.fillStyle = "#4a5db7";
-  ctx.fillRect(x + 2, y + 8, 16, 18);
-  // cabeza
-  ctx.fillStyle = "#e8c87d";
-  ctx.beginPath(); ctx.arc(x + 10, y + 4, 8, 0, Math.PI * 2); ctx.fill();
-  // sombrero
-  ctx.fillStyle = "#8a6f3a";
+  const OUT = "#2a1d10";
+  // Cruz de madera (poste vertical + travesaño)
+  ctx.fillStyle = "#6b4226"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.rect(x + 8, y, 4, 50); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(x, y + 18, 20, 4); ctx.fill(); ctx.stroke();
+  // Ropa (camisa azul)
+  ctx.beginPath(); ctx.rect(x + 2, y + 8, 16, 18);
+  ctx.fillStyle = "#4a5db7"; ctx.fill(); ctx.stroke();
+  // Cabeza (saco de arpillera)
+  ctx.beginPath(); ctx.arc(x + 10, y + 4, 8, 0, Math.PI * 2);
+  ctx.fillStyle = "#e8c87d"; ctx.fill(); ctx.stroke();
+  // Sombrero
   ctx.beginPath();
   ctx.moveTo(x + 2, y - 2); ctx.lineTo(x + 10, y - 12); ctx.lineTo(x + 18, y - 2);
-  ctx.closePath(); ctx.fill();
-  ctx.fillRect(x - 1, y - 2, 22, 3);
-  // cara
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(x + 7, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + 13, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.closePath();
+  ctx.fillStyle = "#8a6f3a"; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(x - 1, y - 2, 22, 3);
+  ctx.fill(); ctx.stroke();
+  // Cara (ojos cruzados X y boca línea)
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(x + 6, y + 2); ctx.lineTo(x + 9, y + 5);
+  ctx.moveTo(x + 9, y + 2); ctx.lineTo(x + 6, y + 5);
+  ctx.moveTo(x + 11, y + 2); ctx.lineTo(x + 14, y + 5);
+  ctx.moveTo(x + 14, y + 2); ctx.lineTo(x + 11, y + 5);
+  ctx.moveTo(x + 7, y + 8); ctx.lineTo(x + 13, y + 8);
+  ctx.stroke();
 }
 
 function drawReeds(sx, d) {
   const baseY = d.y;
-  ctx.strokeStyle = "#5d7e3f"; ctx.lineWidth = 2;
+  const OUT = "#2a1d10";
+  // Tallos con sway animation
+  ctx.strokeStyle = "#5d7e3f"; ctx.lineWidth = 2; ctx.lineCap = "round";
   for (let i = 0; i < 5; i++) {
     const x = sx + i * 6;
     const sway = Math.sin(state.globalT * 0.03 + i) * 2;
@@ -1678,34 +1770,40 @@ function drawReeds(sx, d) {
     ctx.quadraticCurveTo(x + sway, baseY - 14, x + sway * 1.5, baseY - 32);
     ctx.stroke();
   }
-  ctx.fillStyle = "#3a2a1a";
+  // Espigas marrones en las puntas
+  ctx.fillStyle = "#3a2a1a"; ctx.strokeStyle = OUT; ctx.lineWidth = 1;
   for (let i = 0; i < 5; i++) {
     const x = sx + i * 6;
     const sway = Math.sin(state.globalT * 0.03 + i) * 2;
     ctx.beginPath();
-    ctx.ellipse(x + sway * 1.5, baseY - 34, 1.2, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.ellipse(x + sway * 1.5, baseY - 34, 1.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
   }
 }
 
 function drawLilypad(sx, d) {
   const baseY = d.y;
-  ctx.fillStyle = "#3d8c46";
-  ctx.beginPath();
-  ctx.ellipse(sx, baseY, 22, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.3)";
-  ctx.beginPath();
-  ctx.ellipse(sx - 4, baseY - 1, 8, 1.5, 0, 0, Math.PI * 2);
-  ctx.fill();
+  const OUT = "#2a1d10";
+  // Elipse con muesca (lirio típico tiene corte)
+  ctx.beginPath(); ctx.ellipse(sx, baseY, 22, 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#3d8c46"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // Brillito plano
+  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  ctx.beginPath(); ctx.ellipse(sx - 4, baseY - 1, 8, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+  // Muesca radial (línea más oscura)
+  ctx.strokeStyle = "#2a5a30"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(sx + 18, baseY); ctx.lineTo(sx + 8, baseY); ctx.stroke();
 }
 
 function drawHay(sx, d) {
   const baseY = d.y;
-  ctx.fillStyle = "#d6a04a";
-  ctx.beginPath();
-  ctx.ellipse(sx, baseY + 12, 26, 14, 0, 0, Math.PI * 2);
-  ctx.fill();
+  const OUT = "#2a1d10";
+  // Fardo (elipse achatada)
+  ctx.beginPath(); ctx.ellipse(sx, baseY + 12, 26, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#d6a04a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Líneas verticales (briznas)
   ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.2;
   for (let i = -3; i <= 3; i++) {
     ctx.beginPath();
@@ -1713,7 +1811,8 @@ function drawHay(sx, d) {
     ctx.lineTo(sx + i * 7, baseY + 24);
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(107,66,38,0.7)";
+  // Cinta horizontal medio
+  ctx.strokeStyle = "rgba(107,66,38,0.7)"; ctx.lineWidth = 1.4;
   ctx.beginPath(); ctx.moveTo(sx - 26, baseY + 12); ctx.lineTo(sx + 26, baseY + 12); ctx.stroke();
 }
 

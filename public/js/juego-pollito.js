@@ -1721,44 +1721,43 @@ function drawHay(sx, d) {
 function drawPlatform(p) {
   const sx = worldToScreen(p.x);
   if (sx + p.w < 0 || sx > VIEW_W) return;
+  const OUT = "#2a1d10";
   if (p.kind === "grass") {
-    ctx.fillStyle = state.theme.dirt;
-    ctx.fillRect(sx, p.y + 12, p.w, p.h - 12);
-    // textura tierra (puntitos)
-    ctx.fillStyle = "rgba(0,0,0,0.15)";
-    for (let i = 0; i < p.w; i += 22) {
-      ctx.beginPath(); ctx.arc(sx + i + 8, p.y + 24, 1.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(sx + i + 16, p.y + 32, 1, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = state.theme.grass;
-    ctx.fillRect(sx, p.y, p.w, 14);
-    ctx.fillStyle = state.theme.grassDark;
-    for (let x = sx + 5; x < sx + p.w; x += 14) {
-      ctx.fillRect(x, p.y - 3, 2.5, 5);
-      ctx.fillRect(x + 6, p.y - 4, 1.5, 6);
+    // Tierra (parte de abajo)
+    ctx.beginPath(); ctx.rect(sx, p.y + 12, p.w, p.h - 12);
+    ctx.fillStyle = state.theme.dirt; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Pasto encima (verde claro)
+    ctx.beginPath(); ctx.rect(sx, p.y, p.w, 14);
+    ctx.fillStyle = state.theme.grass; ctx.fill();
+    ctx.stroke();
+    // Briznas verdes oscuras (líneas cortas)
+    ctx.strokeStyle = state.theme.grassDark; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+    for (let x = sx + 6; x < sx + p.w; x += 18) {
+      ctx.beginPath();
+      ctx.moveTo(x, p.y - 1); ctx.lineTo(x + 1, p.y - 5);
+      ctx.moveTo(x + 7, p.y - 1); ctx.lineTo(x + 8, p.y - 6);
+      ctx.stroke();
     }
   } else if (p.kind === "wood") {
-    // sombra
-    ctx.fillStyle = "rgba(0,0,0,0.15)";
-    ctx.fillRect(sx, p.y + p.h, p.w, 3);
-    // body
-    ctx.fillStyle = p.moving ? "#c08855" : "#a87447";
-    ctx.fillRect(sx, p.y, p.w, p.h);
-    ctx.strokeStyle = "#6b4226"; ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 1, p.y + 1, p.w - 2, p.h - 2);
-    ctx.strokeStyle = "rgba(107, 66, 38, 0.5)";
+    // Madera
+    ctx.beginPath(); ctx.rect(sx, p.y, p.w, p.h);
+    ctx.fillStyle = p.moving ? "#c08855" : "#a87447"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Línea horizontal media
+    ctx.strokeStyle = "rgba(60,30,15,0.6)"; ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(sx, p.y + p.h / 2); ctx.lineTo(sx + p.w, p.y + p.h / 2); ctx.stroke();
-    // clavos
+    ctx.moveTo(sx, p.y + p.h / 2); ctx.lineTo(sx + p.w, p.y + p.h / 2);
+    ctx.stroke();
+    // Clavos
     ctx.fillStyle = "#3a2a1a";
     ctx.beginPath(); ctx.arc(sx + 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(sx + p.w - 4, p.y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
-    // Indicador de plataforma móvil: flechitas en los bordes
+    // Indicador de movimiento si móvil
     if (p.moving) {
       ctx.fillStyle = "#fff8d0";
       const m = p.moving;
       if (m.axis === "x") {
-        // flechita izq + der
         ctx.beginPath();
         ctx.moveTo(sx + 4, p.y + p.h / 2 - 4); ctx.lineTo(sx + 9, p.y + p.h / 2);
         ctx.lineTo(sx + 4, p.y + p.h / 2 + 4); ctx.closePath(); ctx.fill();
@@ -1766,7 +1765,6 @@ function drawPlatform(p) {
         ctx.moveTo(sx + p.w - 4, p.y + p.h / 2 - 4); ctx.lineTo(sx + p.w - 9, p.y + p.h / 2);
         ctx.lineTo(sx + p.w - 4, p.y + p.h / 2 + 4); ctx.closePath(); ctx.fill();
       } else {
-        // flechita arriba + abajo
         ctx.beginPath();
         ctx.moveTo(sx + p.w / 2 - 4, p.y + 4); ctx.lineTo(sx + p.w / 2, p.y + 9);
         ctx.lineTo(sx + p.w / 2 + 4, p.y + 4); ctx.closePath(); ctx.fill();
@@ -1776,59 +1774,65 @@ function drawPlatform(p) {
       }
     }
   } else if (p.kind === "lily") {
-    // Lirio gigante (solo Estanque, móvil)
+    // Lirio gigante (flotante)
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath(); ctx.ellipse(sx + p.w / 2, p.y + p.h + 4, p.w / 2 + 4, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#3d8c46";
-    ctx.beginPath(); ctx.ellipse(sx + p.w / 2, p.y + p.h / 2, p.w / 2, p.h, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#52a55a";
-    ctx.beginPath(); ctx.ellipse(sx + p.w / 2 - 6, p.y + 4, p.w / 3, 3, 0, 0, Math.PI * 2); ctx.fill();
-    // flor blanca encima
-    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(sx + p.w / 2, p.y + p.h / 2, p.w / 2, p.h, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#3d8c46"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Veteado claro encima
+    ctx.beginPath(); ctx.ellipse(sx + p.w / 2 - 6, p.y + 4, p.w / 3, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#52a55a"; ctx.fill();
+    // Flor blanca encima
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       ctx.beginPath();
       ctx.ellipse(sx + p.w / 2 + Math.cos(a) * 4, p.y + 4 + Math.sin(a) * 2, 3, 2, a, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.fillStyle = "#ffd34a";
-    ctx.beginPath(); ctx.arc(sx + p.w / 2, p.y + 4, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx + p.w / 2, p.y + 4, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd34a"; ctx.fill(); ctx.stroke();
   }
 }
 
-// Agua en pozos (estanque) — con ondas animadas + reflejos
+// Agua en pozos (estanque) — ondas animadas planas
 function drawWaterPit(pit) {
   const sx = worldToScreen(pit.x);
   if (sx + pit.w < 0 || sx > VIEW_W) return;
-  // Profundidad con gradiente
-  const grad = ctx.createLinearGradient(0, pit.y, 0, pit.y + pit.h);
-  grad.addColorStop(0, state.theme.water || "#5fb4e0");
-  grad.addColorStop(1, state.theme.waterDark || "#3d8db0");
-  ctx.fillStyle = grad;
-  ctx.fillRect(sx, pit.y + 4, pit.w, pit.h - 4);
-  // Superficie ondulada
+  const OUT = "#2a1d10";
+  // Sin gradient — dos rectángulos planos (oscuro abajo, medio arriba)
+  ctx.fillStyle = state.theme.waterDark || "#3d8db0";
+  ctx.fillRect(sx, pit.y + 12, pit.w, pit.h - 12);
   ctx.fillStyle = state.theme.water || "#5fb4e0";
+  ctx.fillRect(sx, pit.y + 4, pit.w, 8);
+  // Onda superficie (path único con contorno)
   ctx.beginPath();
-  ctx.moveTo(sx, pit.y + 4);
   const t = state.globalT;
+  ctx.moveTo(sx, pit.y + 4);
   for (let i = 0; i <= pit.w; i += 8) {
     const yy = pit.y + 4 + Math.sin(t * 0.06 + i * 0.15) * 2.5;
     ctx.lineTo(sx + i, yy);
   }
-  ctx.lineTo(sx + pit.w, pit.y + 12);
-  ctx.lineTo(sx, pit.y + 12);
-  ctx.closePath(); ctx.fill();
-  // Brillitos
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  for (let i = 0; i < pit.w; i += 16) {
-    const yy = pit.y + 8 + Math.sin(t * 0.05 + i * 0.2) * 1.5;
-    ctx.fillRect(sx + i + 4, yy, 6, 1.5);
+  ctx.lineTo(sx + pit.w, pit.y + 4);
+  ctx.lineTo(sx, pit.y + 4);
+  ctx.closePath();
+  ctx.fillStyle = state.theme.water || "#5fb4e0";
+  ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4;
+  // Re-stroke solo la superficie superior, no el rectángulo entero
+  ctx.beginPath();
+  ctx.moveTo(sx, pit.y + 4);
+  for (let i = 0; i <= pit.w; i += 8) {
+    const yy = pit.y + 4 + Math.sin(t * 0.06 + i * 0.15) * 2.5;
+    ctx.lineTo(sx + i, yy);
   }
-  // Reflejo más sutil
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  for (let i = 0; i < pit.w; i += 22) {
-    const yy = pit.y + 20 + Math.sin(t * 0.04 + i * 0.18) * 2;
-    ctx.fillRect(sx + i + 6, yy, 8, 1);
+  ctx.stroke();
+  // Brillitos planos
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  for (let i = 0; i < pit.w; i += 18) {
+    const yy = pit.y + 10 + Math.sin(t * 0.05 + i * 0.2) * 1.2;
+    ctx.fillRect(sx + i + 4, yy, 6, 1.4);
   }
 }
 
@@ -2292,42 +2296,38 @@ function drawEgg(egg) {
   if (sx < -30 || sx > VIEW_W + 30) return;
   const bob = egg.settled === false ? 0 : Math.sin(egg.t * 1.5) * 2;
   ctx.save(); ctx.translate(sx, egg.y + bob);
-  // sombra
+  // Sombra plana
   ctx.fillStyle = "rgba(0,0,0,0.15)";
-  ctx.beginPath(); ctx.ellipse(0, 16, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 16, 9, 2, 0, 0, Math.PI * 2); ctx.fill();
   if (egg.golden) {
-    // halo dorado pulsante grande
-    const pulse = 24 + Math.sin(egg.t * 2) * 4;
-    const grad = ctx.createRadialGradient(0, 0, 4, 0, 0, pulse);
-    grad.addColorStop(0, "rgba(255, 220, 100, 0.7)");
-    grad.addColorStop(0.5, "rgba(255, 200, 60, 0.3)");
-    grad.addColorStop(1, "rgba(255, 200, 60, 0)");
-    ctx.fillStyle = grad;
+    // Halo dorado pulsante (no gradient, círculos translúcidos plain)
+    const pulse = 20 + Math.sin(egg.t * 2) * 4;
+    ctx.fillStyle = "rgba(255, 220, 100, 0.30)";
     ctx.beginPath(); ctx.arc(0, 0, pulse, 0, Math.PI * 2); ctx.fill();
-    // huevo dorado
-    ctx.fillStyle = "#ffd34a";
-    ctx.beginPath(); ctx.ellipse(0, 0, 12, 15, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#a87420"; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 5, 0.4, 0, Math.PI * 2); ctx.fill();
-    // sparkles orbiting
+    ctx.fillStyle = "rgba(255, 200, 60, 0.18)";
+    ctx.beginPath(); ctx.arc(0, 0, pulse * 0.7, 0, Math.PI * 2); ctx.fill();
+    // Huevo dorado
+    ctx.beginPath(); ctx.ellipse(0, 0, 12, 15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd34a"; ctx.fill();
+    ctx.strokeStyle = "#a87420"; ctx.lineWidth = 1.8; ctx.stroke();
+    // Reflejo
+    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 5, 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
+    // Sparkles orbitando
     for (let i = 0; i < 3; i++) {
-      const a = egg.t * 0.5 + i * (Math.PI * 2 / 3);
-      const px = Math.cos(a) * 18;
-      const py = Math.sin(a) * 12;
+      const ang = egg.t * 0.5 + i * (Math.PI * 2 / 3);
+      const px = Math.cos(ang) * 18; const py = Math.sin(ang) * 12;
       ctx.fillStyle = "#fff";
       ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
     }
   } else {
-    // halo blanco sutil
-    ctx.fillStyle = "rgba(255, 255, 200, 0.3)";
-    ctx.beginPath(); ctx.arc(0, 0, 20 + Math.sin(egg.t * 2) * 2, 0, Math.PI * 2); ctx.fill();
-    // huevo blanco normal
-    ctx.fillStyle = "#fff7d1";
-    ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "#d6c084"; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+    // Huevo normal
+    ctx.beginPath(); ctx.ellipse(0, 0, 11, 14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff7d1"; ctx.fill();
+    ctx.strokeStyle = "#2a1d10"; ctx.lineWidth = 1.4; ctx.stroke();
+    // Reflejo
+    ctx.beginPath(); ctx.ellipse(-4, -5, 3, 4, 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
   }
   ctx.restore();
 }
@@ -2570,35 +2570,40 @@ function drawMouse(enemy) {
 function drawDoor(d) {
   const sx = worldToScreen(d.x);
   if (sx + d.w < 0 || sx > VIEW_W) return;
-  // marco
+  const OUT = "#2a1d10";
+  // Marco (3 lados del cuadro)
   ctx.fillStyle = "#5b3a1a";
   ctx.fillRect(sx - 6, d.y - 6, d.w + 12, d.h + 6);
   ctx.fillStyle = "#3a2010";
   ctx.fillRect(sx - 8, d.y - 8, d.w + 16, 4);
   if (!d.opened) {
-    ctx.fillStyle = "#a87447";
-    ctx.fillRect(sx, d.y, d.w, d.h);
-    // tablones verticales
-    ctx.strokeStyle = "rgba(60,30,15,0.5)"; ctx.lineWidth = 1.5;
+    // Puerta cerrada
+    ctx.beginPath(); ctx.rect(sx, d.y, d.w, d.h);
+    ctx.fillStyle = "#a87447"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Tablones verticales (líneas, no fill)
+    ctx.strokeStyle = "rgba(60,30,15,0.5)"; ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(sx + d.w / 2, d.y); ctx.lineTo(sx + d.w / 2, d.y + d.h);
     ctx.stroke();
-    // manija
-    ctx.fillStyle = "#ffd76b";
-    ctx.beginPath(); ctx.arc(sx + d.w - 6, d.y + d.h / 2, 2.5, 0, Math.PI * 2); ctx.fill();
-    // candado con número
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.fillRect(sx + d.w / 2 - 14, d.y + d.h / 2 - 14, 28, 28);
-    ctx.strokeStyle = "#5b3a1a"; ctx.lineWidth = 2;
-    ctx.strokeRect(sx + d.w / 2 - 14, d.y + d.h / 2 - 14, 28, 28);
+    // Manija
+    ctx.fillStyle = "#ffd76b"; ctx.strokeStyle = OUT; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sx + d.w - 6, d.y + d.h / 2, 2.5, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // Cartel con el número de huevos
+    ctx.beginPath(); ctx.rect(sx + d.w / 2 - 14, d.y + d.h / 2 - 14, 28, 28);
+    ctx.fillStyle = "#fff8d0"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Iconito huevo + número
     ctx.fillStyle = "#5b3a1a";
     ctx.font = "bold 18px system-ui";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(String(d.eggs_required), sx + d.w / 2, d.y + d.h / 2);
   } else {
-    ctx.fillStyle = "#2a1d10";
-    ctx.fillRect(sx, d.y, d.w, d.h);
-    // tilde
+    // Puerta abierta (interior oscuro)
+    ctx.beginPath(); ctx.rect(sx, d.y, d.w, d.h);
+    ctx.fillStyle = "#2a1d10"; ctx.fill();
+    // Tilde verde
     ctx.fillStyle = "#7ed957";
     ctx.font = "bold 26px system-ui";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -2609,26 +2614,27 @@ function drawDoor(d) {
 function drawQuizMarker(q) {
   const sx = worldToScreen(q.x);
   if (sx + q.w < 0 || sx > VIEW_W) return;
-  // poste
+  const OUT = "#2a1d10";
+  // Poste
   ctx.fillStyle = "#5b3a1a";
   ctx.fillRect(sx + q.w / 2 - 3, q.y + q.h, 6, 20);
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.strokeRect(sx + q.w / 2 - 3, q.y + q.h, 6, 20);
   if (q.solved) {
-    ctx.fillStyle = "rgba(108, 179, 94, 0.85)";
-    ctx.fillRect(sx, q.y, q.w, q.h);
+    // Tabla con tilde verde
+    ctx.beginPath(); ctx.rect(sx, q.y, q.w, q.h);
+    ctx.fillStyle = "#7ed957"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
     ctx.fillStyle = "#fff";
     ctx.font = "bold 22px system-ui";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("✓", sx + q.w / 2, q.y + q.h / 2);
     return;
   }
-  // tabla (papel pinned a poste)
-  ctx.fillStyle = "#5b3a1a";
-  ctx.fillRect(sx - 4, q.y - 4, q.w + 8, q.h + 8);
-  ctx.fillStyle = "#fff8d0";
-  ctx.fillRect(sx, q.y, q.w, q.h);
-  ctx.strokeStyle = "#8a6f3a"; ctx.lineWidth = 1.5;
-  ctx.strokeRect(sx, q.y, q.w, q.h);
-  // pulsación atractora
+  // Tabla pendiente con "?" pulsante
+  ctx.beginPath(); ctx.rect(sx, q.y, q.w, q.h);
+  ctx.fillStyle = "#fff8d0"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
   const pulse = 1 + Math.sin(state.globalT * 0.12) * 0.08;
   ctx.fillStyle = "#5b3a1a";
   ctx.font = `bold ${Math.round(28 * pulse)}px system-ui`;
@@ -2639,32 +2645,39 @@ function drawQuizMarker(q) {
 function drawFlag(f) {
   const sx = worldToScreen(f.x);
   if (sx + f.w < 0 || sx > VIEW_W) return;
-  // asta con base
+  const OUT = "#2a1d10";
+  // Base
   ctx.fillStyle = "#5b3a1a";
   ctx.fillRect(sx - 6, f.y + f.h - 4, 16, 6);
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4;
+  ctx.strokeRect(sx - 6, f.y + f.h - 4, 16, 6);
+  // Asta
   ctx.fillStyle = "#7a4f2b";
   ctx.fillRect(sx, f.y, 4, f.h);
-  // top topper
-  ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.arc(sx + 2, f.y, 3, 0, Math.PI * 2); ctx.fill();
-  // bandera ondeando — su Y varía con descend (cinemática)
+  ctx.strokeRect(sx, f.y, 4, f.h);
+  // Topper
+  ctx.beginPath(); ctx.arc(sx + 2, f.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd34a"; ctx.fill(); ctx.stroke();
+  // Bandera con onda + descent (cinemática win)
   const descend = f.descend || 0;
   const flagY = f.y + 4 + descend;
   const wave = Math.sin(state.globalT * 0.08) * 4;
-  ctx.fillStyle = "#e85d5d";
   ctx.beginPath();
   ctx.moveTo(sx + 4, flagY);
   ctx.lineTo(sx + 4, flagY + 34);
   ctx.quadraticCurveTo(sx + 22, flagY + 24 + wave, sx + 38, flagY + 16);
   ctx.quadraticCurveTo(sx + 22, flagY + 12 + wave, sx + 4, flagY);
-  ctx.closePath(); ctx.fill();
-  // pollito mini en la bandera
+  ctx.closePath();
+  ctx.fillStyle = "#e85d5d"; ctx.fill(); ctx.stroke();
+  // Pollito mini en la bandera (solo color, sin contorno extra)
   ctx.fillStyle = "#ffd34a";
-  ctx.beginPath(); ctx.arc(sx + 16, flagY + 18, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx + 16, flagY + 22, 5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#f08a1a";
   ctx.beginPath();
-  ctx.moveTo(sx + 22, flagY + 18); ctx.lineTo(sx + 26, flagY + 17);
-  ctx.lineTo(sx + 22, flagY + 19); ctx.closePath(); ctx.fill();
+  ctx.moveTo(sx + 21, flagY + 22); ctx.lineTo(sx + 25, flagY + 21);
+  ctx.lineTo(sx + 21, flagY + 23); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(sx + 17, flagY + 21, 0.8, 0, Math.PI * 2); ctx.fill();
 }
 
 // ===== Pollito (flat vector con contornos — F2 visual reboot) =====

@@ -139,13 +139,13 @@ const WORLDS = [
       { x: 450,  y: 300, w: 100, h: 18, kind: "wood" },
       // PLATAFORMA SECRETA muy alta para el huevo dorado
       { x: 600,  y: 200, w: 80,  h: 18, kind: "wood" },
-      // Zona 2: pozo con plataforma móvil + zorro patrulla
-      { x: 820,  y: 460, w: 700,  h: 40, kind: "grass" },
+      // Zona 2: tramo medio con zorro + puerta apoyada sobre suelo (sin hueco bajo la puerta)
+      { x: 820,  y: 460, w: 820,  h: 40, kind: "grass" },   // extendida a 820w → cubre hasta 1640
       { x: 740,  y: 320, w: 80,  h: 18, kind: "wood", moving: { axis: "x", range: [740, 880], speed: 1.2, dir: 1 } },
       { x: 980,  y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1180, y: 340, w: 120, h: 18, kind: "wood" },
       { x: 1340, y: 280, w: 120, h: 18, kind: "wood" },
-      // Zona 3: puerta + tramo final (suelo más bajo de "respiro")
+      // Zona 3: tramo final post-puerta (suelo continúa)
       { x: 1640, y: 460, w: 760,  h: 40, kind: "grass" },
       { x: 1720, y: 380, w: 120, h: 18, kind: "wood" },
       { x: 1900, y: 320, w: 100, h: 18, kind: "wood" },
@@ -163,7 +163,7 @@ const WORLDS = [
       // Zorro patrullando en zona 2 (el huevo dorado es "premio" por subir muy alto en zona 1)
       { kind: "fox", x: 1050, y: 432, range: [970, 1500], speed: 0.9, dir: 1 },
     ],
-    door: { x: 1560, y: 360, w: 30, h: 100, eggs_required: 4 },
+    door: { x: 1500, y: 360, w: 30, h: 100, eggs_required: 4 },
     quiz: null,
     flag: { x: 2280, y: 360, w: 24, h: 100 },
   },
@@ -391,7 +391,8 @@ const WORLDS = [
     ],
     door: null,
     quiz: {
-      x: 1170, y: 380, w: 40, h: 80,
+      // Movido de 1170 → 1000 (estaba sobre el hueco 1100-1240, ahora bien dentro del suelo)
+      x: 1000, y: 380, w: 40, h: 80,
       question: "¿Qué animal pone huevos?",
       options: [
         { text: "vaca",    pic: 2609 },

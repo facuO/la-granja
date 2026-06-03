@@ -165,6 +165,7 @@
       font-weight: 600; font-size: 1.05rem;
       transition: transform 0.05s ease-out;
       transform-origin: left center;
+      z-index: 5;
     }
     .hud.bump {
       animation: bumpHud 0.32s ease-out;
@@ -174,22 +175,36 @@
       40%  { transform: scale(1.22); color: #d6700a; }
       100% { transform: scale(1); color: var(--text); }
     }
-    .world-pill {
-      position: absolute; top: 12px; right: 60px;
-      background: rgba(255,255,255,0.9);
-      padding: 6px 12px; border-radius: 8px;
-      font-size: 0.95rem;
-    }
-    .audio-btn {
+    /* Top-right toolbar — botones agrupados, anchos fijos */
+    .top-right-tools {
       position: absolute; top: 12px; right: 12px;
+      display: flex; gap: 8px;
+      z-index: 5;
+    }
+    .world-pill {
+      position: absolute; top: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      padding: 6px 14px; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600;
+      white-space: nowrap;
+      z-index: 4;
+    }
+    /* audio + pause comparten layout dentro de .top-right-tools (flex row).
+       Nada de position absolute individual — evita overlaps. */
+    .audio-btn, .pause-btn {
       background: rgba(255,255,255,0.9);
       border: 2px solid var(--border);
       border-radius: 8px;
-      padding: 4px 10px;
+      padding: 0;
+      width: 44px; height: 38px;
       font-size: 1.2rem; line-height: 1;
-      cursor: pointer; min-height: 38px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
-    .audio-btn:hover { border-color: var(--accent-strong); }
+    .audio-btn:hover, .pause-btn:hover { border-color: var(--accent-strong); }
+    .pause-btn { display: none; }
+    .pause-btn.visible { display: flex; }
 
     /* Splash de bienvenida */
     .splash-card {
@@ -227,19 +242,6 @@
     .splash-stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
     .splash-stat-label { font-size: 0.78rem; color: var(--text-soft); text-transform: uppercase; }
 
-    /* Botón pausa + overlay */
-    .pause-btn {
-      position: absolute; top: 12px; right: 110px;
-      background: rgba(255,255,255,0.9);
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      padding: 4px 10px;
-      font-size: 1.2rem; line-height: 1;
-      cursor: pointer; min-height: 38px;
-      display: none;
-    }
-    .pause-btn.visible { display: block; }
-    .pause-btn:hover { border-color: var(--accent-strong); }
   </style>
 </head>
 <body class="pollito-body">
@@ -256,8 +258,10 @@
       <canvas id="game-canvas" width="800" height="500" aria-label="Aventura del Pollito"></canvas>
       <div class="hud" id="hud"></div>
       <div class="world-pill" id="world-pill"></div>
-      <button class="audio-btn" id="audio-btn" aria-label="Encender música">🔇</button>
-      <button class="pause-btn" id="pause-btn" aria-label="Pausar">⏸</button>
+      <div class="top-right-tools">
+        <button class="pause-btn" id="pause-btn" aria-label="Pausar">⏸</button>
+        <button class="audio-btn" id="audio-btn" aria-label="Encender música">🔇</button>
+      </div>
 
       <!-- Splash de bienvenida -->
       <div class="overlay shown" id="splash-overlay">

@@ -14,7 +14,6 @@
 //  - Música procedural cambia de patrón según el mundo.
 
 import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
-import { drawFoxSprite, pickFoxFrame } from "/js/juego-pollito-sprites.js";
 import { getTodayFlavor } from "/js/juego-pollito-flavor.js";
 
 // ============================================================
@@ -2336,24 +2335,236 @@ function drawEgg(egg) {
 function drawFox(fox) {
   const sx = worldToScreen(fox.x);
   if (sx < -50 || sx > VIEW_W + 50) return;
-  // sombra
+  const y = fox.y;
+  const OUT = "#2a1d10";
+  // Sombra
   ctx.fillStyle = "rgba(0,0,0,0.22)";
-  ctx.beginPath();
-  ctx.ellipse(sx, fox.y + 18, 18, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-  const frame = pickFoxFrame(fox);
-  // Dormido: rotate 90deg para que se vea tumbado (opcional, ya tenemos el frame sleep)
-  drawFoxSprite(ctx, sx, fox.y, frame, 3, fox.dir);
-  // Si está dormido, dibujar el "zzz" más visible
+  ctx.beginPath(); ctx.ellipse(sx, y + 18, 18, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  // Si está dormido: posición horizontal + Zzz arriba
   if (fox.state === "sleeping") {
-    ctx.fillStyle = "rgba(136, 170, 204, 0.9)";
-    ctx.font = "bold 16px system-ui";
+    ctx.save();
+    ctx.translate(sx, y);
+    // Cuerpo acostado (elipse horizontal alargada)
+    ctx.beginPath(); ctx.ellipse(0, 6, 22, 8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#d97a3e"; ctx.fill();
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+    // Cabeza a la izquierda
+    ctx.beginPath(); ctx.arc(-22, 4, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#d97a3e"; ctx.fill(); ctx.stroke();
+    // Hocico claro
+    ctx.beginPath(); ctx.ellipse(-28, 5, 4, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff"; ctx.fill();
+    // Ojo cerrado (línea)
+    ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-24, 3); ctx.lineTo(-22, 3); ctx.stroke();
+    // Oreja
+    ctx.fillStyle = "#a85510";
+    ctx.beginPath();
+    ctx.moveTo(-22, -1); ctx.lineTo(-19, -6); ctx.lineTo(-16, -1); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Cola
+    ctx.fillStyle = "#d97a3e";
+    ctx.beginPath();
+    ctx.moveTo(20, 4);
+    ctx.quadraticCurveTo(32, -2, 28, 8);
+    ctx.lineTo(20, 8);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Punta blanca de la cola
+    ctx.beginPath(); ctx.ellipse(30, 4, 3, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.restore();
+    // Zzz flotando
+    ctx.fillStyle = "#88aacc";
+    ctx.font = "bold 14px system-ui";
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     const wiggle = Math.sin(fox.t * 0.1) * 2;
-    ctx.fillText("z", sx + 12 + wiggle, fox.y - 16);
-    ctx.fillText("z", sx + 18 - wiggle, fox.y - 22);
-    ctx.fillText("z", sx + 24 + wiggle, fox.y - 28);
+    ctx.fillText("z", sx + 12 + wiggle, y - 14);
+    ctx.fillText("z", sx + 18 - wiggle, y - 20);
+    ctx.fillText("z", sx + 24 + wiggle, y - 26);
+    return;
   }
+  // Patrolling: zorro de pie, vector flat
+  ctx.save();
+  ctx.translate(sx, y);
+  if (fox.dir === -1) ctx.scale(-1, 1);
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#d97a3e"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cabeza
+  ctx.beginPath(); ctx.arc(-16, -6, 8, 0, Math.PI * 2);
+  ctx.fillStyle = "#d97a3e"; ctx.fill(); ctx.stroke();
+  // Hocico claro
+  ctx.beginPath(); ctx.ellipse(-22, -4, 4, 3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  // Orejas triangulares
+  ctx.fillStyle = "#a85510";
+  ctx.beginPath();
+  ctx.moveTo(-19, -12); ctx.lineTo(-16, -18); ctx.lineTo(-13, -12);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-12, -11); ctx.lineTo(-9, -16); ctx.lineTo(-6, -10);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(-18, -7, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(-18, -7, 0.9, 0, Math.PI * 2); ctx.fill();
+  // Patas (un walk cycle simple)
+  const walk = Math.sin(fox.t * 0.15) * 1.5;
+  ctx.fillStyle = "#5b3a1a";
+  ctx.beginPath(); ctx.rect(-12, 8 - Math.abs(walk), 3, 8); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(-3, 8 + Math.abs(walk), 3, 8); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(6, 8 - Math.abs(walk), 3, 8); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(13, 8 + Math.abs(walk), 3, 8); ctx.fill(); ctx.stroke();
+  // Cola alta (atrás derecha del cuerpo)
+  ctx.fillStyle = "#d97a3e";
+  ctx.beginPath();
+  ctx.moveTo(16, -2);
+  ctx.quadraticCurveTo(28, -8, 24, 6);
+  ctx.lineTo(16, 4);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Punta blanca
+  ctx.beginPath(); ctx.ellipse(26, -2, 3, 3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff"; ctx.fill();
+  ctx.restore();
+}
+
+function drawCrow(enemy) {
+  const sx = worldToScreen(enemy.x);
+  if (sx < -50 || sx > VIEW_W + 50) return;
+  const y = enemy.y;
+  const OUT = "#2a1d10";
+  const flap = Math.sin(enemy.t * 0.4) * 0.4 + 0.6;
+  // Sombra en el aire (más chica = más alto)
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 35, 14, 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save();
+  ctx.translate(sx, y);
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(0, 0, 12, 8, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#28201a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Alas (escaladas verticalmente con flap)
+  ctx.save();
+  ctx.scale(1, flap);
+  ctx.beginPath();
+  ctx.ellipse(-10, -2, 12, 7, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(10, -2, 12, 7, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "#4a3c30"; ctx.fill();
+  ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.restore();
+  // Cabeza
+  ctx.beginPath(); ctx.arc(0, -8, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#28201a"; ctx.fill(); ctx.stroke();
+  // Pico
+  ctx.beginPath();
+  ctx.moveTo(4, -8); ctx.lineTo(10, -7); ctx.lineTo(4, -6);
+  ctx.closePath();
+  ctx.fillStyle = "#a85510"; ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = "#ffd34a";
+  ctx.beginPath(); ctx.arc(2, -9, 1, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawFrog(enemy) {
+  const sx = worldToScreen(enemy.x);
+  if (sx < -50 || sx > VIEW_W + 50) return;
+  const y = enemy.y;
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 13, 14, 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save();
+  ctx.translate(sx, y);
+  // Cuerpo redondito
+  ctx.beginPath(); ctx.ellipse(0, 2, 14, 10, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#6caa3a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Pancita más clara
+  ctx.beginPath(); ctx.ellipse(0, 6, 8, 4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#cfe09a"; ctx.fill();
+  // Ojos sobresalidos
+  for (const ex of [-6, 6]) {
+    ctx.beginPath(); ctx.arc(ex, -8, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "#6caa3a"; ctx.fill();
+    ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.beginPath(); ctx.arc(ex, -8, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.fillStyle = OUT;
+    ctx.beginPath(); ctx.arc(ex, -8, 1.2, 0, Math.PI * 2); ctx.fill();
+  }
+  // Boca (línea curva)
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-4, 0); ctx.quadraticCurveTo(0, 3, 4, 0);
+  ctx.stroke();
+  // Patas traseras (un poco a los costados)
+  ctx.fillStyle = "#6caa3a";
+  ctx.beginPath();
+  ctx.ellipse(-12, 8, 4, 2.5, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(12, 8, 4, 2.5, 0.3, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawMouse(enemy) {
+  const sx = worldToScreen(enemy.x);
+  if (sx < -40 || sx > VIEW_W + 40) return;
+  const y = enemy.y;
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 10, 10, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save();
+  ctx.translate(sx, y);
+  if (enemy.dir === -1) ctx.scale(-1, 1);
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#88807a"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Pancita clara
+  ctx.beginPath(); ctx.ellipse(0, 3, 6, 2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#b8b0a8"; ctx.fill();
+  // Cabeza puntiaguda
+  ctx.beginPath();
+  ctx.moveTo(-7, -3); ctx.lineTo(-15, -1); ctx.lineTo(-7, 3);
+  ctx.closePath();
+  ctx.fillStyle = "#88807a"; ctx.fill(); ctx.stroke();
+  // Orejas circulares
+  ctx.fillStyle = "#88807a";
+  ctx.beginPath(); ctx.arc(-4, -5, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#f8c2c8";
+  ctx.beginPath(); ctx.arc(-4, -5, 1.4, 0, Math.PI * 2); ctx.fill();
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(-9, -2, 0.8, 0, Math.PI * 2); ctx.fill();
+  // Nariz rosa
+  ctx.fillStyle = "#f8c2c8";
+  ctx.beginPath(); ctx.arc(-14, -1, 0.8, 0, Math.PI * 2); ctx.fill();
+  // Bigotes
+  ctx.strokeStyle = OUT; ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(-13, 0); ctx.lineTo(-17, 1);
+  ctx.moveTo(-13, -1); ctx.lineTo(-16, -3);
+  ctx.stroke();
+  // Cola enroscada larga
+  ctx.strokeStyle = "#88807a"; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(9, 0);
+  ctx.quadraticCurveTo(16, -2, 14, 4);
+  ctx.quadraticCurveTo(12, 8, 18, 6);
+  ctx.stroke();
+  // Patas (líneas finas)
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-3, 5); ctx.lineTo(-3, 8);
+  ctx.moveTo(3, 5);  ctx.lineTo(3, 8);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawDoor(d) {
@@ -2713,7 +2924,12 @@ function render() {
   // Huevos
   for (const e of state.eggs) drawEgg(e);
   // Enemigos (zorros)
-  for (const e of state.enemies) drawFox(e);
+  for (const e of state.enemies) {
+    if (e.kind === "fox") drawFox(e);
+    else if (e.kind === "crow") drawCrow(e);
+    else if (e.kind === "frog") drawFrog(e);
+    else if (e.kind === "mouse") drawMouse(e);
+  }
   // Objetos
   if (state.door) drawDoor(state.door);
   if (state.quiz) drawQuizMarker(state.quiz);

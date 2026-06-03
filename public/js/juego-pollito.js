@@ -1852,172 +1852,213 @@ function drawAmbient(a) {
 function drawCow(sx, a) {
   const y = a.y;
   const bob = Math.sin(a.t * 0.6) * 0.8;
-  // cuerpo
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.ellipse(sx, y + bob, 28, 16, 0, 0, Math.PI * 2); ctx.fill();
-  // manchas
+  const OUT = "#2a1d10";
+  // Sombra plana
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 22, 24, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 28, 16, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Manchas (sin contorno — detalle)
   ctx.fillStyle = "#222";
   ctx.beginPath(); ctx.ellipse(sx - 10, y - 2 + bob, 8, 5, 0.3, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(sx + 8, y + 4 + bob, 6, 4, -0.4, 0, Math.PI * 2); ctx.fill();
-  // cabeza
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.ellipse(sx - 28, y - 4 + bob, 12, 10, 0, 0, Math.PI * 2); ctx.fill();
-  // hocico
-  ctx.fillStyle = "#f8c2c8";
-  ctx.beginPath(); ctx.ellipse(sx - 36, y - 1 + bob, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx - 37, y - 1 + bob, 0.8, 0, Math.PI * 2); ctx.fill();
-  // cuernos
-  ctx.strokeStyle = "#a87447"; ctx.lineWidth = 1.5;
+  // Cabeza
+  ctx.beginPath(); ctx.ellipse(sx - 28, y - 4 + bob, 12, 10, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.lineWidth = 1.4; ctx.stroke();
+  // Hocico
+  ctx.beginPath(); ctx.ellipse(sx - 36, y - 1 + bob, 5, 4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#f8c2c8"; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
+  // Fosas nasales
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 37, y - 1 + bob, 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(sx - 35, y - 1 + bob, 0.7, 0, Math.PI * 2); ctx.fill();
+  // Cuernos
+  ctx.strokeStyle = "#a87447"; ctx.lineWidth = 2; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(sx - 32, y - 12 + bob); ctx.lineTo(sx - 30, y - 16 + bob); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(sx - 26, y - 12 + bob); ctx.lineTo(sx - 24, y - 16 + bob); ctx.stroke();
-  // ojo
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx - 30, y - 6 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
-  // patas
-  ctx.fillStyle = "#222";
-  ctx.fillRect(sx - 18, y + 12, 4, 12);
-  ctx.fillRect(sx - 6, y + 14, 4, 10);
-  ctx.fillRect(sx + 8, y + 14, 4, 10);
-  ctx.fillRect(sx + 18, y + 12, 4, 12);
-  // cola
-  ctx.strokeStyle = "#222"; ctx.lineWidth = 1.5;
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 30, y - 6 + bob, 1.4, 0, Math.PI * 2); ctx.fill();
+  // Patas (4 rectángulos con contorno)
+  ctx.fillStyle = "#222"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  for (const lx of [-18, -6, 8, 18]) {
+    ctx.beginPath(); ctx.rect(sx + lx, y + 12, 4, 12);
+    ctx.fill(); ctx.stroke();
+  }
+  // Cola
+  ctx.strokeStyle = "#222"; ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(sx + 28, y - 2 + bob);
   ctx.quadraticCurveTo(sx + 36, y + 6, sx + 32, y + 12);
   ctx.stroke();
+  // Borla de cola
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.ellipse(sx + 32, y + 13, 2.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawSheep(sx, a) {
   const y = a.y;
   const nibble = Math.sin(a.t * 1.2) * 1.5;
-  // lana
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 22, 20, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Lana (cluster de círculos blancos con contorno como una nube)
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4;
+  // Path único uniendo los puffs para un contorno limpio
+  ctx.beginPath();
+  ctx.arc(sx - 16, y - 2, 9, 0, Math.PI * 2);
+  ctx.arc(sx - 8,  y - 6, 9, 0, Math.PI * 2);
+  ctx.arc(sx,      y - 8, 9, 0, Math.PI * 2);
+  ctx.arc(sx + 8,  y - 6, 9, 0, Math.PI * 2);
+  ctx.arc(sx + 16, y - 2, 9, 0, Math.PI * 2);
+  ctx.arc(sx, y + 2, 11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // Cabeza oscura
+  ctx.beginPath(); ctx.ellipse(sx - 22, y + 2 + nibble, 7, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a3026"; ctx.fill(); ctx.stroke();
+  // Oreja
+  ctx.beginPath(); ctx.ellipse(sx - 22, y - 5 + nibble, 2, 4, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a3026"; ctx.fill();
+  // Ojo
   ctx.fillStyle = "#fff";
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.arc(sx + i * 8, y - 2, 9, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.beginPath(); ctx.arc(sx - 24, y + 1 + nibble, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 24, y + 1 + nibble, 0.7, 0, Math.PI * 2); ctx.fill();
+  // Patas
+  ctx.fillStyle = "#3a3026"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  for (const lx of [-14, -4, 6, 14]) {
+    ctx.beginPath(); ctx.rect(sx + lx, y + 10, 3, 10);
+    ctx.fill(); ctx.stroke();
   }
-  ctx.beginPath(); ctx.arc(sx - 4, y - 10, 7, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(sx + 4, y - 10, 7, 0, Math.PI * 2); ctx.fill();
-  // cabeza (mirando abajo, comiendo pastito)
-  ctx.fillStyle = "#3a3026";
-  ctx.beginPath();
-  ctx.ellipse(sx - 22, y + 2 + nibble, 7, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // oreja
-  ctx.beginPath();
-  ctx.ellipse(sx - 22, y - 5 + nibble, 2, 4, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  // ojo
-  ctx.fillStyle = "white";
-  ctx.beginPath(); ctx.arc(sx - 24, y + 1 + nibble, 1.2, 0, Math.PI * 2); ctx.fill();
-  // patas
-  ctx.fillStyle = "#3a3026";
-  ctx.fillRect(sx - 14, y + 10, 3, 10);
-  ctx.fillRect(sx - 4, y + 12, 3, 8);
-  ctx.fillRect(sx + 6, y + 12, 3, 8);
-  ctx.fillRect(sx + 14, y + 10, 3, 10);
 }
 
 function drawHorse(sx, a) {
   const y = a.y;
   const bob = Math.sin(a.t * 0.4) * 0.6;
-  // cuerpo
-  ctx.fillStyle = "#8a5a30";
-  ctx.beginPath(); ctx.ellipse(sx, y + bob, 30, 14, 0, 0, Math.PI * 2); ctx.fill();
-  // cuello
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 24, 26, 3, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 30, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#8a5a30"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cuello + cabeza juntos como un path
   ctx.beginPath();
   ctx.moveTo(sx - 22, y - 6 + bob);
-  ctx.quadraticCurveTo(sx - 36, y - 26 + bob, sx - 30, y - 22 + bob);
-  ctx.quadraticCurveTo(sx - 24, y - 14 + bob, sx - 16, y - 4 + bob);
-  ctx.fill();
-  // cabeza
-  ctx.beginPath();
-  ctx.ellipse(sx - 36, y - 22 + bob, 10, 7, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-  // crin
+  ctx.quadraticCurveTo(sx - 36, y - 26 + bob, sx - 32, y - 22 + bob);
+  ctx.lineTo(sx - 28, y - 14 + bob);
+  ctx.quadraticCurveTo(sx - 24, y - 6 + bob, sx - 16, y - 4 + bob);
+  ctx.closePath();
+  ctx.fillStyle = "#8a5a30"; ctx.fill(); ctx.stroke();
+  // Hocico
+  ctx.beginPath(); ctx.ellipse(sx - 38, y - 22 + bob, 6, 5, 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "#a87447"; ctx.fill(); ctx.stroke();
+  // Crin
   ctx.fillStyle = "#3a2010";
   ctx.beginPath();
   ctx.moveTo(sx - 30, y - 24 + bob);
-  ctx.lineTo(sx - 24, y - 30 + bob);
+  ctx.lineTo(sx - 24, y - 32 + bob);
   ctx.lineTo(sx - 20, y - 22 + bob);
-  ctx.lineTo(sx - 14, y - 20 + bob);
-  ctx.lineTo(sx - 18, y - 12 + bob);
-  ctx.closePath(); ctx.fill();
-  // ojo
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx - 38, y - 22 + bob, 1.3, 0, Math.PI * 2); ctx.fill();
-  // patas
-  ctx.fillStyle = "#8a5a30";
-  ctx.fillRect(sx - 22, y + 10, 4, 14);
-  ctx.fillRect(sx - 10, y + 12, 4, 12);
-  ctx.fillRect(sx + 8, y + 12, 4, 12);
-  ctx.fillRect(sx + 22, y + 10, 4, 14);
-  ctx.fillStyle = "#3a2010";
-  ctx.fillRect(sx - 22, y + 22, 4, 2);
-  ctx.fillRect(sx + 22, y + 22, 4, 2);
-  ctx.fillRect(sx - 10, y + 22, 4, 2);
-  ctx.fillRect(sx + 8, y + 22, 4, 2);
-  // cola
-  ctx.fillStyle = "#3a2010";
+  ctx.lineTo(sx - 14, y - 22 + bob);
+  ctx.lineTo(sx - 18, y - 14 + bob);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx - 36, y - 22 + bob, 1.2, 0, Math.PI * 2); ctx.fill();
+  // Patas con cascos negros
+  ctx.fillStyle = "#8a5a30"; ctx.strokeStyle = OUT; ctx.lineWidth = 1.2;
+  for (const lx of [-22, -10, 8, 22]) {
+    ctx.beginPath(); ctx.rect(sx + lx, y + 12, 4, 14);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#3a2010";
+    ctx.beginPath(); ctx.rect(sx + lx, y + 24, 4, 2); ctx.fill();
+    ctx.fillStyle = "#8a5a30";
+  }
+  // Cola
+  ctx.fillStyle = "#3a2010"; ctx.strokeStyle = OUT;
   ctx.beginPath();
   ctx.moveTo(sx + 28, y - 4 + bob);
-  ctx.quadraticCurveTo(sx + 40, y + 8, sx + 34, y + 16);
+  ctx.quadraticCurveTo(sx + 42, y + 8, sx + 36, y + 18);
   ctx.lineTo(sx + 28, y + 6);
-  ctx.fill();
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
 }
 
 function drawDuck(sx, a) {
   const y = a.y;
   const bob = Math.sin(a.t * 1.5) * 1.2;
-  // cuerpo flotando
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.ellipse(sx, y + bob, 16, 10, 0, 0, Math.PI * 2); ctx.fill();
-  // cabeza
-  ctx.fillStyle = "#3a7a3a";
-  ctx.beginPath(); ctx.arc(sx + 12, y - 6 + bob, 7, 0, Math.PI * 2); ctx.fill();
-  // pico
-  ctx.fillStyle = "#ffb030";
+  const OUT = "#2a1d10";
+  // Reflejo de agua bajo el pato (líneas onduladas)
+  ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(sx + 17, y - 6 + bob);
-  ctx.lineTo(sx + 24, y - 5 + bob);
-  ctx.lineTo(sx + 17, y - 3 + bob);
-  ctx.closePath(); ctx.fill();
-  // ojo
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx + 13, y - 7 + bob, 1, 0, Math.PI * 2); ctx.fill();
-  // cola
-  ctx.fillStyle = "#fff";
+  ctx.moveTo(sx - 20, y + 12 + bob);
+  ctx.quadraticCurveTo(sx - 10, y + 10 + bob, sx, y + 12 + bob);
+  ctx.quadraticCurveTo(sx + 10, y + 14 + bob, sx + 20, y + 12 + bob);
+  ctx.stroke();
+  // Cuerpo flotando
+  ctx.beginPath(); ctx.ellipse(sx, y + bob, 16, 10, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.4; ctx.stroke();
+  // Cola levantada
   ctx.beginPath();
   ctx.moveTo(sx - 12, y - 4 + bob);
-  ctx.lineTo(sx - 18, y - 8 + bob);
-  ctx.lineTo(sx - 14, y + bob);
-  ctx.closePath(); ctx.fill();
-  // reflejos del agua
-  ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = 1;
+  ctx.lineTo(sx - 20, y - 8 + bob);
+  ctx.lineTo(sx - 14, y - 2 + bob);
+  ctx.closePath();
+  ctx.fillStyle = "#ffffff"; ctx.fill(); ctx.stroke();
+  // Cabeza
+  ctx.beginPath(); ctx.arc(sx + 12, y - 6 + bob, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a7a3a"; ctx.fill(); ctx.stroke();
+  // Pico
   ctx.beginPath();
-  ctx.moveTo(sx - 18, y + 12 + bob);
-  ctx.lineTo(sx + 18, y + 12 + bob);
-  ctx.stroke();
+  ctx.moveTo(sx + 17, y - 6 + bob);
+  ctx.lineTo(sx + 25, y - 5 + bob);
+  ctx.lineTo(sx + 17, y - 3 + bob);
+  ctx.closePath();
+  ctx.fillStyle = "#ffb030"; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.stroke();
+  // Ojo
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(sx + 13, y - 7 + bob, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx + 13, y - 7 + bob, 0.7, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawChick(sx, a) {
   const y = a.y;
   const hop = Math.abs(Math.sin(a.t * 3)) * 2;
-  ctx.fillStyle = "#ffe080";
-  ctx.beginPath(); ctx.ellipse(sx, y - hop, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(sx + 3, y - 4 - hop, 5, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#f08a1a";
+  const OUT = "#2a1d10";
+  // Sombra
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath(); ctx.ellipse(sx, y + 8, 7, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+  // Cuerpo
+  ctx.beginPath(); ctx.ellipse(sx, y - hop, 7, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffe080"; ctx.fill();
+  ctx.strokeStyle = OUT; ctx.lineWidth = 1.2; ctx.stroke();
+  // Cabeza
+  ctx.beginPath(); ctx.arc(sx + 3, y - 4 - hop, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffe080"; ctx.fill(); ctx.stroke();
+  // Pico
   ctx.beginPath();
   ctx.moveTo(sx + 7, y - 4 - hop);
-  ctx.lineTo(sx + 10, y - 3 - hop);
+  ctx.lineTo(sx + 11, y - 3 - hop);
   ctx.lineTo(sx + 7, y - 2 - hop);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#222";
-  ctx.beginPath(); ctx.arc(sx + 5, y - 5 - hop, 0.8, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 1.5;
+  ctx.closePath();
+  ctx.fillStyle = "#f08a1a"; ctx.fill(); ctx.stroke();
+  // Ojo
+  ctx.fillStyle = OUT;
+  ctx.beginPath(); ctx.arc(sx + 5, y - 5 - hop, 0.9, 0, Math.PI * 2); ctx.fill();
+  // Patas
+  ctx.strokeStyle = "#f08a1a"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(sx - 2, y + 4 - hop); ctx.lineTo(sx - 2, y + 7 - hop);
   ctx.moveTo(sx + 2, y + 4 - hop); ctx.lineTo(sx + 2, y + 7 - hop);

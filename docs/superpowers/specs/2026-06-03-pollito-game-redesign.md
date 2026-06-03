@@ -278,7 +278,7 @@ Cada fase es un mini-proyecto con su propio plan de implementación (escrito con
 |---|---|---|
 | **F1** Foundation | Daily Flavor backend (endpoint + Groq + fallback + tabla fechas + cache) + cliente con palette. Sin tocar gameplay. | Habilita la sensación "la granja respira con la fecha" desde el día 1. Es el corazón de la visión. |
 | **F2** Visual reboot | Pollito + 8 animales + decoración + parallax en vector flat. Sin tocar gameplay. | Unifica el look antes de tocar mecánicas — evita rehacer assets dos veces. |
-| **F3** Corral redesign | Layout nuevo + zorro mejorado + huevo dorado integrado a Daily Flavor + tutorial implícito de salto. | Es el mundo de intro, debe ser perfecto. |
+| **F3** Corral redesign | Layout nuevo + zorro mejorado + huevo dorado oculto + tutorial implícito de salto (sin texto, sólo diseño de plataformas). | Es el mundo de intro, debe ser perfecto. |
 | **F4** Campo + planear | Mecánica planear + cuervos + quiz lengua. | Primera mecánica firma nueva. |
 | **F5** Estanque + nadar | Mecánica nadar + ranas + quiz mate visual con burbujas. | Mecánica más distintiva, más trabajo. |
 | **F6** Granero + trepar | Mecánica trepar + ratones + quiz naturales. | Último mundo, refina patrones aprendidos. |

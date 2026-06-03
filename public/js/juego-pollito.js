@@ -14,7 +14,7 @@
 //  - Música procedural cambia de patrón según el mundo.
 
 import { sfx, startMusic, stopMusic, isMuted, toggleMute, unlock, setMusicPattern } from "/js/juego-pollito-audio.js";
-import { drawPollitoSprite, pickPollitoFrame, drawFoxSprite, pickFoxFrame } from "/js/juego-pollito-sprites.js";
+import { drawFoxSprite, pickFoxFrame } from "/js/juego-pollito-sprites.js";
 import { getTodayFlavor } from "/js/juego-pollito-flavor.js";
 
 // ============================================================
@@ -492,7 +492,7 @@ function saveCompleted(set) {
 }
 
 // ============================================================
-// Splash pollito (sprite pixel art grande)
+// Splash pollito (vector flat grande)
 // ============================================================
 function drawSplashPollito() {
   const c = splashPollitoCanvas;
@@ -502,8 +502,50 @@ function drawSplashPollito() {
   const x = c.getContext("2d");
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.clearRect(0, 0, 120, 120);
-  // Sprite del pollito en idle, scale 6 (16x16 → 96x96)
-  drawPollitoSprite(x, 60, 60, "idle", 6, 1, 1, 1);
+  x.save(); x.translate(60, 64); x.scale(2.6, 2.6);
+  // Sombra plana
+  x.fillStyle = "rgba(0,0,0,0.15)";
+  x.beginPath(); x.ellipse(0, 22, 16, 4, 0, 0, Math.PI * 2); x.fill();
+  // Cuerpo
+  x.beginPath(); x.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2);
+  x.fillStyle = "#ffd34a"; x.fill();
+  x.strokeStyle = "#2a1d10"; x.lineWidth = 1.4; x.stroke();
+  // Cabeza
+  x.beginPath(); x.arc(8, -8, 10, 0, Math.PI * 2);
+  x.fillStyle = "#ffd34a"; x.fill(); x.stroke();
+  // Pancita
+  x.beginPath(); x.ellipse(-2, 6, 10, 7, 0.1, 0, Math.PI * 2);
+  x.fillStyle = "#fff4c0"; x.fill();
+  // Ala
+  x.beginPath(); x.ellipse(-2, 6, 7, 5, 0.2, 0, Math.PI * 2);
+  x.fillStyle = "#e8a820"; x.fill();
+  x.lineWidth = 1.2; x.stroke();
+  // Pico
+  x.beginPath(); x.moveTo(17, -8); x.lineTo(23, -6); x.lineTo(17, -3); x.closePath();
+  x.fillStyle = "#f08a1a"; x.fill(); x.stroke();
+  // Cresta (3 picos)
+  x.beginPath();
+  x.moveTo(2, -16); x.lineTo(4, -20); x.lineTo(6, -16);
+  x.lineTo(8, -19); x.lineTo(10, -16); x.lineTo(12, -19); x.lineTo(14, -16);
+  x.closePath();
+  x.fillStyle = "#e85d5d"; x.fill(); x.stroke();
+  // Ojo
+  x.beginPath(); x.arc(11, -10, 2.8, 0, Math.PI * 2);
+  x.fillStyle = "#fff"; x.fill(); x.stroke();
+  x.beginPath(); x.arc(12, -10, 1.5, 0, Math.PI * 2);
+  x.fillStyle = "#222"; x.fill();
+  // Patas
+  x.strokeStyle = "#f08a1a"; x.lineWidth = 2.6; x.lineCap = "round";
+  x.beginPath();
+  x.moveTo(-5, 16); x.lineTo(-5, 21);
+  x.moveTo(5, 16);  x.lineTo(5, 21);
+  x.stroke();
+  x.lineWidth = 1.8;
+  x.beginPath();
+  x.moveTo(-7, 21); x.lineTo(-3, 21);
+  x.moveTo(3, 21);  x.lineTo(7, 21);
+  x.stroke();
+  x.restore();
 }
 drawSplashPollito();
 
@@ -2202,21 +2244,113 @@ function drawFlag(f) {
   ctx.lineTo(sx + 22, flagY + 19); ctx.closePath(); ctx.fill();
 }
 
-// ===== Pollito (pixel art sprites — iter 10) =====
+// ===== Pollito (flat vector con contornos — F2 visual reboot) =====
 function drawPollito(p) {
   const cx = worldToScreen(p.x) + p.w / 2;
   const cy = p.y + p.h / 2;
-  // Sombra (elipse en el piso)
   const groundY = p.y + p.h;
+
+  // Sombra elíptica plana
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   const shadowScale = p.onGround ? 1 : Math.max(0.3, 1 - Math.abs(p.vy) / 12);
   ctx.beginPath();
   ctx.ellipse(cx, groundY + 1, 14 * shadowScale, 3 * shadowScale, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Sprite frame elegido por estado
-  const frame = pickPollitoFrame(p, state.scene);
-  // Scale 3 → 16px sprite → 48px en pantalla (acorde al p.w=32 + un poco más para visibilidad)
-  drawPollitoSprite(ctx, cx, cy, frame, 3, p.facing, p.scaleX, p.scaleY);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(p.facing * p.scaleX, p.scaleY);
+
+  // Cuerpo (elipse amarilla)
+  ctx.beginPath();
+  ctx.ellipse(0, 3, 16, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd34a";
+  ctx.fill();
+  ctx.strokeStyle = "#2a1d10";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // Cabeza (círculo arriba a la derecha)
+  ctx.beginPath();
+  ctx.arc(8, -8, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffd34a";
+  ctx.fill();
+  ctx.stroke();
+
+  // Pancita más clara (sombra plana inversa)
+  ctx.beginPath();
+  ctx.ellipse(-2, 6, 10, 7, 0.1, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff4c0";
+  ctx.fill();
+
+  // Ala con flap (ciclo de animación)
+  const flapY = (p.flap < 15) ? 4 : 6;
+  ctx.beginPath();
+  ctx.ellipse(-2, flapY, 7, 5, 0.2, 0, Math.PI * 2);
+  ctx.fillStyle = "#e8a820";
+  ctx.fill();
+  ctx.strokeStyle = "#2a1d10";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Pico
+  ctx.beginPath();
+  ctx.moveTo(17, -8);
+  ctx.lineTo(23, -6);
+  ctx.lineTo(17, -3);
+  ctx.closePath();
+  ctx.fillStyle = "#f08a1a";
+  ctx.fill();
+  ctx.stroke();
+
+  // Cresta (3 picos triangulares pequeños en la cabeza)
+  ctx.beginPath();
+  ctx.moveTo(2, -16);
+  ctx.lineTo(4, -20);
+  ctx.lineTo(6, -16);
+  ctx.lineTo(8, -19);
+  ctx.lineTo(10, -16);
+  ctx.lineTo(12, -19);
+  ctx.lineTo(14, -16);
+  ctx.closePath();
+  ctx.fillStyle = "#e85d5d";
+  ctx.fill();
+  ctx.stroke();
+
+  // Ojo (círculo blanco + pupila negra + brillo)
+  ctx.beginPath();
+  ctx.arc(11, -10, 2.8, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.strokeStyle = "#2a1d10";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(12, -10, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#222";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(12.5, -10.5, 0.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+
+  // Patas con walk cycle
+  ctx.strokeStyle = "#f08a1a";
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = "round";
+  const legPhase = p.onGround && Math.abs(p.vx) > 0.1 ? Math.sin(p.walkAnim) * 2 : 0;
+  ctx.beginPath();
+  ctx.moveTo(-5, 16); ctx.lineTo(-5 + legPhase, 21);
+  ctx.moveTo(5, 16);  ctx.lineTo(5 - legPhase, 21);
+  ctx.stroke();
+  // Pequeñas garritas en cada pata
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-7 + legPhase, 21); ctx.lineTo(-3 + legPhase, 21);
+  ctx.moveTo(3 - legPhase, 21);  ctx.lineTo(7 - legPhase, 21);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 function drawHintBanner() {

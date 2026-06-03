@@ -127,4 +127,31 @@ describe("getDailyFlavor", () => {
     const r = await getDailyFlavor(new Date(2026, 5, 15));
     expect(r.animalOfDay.id).toMatch(/^(vaca|oveja|gallina|caballo|pato|cerdo|cabra)$/);
   }, 6000);
+
+  it("fallback NO se cachea — segundo call reintenta Groq", async () => {
+    // Primera llamada: Groq falla, usa fallback
+    completionsCreate.mockRejectedValueOnce(new Error("groq down"));
+    const r1 = await getDailyFlavor(new Date(2026, 5, 15));
+    expect(r1.animalOfDay.id).toMatch(/^(vaca|oveja|gallina|caballo|pato|cerdo|cabra)$/);
+    expect(completionsCreate).toHaveBeenCalledOnce();
+
+    // Segunda llamada: Groq responde OK → debería volver a llamar (no usar cache)
+    completionsCreate.mockResolvedValueOnce(mockGroqJson({
+      animalOfDay: "vaca",
+      miniEvent: { type: "npc-pollito", world: "corral", text: "Un pollito te saluda." },
+    }));
+    const r2 = await getDailyFlavor(new Date(2026, 5, 15));
+    expect(completionsCreate).toHaveBeenCalledTimes(2);
+    expect(r2.miniEvent.text).toBe("Un pollito te saluda.");
+  });
+
+  it("animalOfDay.name es display capitalizado, no el id lowercase", async () => {
+    completionsCreate.mockResolvedValue(mockGroqJson({
+      animalOfDay: "vaca",
+      miniEvent: { type: "npc-pollito", world: "corral", text: "Hola." },
+    }));
+    const r = await getDailyFlavor(new Date(2026, 5, 15));
+    expect(r.animalOfDay.id).toBe("vaca");
+    expect(r.animalOfDay.name).toBe("Vaca");
+  });
 });

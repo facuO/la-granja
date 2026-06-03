@@ -29,6 +29,17 @@ const ANIMAL_HOMES: Record<AnimalId, WorldId> = {
   cabra: "campo",
 };
 
+/** Nombres display capitalizados. El `id` es lowercase para usar como key/identifier. */
+const ANIMAL_DISPLAY_NAMES: Record<AnimalId, string> = {
+  vaca: "Vaca",
+  oveja: "Oveja",
+  gallina: "Gallina",
+  caballo: "Caballo",
+  pato: "Pato",
+  cerdo: "Cerdo",
+  cabra: "Cabra",
+};
+
 /** Paletas del cielo por estación × mundo (16 combos). */
 const SEASON_PALETTES: Record<Season, Record<WorldId, { sky: [string, string, string] }>> = {
   verano: {
@@ -81,12 +92,10 @@ const FALLBACK_EVENTS: { type: MiniEventType; world: WorldId; text: string }[] =
   { type: "rainbow-cloud", world: "granero", text: "Una nube de colores corona el granero." },
 ];
 
-const FALLBACK_ANIMALS: AnimalId[] = ["vaca", "oveja", "gallina", "caballo", "pato", "cerdo", "cabra"];
-
 function fallbackForDate(date: Date): { animalOfDay: AnimalId; miniEvent: { type: MiniEventType; world: WorldId; text: string } } {
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
   return {
-    animalOfDay: FALLBACK_ANIMALS[dayOfYear % FALLBACK_ANIMALS.length],
+    animalOfDay: VALID_ANIMALS[dayOfYear % VALID_ANIMALS.length],
     miniEvent: FALLBACK_EVENTS[dayOfYear % FALLBACK_EVENTS.length],
   };
 }
@@ -160,6 +169,7 @@ export async function getDailyFlavor(date: Date): Promise<DailyFlavor> {
   const palette = SEASON_PALETTES[season];
 
   let llmData: { animalOfDay: AnimalId; miniEvent: { type: MiniEventType; world: WorldId; text: string } };
+  let usedFallback = false;
   try {
     const raw = await withTimeout(
       chatJson({
@@ -172,6 +182,7 @@ export async function getDailyFlavor(date: Date): Promise<DailyFlavor> {
     llmData = raw;
   } catch {
     llmData = fallbackForDate(date);
+    usedFallback = true;
   }
 
   const result: DailyFlavor = {
@@ -180,12 +191,13 @@ export async function getDailyFlavor(date: Date): Promise<DailyFlavor> {
     specialEvent,
     animalOfDay: {
       id: llmData.animalOfDay,
-      name: llmData.animalOfDay,
+      name: ANIMAL_DISPLAY_NAMES[llmData.animalOfDay],
       appearsIn: ANIMAL_HOMES[llmData.animalOfDay],
     },
     miniEvent: llmData.miniEvent,
     palette,
   };
-  cache.set(dateKey, result);
+  // Solo cacheamos si el LLM respondió bien — sino reintentamos next call.
+  if (!usedFallback) cache.set(dateKey, result);
   return result;
 }

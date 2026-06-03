@@ -1,3 +1,4 @@
+/** Identificadores sin tildes ni eñes para usar como claves de objeto y comparaciones simples. */
 export type Season = "verano" | "otono" | "invierno" | "primavera";
 
 export type SpecialDate = {
@@ -44,6 +45,10 @@ export function isThirdSundayOfAugust(date: Date): boolean {
 /**
  * Devuelve el SpecialDate para una fecha, o null si no hay evento.
  * Incluye cumple de Sofi hardcoded en 7 abril.
+ *
+ * IMPORTANTE: `date` debe construirse con `new Date()` o `new Date(y, m, d)` (timezone local).
+ * NO pasar strings ISO `"YYYY-MM-DD"` directamente al constructor — esos se parsean como UTC
+ * y en Argentina (UTC-3) shifta al día anterior, causando bugs sutiles.
  */
 export function getSpecialDate(date: Date): SpecialDate | null {
   const mm = String(date.getMonth() + 1).padStart(2, "0");

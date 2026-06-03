@@ -14,3 +14,4 @@ node_modules/
 .env.local
 dist/
 .vitest-cache/
+.superpowers/

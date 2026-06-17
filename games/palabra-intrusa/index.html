@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palabra intrusa · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Palabra intrusa</h1>
+      <div class="hud__stats">
+        <div class="hud__stat"><span class="hud__stat-value" id="hits">0</span><span class="hud__stat-label">Aciertos</span></div>
+        <div class="hud__stat"><span class="hud__stat-value" id="time">—</span><span class="hud__stat-label">Tiempo</span></div>
+      </div>
+    </header>
+
+    <section class="arena" aria-label="Palabras">
+      <div class="stage">
+        <p class="question" id="question">¿Cuál no encaja con las demás?</p>
+        <div class="words-grid" id="wordsGrid"></div>
+        <p class="feedback" id="feedback"></p>
+      </div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">Palabra intrusa</h2>
+          <p class="overlay__sub">
+            Vas a ver cuatro palabras. Tres tienen algo en común,<br>
+            una no encaja. Hacé click en la que no va.
+          </p>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="startBtn">Empezar</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Muy bien!</h2>
+          <p class="overlay__sub">Esto fue lo que hiciste:</p>
+          <div class="metrics-grid" id="metricsBox"></div>
+          <div class="overlay__actions">
+            <button class="btn btn--primary" id="playAgainBtn">Jugar de nuevo</button>
+            <a class="btn btn--secondary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="../../lib/sounds.js" defer></script>
+  <script src="game.js" defer></script>
+</body>
+</html>

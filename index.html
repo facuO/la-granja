@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>La granja de Sofi</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/globals.css">
+</head>
+<body>
+  <main class="home">
+    <header class="home-header">
+      <h1>La granja de <span class="accent">Sofi</span></h1>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="papa-link" id="musicBtn" type="button" aria-label="Activar o desactivar música" title="Música">♪ Música</button>
+        <a class="papa-link" href="papa.html">Vista papá</a>
+      </div>
+    </header>
+
+    <section class="corral" aria-label="Mi corral">
+      <div class="sun" aria-hidden="true"></div>
+      <div class="cloud cloud--a" aria-hidden="true"></div>
+      <div class="cloud cloud--b" aria-hidden="true"></div>
+      <div class="cloud cloud--c" aria-hidden="true"></div>
+
+      <div class="ground">
+        <img class="animal animal--gallina"  src="shared/sprites/gallina.png"  alt="Gallina">
+        <img class="animal animal--pollito1" src="shared/sprites/pollito.png"  alt="Pollito">
+        <img class="animal animal--pollito2" src="shared/sprites/pollito.png"  alt="Pollito">
+        <img class="animal animal--vaca"     src="shared/sprites/vaca.png"     alt="Vaca">
+        <img class="animal animal--chancho"  src="shared/sprites/chancho.png"  alt="Chancho">
+        <img class="animal animal--pato"     src="shared/sprites/pato.png"     alt="Pato">
+
+        <img class="animal animal--wanderer" src="shared/sprites/conejo.png" alt="Conejo paseando"
+             style="width:58px;">
+
+        <div class="egg-pile" id="eggPile" aria-label="Huevos del día"></div>
+      </div>
+    </section>
+
+    <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+    <section class="stats" aria-label="Resumen del corral">
+      <div class="stat">
+        <img class="stat__icon" src="shared/svg/huevo.svg" alt="">
+        <div>
+          <div class="stat__value" id="statEggs">0</div>
+          <div class="stat__label">Huevos</div>
+        </div>
+      </div>
+      <div class="stat">
+        <img class="stat__icon" src="shared/sprites/pollito.png" alt="">
+        <div>
+          <div class="stat__value" id="statPollitos">0</div>
+          <div class="stat__label">Pollitos</div>
+        </div>
+      </div>
+      <div class="stat">
+        <img class="stat__icon" src="shared/svg/grano.svg" alt="">
+        <div>
+          <div class="stat__value" id="statStreak">0 días</div>
+          <div class="stat__label">Racha</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button class="btn btn--primary" id="startSessionBtn">Empezar sesión del día</button>
+      <div class="actions-row">
+        <a class="btn btn--secondary" href="catalog.html">Elegir un juego</a>
+        <a class="btn btn--secondary" href="sofi.html">Mi progreso</a>
+      </div>
+    </section>
+
+    <p class="foot">Complemento lúdico, no reemplaza la terapia profesional.</p>
+  </main>
+
+  <script src="lib/store.js"></script>
+  <script src="lib/sounds.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var store = window.Granja.store;
+      var sound = window.Granja.sound;
+
+      // Friendly name por gameId — ampliar cuando sumemos juegos
+      var GAME_NAMES = {
+        'atrapa-pollitos': 'Atrapa-pollitos',
+      };
+
+      function renderStats() {
+        var s = store.getState();
+        document.getElementById('statEggs').textContent = String(s.corral.eggs);
+        document.getElementById('statPollitos').textContent = String(s.corral.pollitos.length);
+        var streak = s.corral.streak;
+        document.getElementById('statStreak').textContent = streak === 1 ? '1 día' : streak + ' días';
+        renderEggPile(s.corral.eggs);
+      }
+
+      function renderEggPile(count) {
+        var pile = document.getElementById('eggPile');
+        pile.innerHTML = '';
+        var visible = Math.min(count, 5);
+        for (var i = 0; i < visible; i++) {
+          var img = document.createElement('img');
+          img.src = 'shared/svg/huevo.svg';
+          img.alt = '';
+          pile.appendChild(img);
+        }
+      }
+
+      function showToast(msg) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.remove('hidden');
+        // restart animation
+        t.style.animation = 'none';
+        // force reflow
+        void t.offsetWidth;
+        t.style.animation = '';
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+          t.classList.add('hidden');
+        }, 4200);
+      }
+
+      // Ingerir resultado pendiente sólo si NO hay sesión activa en curso
+      // (la sesión activa la consume session.html).
+      var hasActiveSession = localStorage.getItem('granja-active-session') != null;
+      var consumed = hasActiveSession ? null : store.consumeLastGameResult();
+      renderStats();
+
+      if (consumed) {
+        var name = GAME_NAMES[consumed.gameId] || consumed.gameId;
+        var hits = (consumed.metrics.raw && consumed.metrics.raw.hits) || null;
+        var msg = '¡Sumaste una sesión de ' + name + '!';
+        if (hits != null) msg += ' (' + hits + ' atrapados)';
+        showToast(msg);
+      }
+
+      // Reaccionar a cambios desde otra tab
+      window.addEventListener('storage', function (e) {
+        if (e.key === 'granja-state-v1' || e.key === 'lastGameResult') {
+          store.consumeLastGameResult();
+          renderStats();
+        }
+      });
+
+      document.getElementById('startSessionBtn').addEventListener('click', function () {
+        location.href = 'session.html';
+      });
+
+      /* ─── Música de fondo ─── */
+      var $musicBtn = document.getElementById('musicBtn');
+      function refreshMusicBtn() {
+        var on = store.getState().settings.musicEnabled === true;
+        $musicBtn.textContent = on ? '♪ Música on' : '♪ Música';
+        $musicBtn.style.background = on ? 'var(--granja-amarillo-soft)' : '';
+      }
+      $musicBtn.addEventListener('click', function () {
+        var on = store.getState().settings.musicEnabled === true;
+        var newVal = !on;
+        store.setSetting('musicEnabled', newVal);
+        if (newVal) sound.startMusic();
+        else sound.stopMusic();
+        refreshMusicBtn();
+      });
+      refreshMusicBtn();
+      // Si ya estaba activada en una sesión previa, arrancar tras el primer click
+      sound.armMusicOnFirstClick();
+    })();
+  </script>
+</body>
+</html>

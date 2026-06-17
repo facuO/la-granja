@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo · La granja de Sofi</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/globals.css">
+  <style>
+    .catalog { max-width: 1000px; margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-7); }
+    .catalog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-6); }
+    .catalog-header h1 { font-size: 28px; margin: 0; }
+
+    .area-section { margin-bottom: var(--sp-7); }
+    .area-section h2 {
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--granja-marron-dark);
+      margin: 0 0 var(--sp-3);
+      padding-bottom: var(--sp-2);
+      border-bottom: 2px solid var(--granja-amarillo);
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--sp-4);
+    }
+    .game-card {
+      background: var(--granja-blanco);
+      border-radius: var(--r-md);
+      padding: var(--sp-4) var(--sp-5);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(212, 163, 115, 0.20);
+      text-decoration: none;
+      color: var(--granja-ink);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-2);
+      transition: transform 150ms ease, box-shadow 200ms ease;
+    }
+    .game-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .game-card:active { transform: translateY(0); }
+    .game-card__name { font-size: 18px; font-weight: 800; margin: 0; }
+    .game-card__desc { font-size: 13px; color: var(--granja-ink-soft); margin: 0; line-height: 1.45; }
+    .game-card__footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--sp-2); }
+    .game-card__time { font-size: 11px; color: var(--granja-ink-soft); }
+    .star-row { display: inline-flex; gap: 2px; }
+    .star { color: var(--granja-amarillo); font-size: 14px; }
+    .star.empty { color: rgba(60, 47, 37, 0.15); }
+    .empty-area { color: var(--granja-ink-soft); font-style: italic; font-size: 13px; padding: var(--sp-3); }
+  </style>
+</head>
+<body>
+  <main class="catalog">
+    <header class="catalog-header">
+      <h1>Elegir un juego</h1>
+      <a class="papa-link" href="index.html">← Volver al corral</a>
+    </header>
+
+    <div id="sections"></div>
+  </main>
+
+  <script src="lib/registry.js"></script>
+  <script src="lib/store.js"></script>
+  <script src="lib/session-builder.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var registry = window.Granja.registry;
+    var builder = window.Granja.builder;
+
+    var AREA_LABELS = {
+      fono: 'Fonoaudiología',
+      psicoped: 'Psicopedagogía',
+      psicomot: 'Psicomotricidad',
+      to: 'Terapia ocupacional',
+      mate: 'Matemáticas',
+      lengua: 'Lengua',
+      ciencias: 'Ciencias',
+      geo: 'Geografía',
+    };
+
+    function stars(n) {
+      var html = '<span class="star-row">';
+      for (var i = 1; i <= 5; i++) {
+        html += '<span class="star' + (i <= n ? '' : ' empty') + '">★</span>';
+      }
+      return html + '</span>';
+    }
+
+    function card(game) {
+      var diff = builder.suggestedDifficulty(window.Granja.store.getState(), game);
+      var mins = Math.round(game.estimatedSec / 60);
+      return `
+        <a class="game-card" href="${game.path}?difficulty=${diff}">
+          <h3 class="game-card__name">${game.name}</h3>
+          <p class="game-card__desc">${game.description}</p>
+          <div class="game-card__footer">
+            ${stars(diff)}
+            <span class="game-card__time">${mins} min</span>
+          </div>
+        </a>
+      `;
+    }
+
+    var areas = ['fono', 'psicoped', 'psicomot', 'to', 'mate', 'lengua', 'ciencias', 'geo'];
+    var html = '';
+    areas.forEach(function (area) {
+      var games = registry.getByArea(area);
+      html += '<section class="area-section">';
+      html += '<h2>' + AREA_LABELS[area] + '</h2>';
+      if (games.length === 0) {
+        html += '<div class="empty-area">Próximamente.</div>';
+      } else {
+        html += '<div class="game-grid">';
+        games.forEach(function (g) { html += card(g); });
+        html += '</div>';
+      }
+      html += '</section>';
+    });
+    document.getElementById('sections').innerHTML = html;
+  })();
+  </script>
+</body>
+</html>

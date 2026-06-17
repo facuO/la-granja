@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rompecabezas</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="trail">
+      <span class="trail-progress">Rompecabezas</span>
+      <div class="trail-nav">
+        <a href="/juegos.html" class="trail-home">← Juegos</a>
+        <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="game-header">
+        <h1>🧩 Rompecabezas</h1>
+        <p>Tocá una pieza y después tocá su lugar en la imagen. Si no es ahí, la pieza vuelve al banco.</p>
+        <div class="dificultad-row">
+          <span class="dif-label">Animal:</span>
+          <button class="animal-btn active" data-animal="vaca">Vaca</button>
+          <button class="animal-btn" data-animal="gallina">Gallina</button>
+          <button class="animal-btn" data-animal="pollito">Pollito</button>
+          <button class="animal-btn" data-animal="caballo">Caballo</button>
+        </div>
+        <div class="dificultad-row">
+          <span class="dif-label">Piezas:</span>
+          <button class="size-btn" data-size="2">2x2 (4)</button>
+          <button class="size-btn active" data-size="3">3x3 (9)</button>
+        </div>
+      </div>
+
+      <div class="puzzle-area">
+        <div id="puzzle-target" class="puzzle-target"></div>
+        <div class="puzzle-bank-label">Piezas para colocar:</div>
+        <div id="puzzle-bank" class="puzzle-bank"></div>
+      </div>
+
+      <div id="puzzle-win" class="game-win" style="display:none">
+        <p class="win-msg">🎉 ¡Armaste el rompecabezas!</p>
+        <button id="play-again-pz">Jugar otra vez</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/juego-rompecabezas.js"></script>
+</body>
+</html>

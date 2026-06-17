@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trabalenguas · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Trabalenguas</h1>
+      <span class="hud__counter">Decilo en voz alta</span>
+    </header>
+
+    <section class="arena" aria-label="Trabalenguas">
+      <div class="stage">
+        <div class="trabalenguas-card">
+          <div class="label">Leé en voz alta</div>
+          <p class="text" id="trabalenguasText" style="white-space: pre-line;"></p>
+        </div>
+
+        <div class="recorder">
+          <button class="mic-button" id="micBtn" aria-label="Grabar">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"/>
+              <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"/>
+            </svg>
+          </button>
+          <strong id="micLabel">Grabar</strong>
+          <div class="timer-bar"><div class="timer-bar__fill" id="timerBarFill"></div></div>
+          <p class="hint" id="hint">Respirá hondo antes de empezar. Si te trabás, está bien — reíte y seguí.</p>
+          <p class="error-banner hidden" id="errorBanner"></p>
+        </div>
+
+        <div class="playback hidden" id="playbackBlock">
+          <strong>Escuchá:</strong>
+          <audio id="playbackAudio" controls></audio>
+        </div>
+
+        <div class="rating hidden" id="ratingBlock">
+          <div class="rating__question">¿Cómo te salió?</div>
+          <div class="rating__stars">
+            <button class="star-btn" data-value="1" aria-label="1 estrella">★</button>
+            <button class="star-btn" data-value="2" aria-label="2 estrellas">★</button>
+            <button class="star-btn" data-value="3" aria-label="3 estrellas">★</button>
+          </div>
+          <div class="actions-row">
+            <button class="btn btn--primary" id="finishBtn" disabled>Listo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Bien hecho!</h2>
+          <p class="overlay__sub" id="endMessage"></p>
+          <div class="overlay__actions" id="endActions">
+            <a class="btn btn--primary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js" defer></script>
+</body>
+</html>

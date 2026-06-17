@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Materia</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="trail">
+      <span class="trail-progress"></span>
+      <div class="trail-nav">
+        <a href="/recursos.html" class="trail-home" aria-label="Ver recursos">📚 Recursos</a>
+        <a href="/sofi.html" class="trail-home" aria-label="Volver al inicio">🏠 Inicio</a>
+      </div>
+    </div>
+    <div class="card">
+      <div id="materia-header" class="materia-header"></div>
+      <div id="topics" aria-live="polite" aria-busy="true">
+        <p class="materia-empty">Cargando temas...</p>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/js/materia.js"></script>
+</body>
+</html>

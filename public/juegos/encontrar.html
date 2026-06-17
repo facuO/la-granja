@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Encontrá los animales</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="trail">
+      <span class="trail-progress">Encontrá los animales</span>
+      <div class="trail-nav">
+        <a href="/juegos.html" class="trail-home">← Juegos</a>
+        <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="game-header">
+        <h1>🔍 Encontrá los animales</h1>
+        <p id="encontrar-consigna">Tocá los animales que te pido.</p>
+      </div>
+
+      <div id="encontrar-scene" class="encontrar-scene"></div>
+
+      <div id="encontrar-win" class="game-win" style="display:none">
+        <p class="win-msg">🎉 ¡Encontraste todos!</p>
+        <button id="play-again-en">Jugar otra vez</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/juego-encontrar.js"></script>
+</body>
+</html>

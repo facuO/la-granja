@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hola, Sofi</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="trail">
+      <span class="trail-progress"></span>
+      <div class="trail-nav">
+        <a href="/recursos.html" class="trail-home" aria-label="Ver recursos">📚 Recursos</a>
+      </div>
+    </div>
+    <div class="card">
+      <h1>Hola, Sofi</h1>
+      <p>¿Qué materia vamos a ver hoy?</p>
+      <div id="materias" class="materia-grid" aria-live="polite" aria-busy="true">
+        <p class="materia-empty">Cargando materias...</p>
+      </div>
+    </div>
+    <a href="/chat.html" class="chat-cta">
+      <span class="chat-cta-icon">💬</span>
+      <span class="chat-cta-text">
+        <span class="chat-cta-title">Conversar con el tutor</span>
+        <span class="chat-cta-desc">Preguntale lo que quieras sobre cualquier tema.</span>
+      </span>
+    </a>
+    <a href="/juegos.html" class="chat-cta">
+      <span class="chat-cta-icon">🎲</span>
+      <span class="chat-cta-text">
+        <span class="chat-cta-title">Jugar</span>
+        <span class="chat-cta-desc">Memorama, rompecabezas y otros juegos.</span>
+      </span>
+    </a>
+    <div class="home-footer">
+      <a href="/admin.html" class="admin-link" aria-label="Panel de Papá">Admin</a>
+    </div>
+  </div>
+  <script type="module" src="/js/sofi.js"></script>
+</body>
+</html>

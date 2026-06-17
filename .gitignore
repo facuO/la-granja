@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs y temp
+*.log
+*.tmp
+
+node_modules/
+.env
+.env.local
+dist/
+.vitest-cache/
+.superpowers/

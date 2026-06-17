@@ -1,0 +1,498 @@
+import { api } from "./api.js";
+import { makeSpeakButton, stop as stopTts } from "./tts.js";
+
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get("id");
+const stepsTotal = Number(params.get("total")) || 0;
+const subjectId = params.get("subject_id");
+const subjectName = params.get("subject_name");
+
+const blockEl = document.getElementById("block");
+const trailEl = document.getElementById("trail");
+const advanceEl = document.getElementById("advance");
+
+// Wire the "← Materia" back link if we know which subject we came from.
+const trailBackEl = document.getElementById("trail-back");
+if (trailBackEl && subjectId && subjectName) {
+  trailBackEl.href = `/materia.html?id=${encodeURIComponent(subjectId)}`;
+  trailBackEl.textContent = `← ${subjectName}`;
+  trailBackEl.style.display = "";
+}
+
+// -------- Navigation history --------
+// Each entry: { block, stepIndex, questionState?: { selected: number[], validated: boolean } }
+// The server keeps advancing as we fetch new blocks; this cache lets us go
+// back to previously seen ones without losing question state.
+const history = [];
+let viewIdx = -1;
+
+// -------- Trail / progress --------
+
+function setTrail() {
+  const current = viewIdx >= 0 ? history[viewIdx]?.stepIndex ?? 0 : 0;
+  if (stepsTotal > 0) {
+    trailEl.textContent = `Paso ${current + 1} de ${stepsTotal}`;
+  } else {
+    trailEl.textContent = `Paso ${current + 1}`;
+  }
+}
+
+// -------- Advance bar --------
+
+function renderAdvanceBar(opts = {}) {
+  advanceEl.innerHTML = "";
+
+  const backBtn = document.createElement("button");
+  backBtn.className = "subtle";
+  backBtn.textContent = "← Atrás";
+  if (viewIdx <= 0) {
+    backBtn.disabled = true;
+    backBtn.classList.add("is-disabled");
+  } else {
+    backBtn.addEventListener("click", goBack);
+  }
+  advanceEl.appendChild(backBtn);
+
+  const spacer = document.createElement("div");
+  spacer.style.flex = "1";
+  advanceEl.appendChild(spacer);
+
+  if (opts.secondary) {
+    const sec = document.createElement("button");
+    sec.className = "subtle";
+    sec.textContent = opts.secondary.label;
+    sec.addEventListener("click", opts.secondary.handler);
+    advanceEl.appendChild(sec);
+  }
+
+  if (opts.primary) {
+    const btn = document.createElement("button");
+    btn.textContent = opts.primary.label;
+    if (opts.primary.disabled) {
+      btn.disabled = true;
+      btn.classList.add("is-disabled");
+    } else if (opts.primary.handler) {
+      btn.addEventListener("click", opts.primary.handler);
+    }
+    advanceEl.appendChild(btn);
+  }
+}
+
+// -------- Block renderers --------
+
+function renderExplanation(c) {
+  if (Array.isArray(c.phrase) && c.phrase.length > 0) {
+    renderPhrase(c.phrase);
+  } else {
+    const p = document.createElement("p");
+    p.className = "block-text";
+    p.textContent = c.text;
+    blockEl.appendChild(p);
+  }
+}
+
+const MAX_CELLS_PER_LINE = 6;
+
+function renderPhrase(phrase) {
+  const initialLines = [[]];
+  for (const unit of phrase) {
+    if (unit && unit.break) {
+      initialLines.push([]);
+    } else if (unit && typeof unit.word === "string") {
+      initialLines[initialLines.length - 1].push(unit);
+    }
+  }
+
+  const lines = [];
+  for (const line of initialLines) {
+    if (line.length === 0) continue;
+    for (let i = 0; i < line.length; i += MAX_CELLS_PER_LINE) {
+      lines.push(line.slice(i, i + MAX_CELLS_PER_LINE));
+    }
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "phrase";
+
+  for (const line of lines) {
+    if (line.length === 0) continue;
+    const lineEl = document.createElement("div");
+    lineEl.className = "phrase-line";
+    lineEl.style.gridTemplateColumns = `repeat(${line.length}, minmax(0, 1fr))`;
+
+    for (const unit of line) {
+      const cell = document.createElement("div");
+      cell.className = "phrase-cell" + (unit.pic ? "" : " no-pic");
+
+      const picCell = document.createElement("div");
+      picCell.className = "phrase-pic-cell";
+      if (unit.pic) {
+        const img = document.createElement("img");
+        img.src = `https://static.arasaac.org/pictograms/${unit.pic}/${unit.pic}_300.png`;
+        img.alt = unit.word;
+        img.loading = "lazy";
+        img.className = "phrase-pic";
+        picCell.appendChild(img);
+      }
+      cell.appendChild(picCell);
+
+      const wordCell = document.createElement("div");
+      wordCell.className = "phrase-word-cell";
+      wordCell.textContent = unit.word;
+      cell.appendChild(wordCell);
+
+      lineEl.appendChild(cell);
+    }
+    wrap.appendChild(lineEl);
+  }
+
+  blockEl.appendChild(wrap);
+}
+
+// Preload the Argentina map SVG once.
+let argentinaMapSvg = "";
+fetch("/maps/argentina.svg")
+  .then((r) => (r.ok ? r.text() : ""))
+  .then((s) => { argentinaMapSvg = s; })
+  .catch(() => {});
+
+function renderVisual(c) {
+  if (c.visual_kind === "image" && c.image_src) {
+    const wrap = document.createElement("div");
+    wrap.className = "map-card";
+    const img = document.createElement("img");
+    img.src = c.image_src;
+    img.alt = c.image_alt || c.caption || "";
+    img.className = "wikimedia-image zoomable";
+    img.loading = "lazy";
+    // Higher-res version for the lightbox zoom view.
+    img.dataset.zoomSrc = c.image_src.replace(/width=\d+/, "width=2000");
+    wrap.appendChild(img);
+    if (c.caption) {
+      const caption = document.createElement("p");
+      caption.className = "block-text visual-caption";
+      caption.textContent = c.caption;
+      wrap.appendChild(caption);
+    }
+    blockEl.appendChild(wrap);
+    return;
+  }
+  if (c.visual_kind === "argentina_map") {
+    const wrap = document.createElement("div");
+    wrap.className = "map-card";
+    const mapHolder = document.createElement("div");
+    const showClasses = (c.show || []).map((s) => `show-${s}`).join(" ");
+    mapHolder.className = `argentina-map ${showClasses}`.trim();
+    if (argentinaMapSvg) {
+      mapHolder.innerHTML = argentinaMapSvg;
+    } else {
+      mapHolder.textContent = "Cargando mapa...";
+    }
+    wrap.appendChild(mapHolder);
+    if (c.caption) {
+      const caption = document.createElement("p");
+      caption.className = "block-text visual-caption";
+      caption.textContent = c.caption;
+      wrap.appendChild(caption);
+    }
+    blockEl.appendChild(wrap);
+    return;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "visual-card";
+  const header = document.createElement("div");
+  header.className = "visual-header";
+  header.textContent = "📖 Mirá tu cuaderno";
+  wrap.appendChild(header);
+  const caption = document.createElement("p");
+  caption.className = "block-text visual-caption";
+  caption.textContent = c.caption;
+  wrap.appendChild(caption);
+  blockEl.appendChild(wrap);
+}
+
+function renderFeedback(c) {
+  const p = document.createElement("p");
+  p.className = "block-text";
+  p.textContent = c.text;
+  blockEl.appendChild(p);
+}
+
+// -------- Question logic --------
+
+function getCorrectSet(c) {
+  if (c.kind === "multi_select") return new Set(c.correct_indices);
+  if (c.kind === "multiple_choice") return new Set([c.correct_index]);
+  if (c.kind === "true_false") return new Set([c.correct ? 0 : 1]);
+  return new Set();
+}
+
+function buildInlineFeedback(c, selected, labels) {
+  if (c.kind === "true_false") {
+    const chose = selected.has(0) ? "Verdadero" : "Falso";
+    const correctLabel = c.correct ? "Verdadero" : "Falso";
+    const right = (c.correct && selected.has(0)) || (!c.correct && selected.has(1));
+    if (right) return `Acertaste. La respuesta es ${correctLabel}.`;
+    return `Tu respuesta fue ${chose}. La correcta es ${correctLabel}.`;
+  }
+  if (c.kind === "multiple_choice") {
+    const choseIdx = [...selected][0];
+    const chose = labels[choseIdx];
+    const correct = labels[c.correct_index];
+    if (choseIdx === c.correct_index) return `Bien. La respuesta es "${correct}".`;
+    return `Marcaste "${chose}". La correcta es "${correct}".`;
+  }
+  if (c.kind === "multi_select") {
+    const correctSet = new Set(c.correct_indices);
+    const right = [...selected].filter((i) => correctSet.has(i)).length;
+    const wrong = [...selected].filter((i) => !correctSet.has(i)).length;
+    const missing = [...correctSet].filter((i) => !selected.has(i)).length;
+    if (wrong === 0 && missing === 0) {
+      return `Marcaste todas bien. ¡Perfecto!`;
+    }
+    const parts = [];
+    if (right > 0) parts.push(`acertaste ${right}`);
+    if (missing > 0) parts.push(`te faltaron ${missing}`);
+    if (wrong > 0) parts.push(`marcaste de más ${wrong}`);
+    return "Casi: " + parts.join(", ") + ".";
+  }
+  return "";
+}
+
+function renderQuestion(c, savedState, saveState) {
+  const p = document.createElement("p");
+  p.className = "block-text question-text";
+  p.textContent = c.text;
+  blockEl.appendChild(p);
+
+  const optionsEl = document.createElement("div");
+  optionsEl.className = "options";
+  blockEl.appendChild(optionsEl);
+
+  const feedbackEl = document.createElement("div");
+  feedbackEl.className = "inline-feedback";
+  blockEl.appendChild(feedbackEl);
+
+  const rawOptions = c.kind === "true_false" ? ["Verdadero", "Falso"] : c.options;
+  const options = rawOptions.map((o) =>
+    typeof o === "string" ? { label: o } : { label: o.label, image: o.image }
+  );
+  const labels = options.map((o) => o.label);
+  const isMulti = c.kind === "multi_select";
+
+  let selected = savedState && Array.isArray(savedState.selected)
+    ? new Set(savedState.selected)
+    : new Set();
+  let validated = !!(savedState && savedState.validated);
+
+  function persist() {
+    if (typeof saveState === "function") {
+      saveState({ selected: [...selected], validated });
+    }
+  }
+
+  function paintOptions() {
+    optionsEl.querySelectorAll(".option").forEach((btn, idx) => {
+      btn.classList.remove("selected", "correct", "missed", "wrong");
+      if (!validated) {
+        if (selected.has(idx)) btn.classList.add("selected");
+      } else {
+        const correctSet = getCorrectSet(c);
+        const wasSelected = selected.has(idx);
+        const isCorrect = correctSet.has(idx);
+        if (isCorrect && wasSelected) btn.classList.add("correct");
+        else if (isCorrect && !wasSelected) btn.classList.add("missed");
+        else if (!isCorrect && wasSelected) btn.classList.add("wrong");
+      }
+    });
+  }
+
+  options.forEach((opt, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "option" + (opt.image ? " has-image" : "");
+    if (opt.image) {
+      const img = document.createElement("img");
+      img.src = opt.image.src;
+      img.alt = opt.image.alt || opt.label;
+      img.className = "option-image";
+      img.loading = "lazy";
+      btn.appendChild(img);
+    }
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "option-label";
+    labelSpan.textContent = opt.label;
+    btn.appendChild(labelSpan);
+    btn.addEventListener("click", () => {
+      if (validated) return;
+      if (isMulti) {
+        if (selected.has(idx)) selected.delete(idx);
+        else selected.add(idx);
+      } else {
+        selected.clear();
+        selected.add(idx);
+      }
+      paintOptions();
+      persist();
+      refreshBar();
+    });
+    optionsEl.appendChild(btn);
+  });
+
+  function refreshBar() {
+    if (validated) {
+      renderAdvanceBar({
+        primary: { label: "Continuar", handler: advance },
+        secondary: { label: "Cambiar mi respuesta", handler: reset },
+      });
+    } else if (selected.size > 0) {
+      renderAdvanceBar({ primary: { label: "Siguiente", handler: validateAndShow } });
+    } else {
+      renderAdvanceBar({ primary: { label: "Siguiente", disabled: true } });
+    }
+  }
+
+  function validateAndShow() {
+    validated = true;
+    paintOptions();
+    feedbackEl.textContent = buildInlineFeedback(c, selected, labels);
+    persist();
+    refreshBar();
+  }
+
+  function reset() {
+    validated = false;
+    selected.clear();
+    feedbackEl.textContent = "";
+    paintOptions();
+    persist();
+    refreshBar();
+  }
+
+  // Initial paint: respects savedState
+  paintOptions();
+  if (validated) {
+    feedbackEl.textContent = buildInlineFeedback(c, selected, labels);
+  }
+  refreshBar();
+}
+
+// -------- Block dispatch --------
+
+function buildSpeakText(block) {
+  const c = block.content || {};
+  if (block.block_kind === "explanation" || block.block_kind === "feedback") {
+    return c.text || "";
+  }
+  if (block.block_kind === "visual") {
+    return c.caption || "";
+  }
+  if (block.block_kind === "question") {
+    const optTexts = (c.options || []).map((o) => (typeof o === "string" ? o : o.label));
+    const optList = optTexts.length ? " Opciones: " + optTexts.join(", ") + "." : "";
+    if (c.kind === "true_false") {
+      return c.text + " Verdadero o falso.";
+    }
+    return c.text + "." + optList;
+  }
+  return "";
+}
+
+function appendSpeakButton(block) {
+  const speakText = buildSpeakText(block);
+  if (!speakText) return;
+  const wrap = document.createElement("div");
+  wrap.className = "speak-wrap";
+  wrap.appendChild(
+    makeSpeakButton(
+      () => speakText,
+      // Para highlight: pasamos los .phrase-word-cell del bloque renderizado.
+      // Solo bloques con phrase tienen estos elementos; para visual/feedback
+      // sin phrase, devolvemos [] y el audio se reproduce sin highlight.
+      () => Array.from(blockEl.querySelectorAll(".phrase-word-cell")),
+    ),
+  );
+  blockEl.appendChild(wrap);
+}
+
+function renderBlock(entry) {
+  stopTts();
+  blockEl.innerHTML = "";
+  const block = entry.block;
+  if (block.block_kind === "explanation") {
+    renderExplanation(block.content);
+    appendSpeakButton(block);
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
+  } else if (block.block_kind === "visual") {
+    renderVisual(block.content);
+    appendSpeakButton(block);
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
+  } else if (block.block_kind === "question") {
+    renderQuestion(block.content, entry.questionState, (state) => {
+      entry.questionState = state;
+    });
+    appendSpeakButton(block);
+  } else if (block.block_kind === "feedback") {
+    renderFeedback(block.content);
+    appendSpeakButton(block);
+    renderAdvanceBar({ primary: { label: "Siguiente", handler: advance } });
+  }
+}
+
+// -------- Navigation --------
+
+async function advance() {
+  if (viewIdx + 1 < history.length) {
+    viewIdx++;
+    showCurrent();
+    return;
+  }
+  const res = await api(`/api/sofi/sessions/${sessionId}/next-block`, { method: "POST" });
+  if (res.done) {
+    await finishSession();
+    return;
+  }
+  history.push({ block: res.block, stepIndex: res.stepIndex, questionState: null });
+  viewIdx = history.length - 1;
+  showCurrent();
+}
+
+function goBack() {
+  if (viewIdx > 0) {
+    viewIdx--;
+    showCurrent();
+  }
+}
+
+function showCurrent() {
+  setTrail();
+  renderBlock(history[viewIdx]);
+}
+
+// -------- Finish --------
+
+async function finishSession() {
+  const { summary } = await api(`/api/sofi/sessions/${sessionId}/finish`, { method: "POST" });
+  blockEl.innerHTML = `
+    <h2>¡Terminaste!</h2>
+    <ul class="summary-list"><li>${escapeHtml(summary)}</li></ul>
+  `;
+  trailEl.textContent = "";
+  // From the summary screen, "Atrás" lets you re-read the last block;
+  // primary closes the session.
+  renderAdvanceBar({
+    primary: {
+      label: "Cerrar",
+      handler: () => { window.location.href = "/sofi.html"; },
+    },
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+if (!sessionId) {
+  blockEl.textContent = "Falta el id de la sesión.";
+} else {
+  advance();
+}

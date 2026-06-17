@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memorama</title>
+  <link rel="stylesheet" href="/styles/base.css">
+</head>
+<body>
+  <div class="app">
+    <div class="trail">
+      <span class="trail-progress">Memorama</span>
+      <div class="trail-nav">
+        <a href="/juegos.html" class="trail-home">← Juegos</a>
+        <a href="/sofi.html" class="trail-home">🏠 Inicio</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="game-header">
+        <h1>🐮 Memorama</h1>
+        <p>Encontrá los pares iguales. Tomate tu tiempo.</p>
+        <div class="dificultad-row">
+          <span class="dif-label">Dificultad:</span>
+          <button class="dif-btn" data-pairs="4">Fácil</button>
+          <button class="dif-btn active" data-pairs="6">Media</button>
+          <button class="dif-btn" data-pairs="8">Difícil</button>
+        </div>
+      </div>
+
+      <div id="memory-grid" class="memory-grid"></div>
+
+      <div id="memory-win" class="game-win" style="display:none">
+        <p class="win-msg">🎉 ¡Encontraste todos los pares!</p>
+        <button id="play-again">Jugar otra vez</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/juego-memory.js"></script>
+</body>
+</html>

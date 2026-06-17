@@ -1,0 +1,265 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  color: var(--granja-ink);
+  background: var(--granja-crema);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { display: block; max-width: 100%; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ───── Layout home ───── */
+.home {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-7);
+  display: grid;
+  gap: var(--sp-6);
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.home-header h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--granja-ink);
+}
+
+.home-header h1 .accent {
+  color: var(--granja-terracota);
+}
+
+.papa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  background: transparent;
+  border: 1.5px solid var(--granja-marron);
+  color: var(--granja-marron-dark);
+  border-radius: var(--r-full);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 180ms ease, transform 120ms ease;
+}
+.papa-link:hover { background: var(--granja-crema-soft); }
+.papa-link:active { transform: scale(0.97); }
+
+/* ───── Corral ───── */
+.corral {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(180deg, var(--granja-cielo-soft) 0%, var(--granja-cielo) 55%, var(--granja-verde-soft) 55%, var(--granja-verde) 100%);
+  min-height: 340px;
+  isolation: isolate;
+}
+
+.corral::after {
+  /* línea de horizonte sutil */
+  content: "";
+  position: absolute;
+  top: 55%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(108, 139, 74, 0.4);
+  z-index: 1;
+}
+
+.sun {
+  position: absolute;
+  top: 28px;
+  right: 40px;
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle at 35% 35%, #ffe089 0%, var(--granja-amarillo) 65%, #d9a700 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 22px rgba(244, 196, 48, 0.45);
+  z-index: 0;
+}
+
+.cloud {
+  position: absolute;
+  background: var(--granja-blanco);
+  border-radius: var(--r-full);
+  opacity: 0.92;
+  z-index: 0;
+  filter: drop-shadow(0 2px 0 rgba(60, 47, 37, 0.04));
+}
+.cloud--a { top: 38px;  left: 14%; width: 90px; height: 26px; animation: drift 60s linear infinite; }
+.cloud--b { top: 78px;  left: 38%; width: 64px; height: 20px; animation: drift 80s linear infinite; animation-delay: -20s; }
+.cloud--c { top: 50px;  left: 62%; width: 110px; height: 30px; animation: drift 75s linear infinite; animation-delay: -40s; }
+
+@keyframes drift {
+  from { transform: translateX(-40px); }
+  to   { transform: translateX(40px); }
+}
+
+.ground {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* ───── Animales del corral ───── */
+.animal {
+  position: absolute;
+  width: 72px;
+  height: auto;
+  bottom: 18px;
+  filter: drop-shadow(0 3px 0 rgba(60, 47, 37, 0.10));
+  animation: idle 2.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.animal--lg { width: 96px; }
+.animal--md { width: 80px; }
+.animal--sm { width: 60px; }
+
+.animal--gallina  { left: 14%; animation-delay: 0s;    }
+.animal--pollito1 { left: 24%; animation-delay: 0.4s;  width: 52px; }
+.animal--pollito2 { left: 31%; animation-delay: 0.9s;  width: 48px; }
+.animal--vaca     { left: 52%; animation-delay: 0.2s;  width: 110px; }
+.animal--chancho  { left: 70%; animation-delay: 0.7s;  width: 92px; }
+.animal--pato     { left: 82%; animation-delay: 1.1s;  width: 68px; }
+
+/* Pollito que camina lento de izquierda a derecha (uno solo, para que sea barato) */
+.animal--wanderer {
+  bottom: 24px;
+  animation: wander 22s linear infinite, idle 2s ease-in-out infinite;
+}
+@keyframes wander {
+  0%   { left: -8%; }
+  48%  { left: 92%; transform: scaleX(1); }
+  50%  { left: 92%; transform: scaleX(-1); }
+  98%  { left: -8%; transform: scaleX(-1); }
+  100% { left: -8%; transform: scaleX(1); }
+}
+
+@keyframes idle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+
+/* Huevo en el corral (decorativo) */
+.egg-pile {
+  position: absolute;
+  bottom: 22px;
+  left: 42%;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+.egg-pile img { width: 32px; }
+
+/* ───── Stats row ───── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+}
+
+.stat {
+  background: var(--granja-blanco);
+  border-radius: var(--r-md);
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(212, 163, 115, 0.18);
+}
+
+.stat__icon { width: 36px; height: 36px; flex-shrink: 0; }
+.stat__value { font-size: 22px; font-weight: 700; line-height: 1; color: var(--granja-ink); }
+.stat__label { font-size: 12px; color: var(--granja-ink-soft); margin-top: 2px; letter-spacing: 0.02em; text-transform: uppercase; }
+
+/* ───── Acciones ───── */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  align-items: stretch;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  border: none;
+  border-radius: var(--r-full);
+  padding: var(--sp-4) var(--sp-6);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: transform 120ms ease, box-shadow 180ms ease, background 200ms ease;
+  box-shadow: var(--shadow-md);
+}
+.btn:active { transform: scale(0.97); }
+
+.btn--primary {
+  background: var(--granja-terracota);
+  color: var(--granja-blanco);
+}
+.btn--primary:hover { background: var(--granja-terracota-dark); }
+
+.btn--secondary {
+  background: var(--granja-blanco);
+  color: var(--granja-ink);
+  border: 1.5px solid var(--granja-marron);
+  box-shadow: var(--shadow-sm);
+}
+.btn--secondary:hover { background: var(--granja-crema-soft); }
+
+.actions-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+/* ───── Footer ───── */
+.foot {
+  text-align: center;
+  color: var(--granja-ink-soft);
+  font-size: 12px;
+  margin-top: var(--sp-2);
+}
+
+/* ───── Toast ───── */
+.toast {
+  background: var(--granja-amarillo-soft);
+  border: 1.5px solid var(--granja-amarillo);
+  color: var(--granja-marron-dark);
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--r-full);
+  font-size: 14px;
+  font-weight: 600;
+  align-self: center;
+  box-shadow: var(--shadow-sm);
+  animation: toast-in 320ms ease-out, toast-out 400ms ease-in 3.8s forwards;
+}
+.hidden { display: none !important; }
+
+@keyframes toast-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateY(-4px); }
+}

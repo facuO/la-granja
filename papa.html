@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vista papá · La granja de Sofi</title>
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/globals.css">
+  <style>
+    .dash { max-width: 1100px; margin: 0 auto; padding: var(--sp-6) var(--sp-5) var(--sp-7); display: grid; gap: var(--sp-5); }
+    .dash-header { display: flex; justify-content: space-between; align-items: center; }
+    .dash-header h1 { font-size: 28px; margin: 0; }
+
+    .disclaimer {
+      background: var(--granja-amarillo-soft);
+      border: 1.5px solid var(--granja-amarillo);
+      border-radius: var(--r-md);
+      padding: var(--sp-3) var(--sp-4);
+      color: var(--granja-marron-dark);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .disclaimer strong { display: block; margin-bottom: 4px; }
+
+    .area-grid { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .area-card {
+      background: var(--granja-blanco);
+      border-radius: var(--r-md);
+      padding: var(--sp-4) var(--sp-5);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(212, 163, 115, 0.20);
+    }
+    .area-card h3 { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--granja-marron-dark); margin: 0 0 var(--sp-2); }
+    .area-card__score { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .area-card__score small { font-size: 14px; color: var(--granja-ink-soft); font-weight: 600; margin-left: 4px; }
+    .area-card__trend { font-size: 13px; margin-top: var(--sp-2); color: var(--granja-ink-soft); }
+    .area-card__trend.up { color: var(--granja-verde-dark); font-weight: 700; }
+    .area-card__trend.down { color: var(--granja-terracota-dark); font-weight: 700; }
+    .area-card__spark { margin-top: var(--sp-3); }
+
+    .chart-card {
+      background: var(--granja-blanco);
+      border-radius: var(--r-md);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(212, 163, 115, 0.20);
+    }
+    .chart-card h2 { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--granja-marron-dark); margin: 0 0 var(--sp-3); }
+    .chart-controls { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+    .pill {
+      background: transparent;
+      border: 1.5px solid var(--granja-marron);
+      color: var(--granja-marron-dark);
+      border-radius: var(--r-full);
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .pill.active { background: var(--granja-marron); color: var(--granja-blanco); }
+    .legend { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-3); }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--granja-ink-soft); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid rgba(212, 163, 115, 0.15); }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--granja-ink-soft); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .actions-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+    .btn-link {
+      background: transparent;
+      border: 1.5px solid var(--granja-marron);
+      color: var(--granja-marron-dark);
+      border-radius: var(--r-full);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-link.danger { color: var(--granja-terracota-dark); border-color: var(--granja-terracota); }
+
+    .empty { color: var(--granja-ink-soft); font-style: italic; font-size: 13px; padding: var(--sp-3); }
+  </style>
+</head>
+<body>
+  <main class="dash">
+    <header class="dash-header">
+      <h1>Vista papá</h1>
+      <a class="papa-link" href="index.html">← Volver al corral</a>
+    </header>
+
+    <div class="disclaimer">
+      <strong>Complemento lúdico, no terapia.</strong>
+      Las métricas son descriptivas (hoy reaccionó más rápido, esta semana hubo más práctica), no diagnósticas.
+      Sirven para acompañar la conversación con las terapeutas, no para evaluar clínicamente.
+    </div>
+
+    <section>
+      <div class="area-grid" id="areaGrid"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Score por área</h2>
+      <div class="chart-controls">
+        <button class="pill active" data-range="7">7 días</button>
+        <button class="pill" data-range="30">30 días</button>
+      </div>
+      <div id="chartBox"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Juegos jugados</h2>
+      <div id="gamesTable"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Datos</h2>
+      <div class="actions-row">
+        <button class="btn-link" id="exportJsonBtn">Exportar JSON</button>
+        <button class="btn-link" id="exportCsvBtn">Exportar CSV</button>
+        <button class="btn-link danger" id="resetBtn">Borrar todo</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="lib/registry.js"></script>
+  <script src="lib/store.js"></script>
+  <script src="lib/compute.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var store = window.Granja.store;
+    var compute = window.Granja.compute;
+    var registry = window.Granja.registry;
+
+    var AREA_LABELS = { fono: 'Fonoaudiología', psicoped: 'Psicopedagogía', psicomot: 'Psicomotricidad', to: 'Terapia Ocupacional', mate: 'Matemáticas', lengua: 'Lengua', ciencias: 'Ciencias', geo: 'Geografía' };
+    var AREA_COLORS = { fono: '#D97757', psicoped: '#6C8B4A', psicomot: '#3D7AB3', to: '#B88B3F', mate: '#8E5EA8', lengua: '#C76A8E', ciencias: '#4A8A8E', geo: '#D4A53A' };
+    var areas = ['fono', 'psicoped', 'psicomot', 'to', 'mate', 'lengua', 'ciencias', 'geo'];
+    var currentRange = 7;
+
+    function renderAreaCards() {
+      var s = store.getState();
+      var trend = compute.trend(s.sessions, 7);
+      var html = '';
+      areas.forEach(function (a) {
+        var info = trend[a];
+        var score = info.recent != null ? info.recent : '—';
+        var deltaTxt = '';
+        var trendClass = '';
+        if (info.deltaPct != null) {
+          var sign = info.deltaPct >= 0 ? '+' : '';
+          deltaTxt = sign + info.deltaPct + '% vs semana anterior';
+          if (info.deltaPct > 5) trendClass = 'up';
+          else if (info.deltaPct < -5) trendClass = 'down';
+        } else if (info.recent == null) {
+          deltaTxt = 'Sin datos esta semana';
+        } else {
+          deltaTxt = 'Primera semana de datos';
+        }
+        // Sparkline mini de los últimos 7 días
+        var series = compute.timeSeries(s.sessions, 7).map(function (p) { return p.scores[a]; });
+        var sparkSvg = renderSparkline(series, AREA_COLORS[a], 200, 36);
+        html += '<div class="area-card">'
+          + '<h3>' + AREA_LABELS[a] + '</h3>'
+          + '<div class="area-card__score">' + score + (typeof score === 'number' ? '<small>/100</small>' : '') + '</div>'
+          + '<div class="area-card__trend ' + trendClass + '">' + deltaTxt + '</div>'
+          + '<div class="area-card__spark">' + sparkSvg + '</div>'
+          + '</div>';
+      });
+      document.getElementById('areaGrid').innerHTML = html;
+    }
+
+    function renderSparkline(values, color, w, h) {
+      // Reemplaza nulls por 0 para visualización
+      var vals = values.map(function (v) { return v == null ? null : v; });
+      var nonNull = vals.filter(function (v) { return v != null; });
+      if (nonNull.length === 0) {
+        return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><line x1="0" y1="' + (h - 1) + '" x2="' + w + '" y2="' + (h - 1) + '" stroke="rgba(60,47,37,0.10)" stroke-width="1.5"/></svg>';
+      }
+      var max = 100;
+      var stepX = w / Math.max(1, vals.length - 1);
+      var pts = [];
+      vals.forEach(function (v, i) {
+        if (v == null) return;
+        var x = i * stepX;
+        var y = h - 2 - (v / max) * (h - 4);
+        pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+      });
+      return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
+        + '<polyline fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + pts.join(' ') + '"/>'
+        + '</svg>';
+    }
+
+    function renderChart() {
+      var s = store.getState();
+      var series = compute.timeSeries(s.sessions, currentRange);
+      var w = 1000, h = 240, pad = { l: 36, r: 16, t: 12, b: 28 };
+      var inner = { w: w - pad.l - pad.r, h: h - pad.t - pad.b };
+      var stepX = inner.w / Math.max(1, series.length - 1);
+      var max = 100;
+      var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '">';
+
+      // Grid & axis
+      for (var g = 0; g <= 4; g++) {
+        var y = pad.t + (g / 4) * inner.h;
+        var v = 100 - g * 25;
+        svg += '<line x1="' + pad.l + '" y1="' + y + '" x2="' + (pad.l + inner.w) + '" y2="' + y + '" stroke="rgba(60,47,37,0.08)" stroke-width="1"/>';
+        svg += '<text x="' + (pad.l - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="#6E5E50">' + v + '</text>';
+      }
+
+      // X labels (mostrar cada 1 o cada N)
+      var step = currentRange <= 7 ? 1 : 5;
+      series.forEach(function (p, i) {
+        if (i % step !== 0 && i !== series.length - 1) return;
+        var x = pad.l + i * stepX;
+        var label = p.date.slice(5); // MM-DD
+        svg += '<text x="' + x + '" y="' + (h - 8) + '" text-anchor="middle" font-size="10" fill="#6E5E50">' + label + '</text>';
+      });
+
+      areas.forEach(function (a) {
+        var pts = [];
+        series.forEach(function (p, i) {
+          var v = p.scores[a];
+          if (v == null) return;
+          var x = pad.l + i * stepX;
+          var y = pad.t + (1 - v / max) * inner.h;
+          pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+        });
+        if (pts.length > 0) {
+          svg += '<polyline fill="none" stroke="' + AREA_COLORS[a] + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + pts.join(' ') + '"/>';
+        }
+      });
+      svg += '</svg>';
+      document.getElementById('chartBox').innerHTML = svg;
+
+      // Legend
+      var legendHtml = '';
+      areas.forEach(function (a) {
+        legendHtml += '<span class="legend-item"><span class="legend-dot" style="background:' + AREA_COLORS[a] + '"></span>' + AREA_LABELS[a] + '</span>';
+      });
+      document.getElementById('legend').innerHTML = legendHtml;
+    }
+
+    function renderGamesTable() {
+      var s = store.getState();
+      var rows = compute.gamesSummary(s.sessions);
+      if (rows.length === 0) {
+        document.getElementById('gamesTable').innerHTML = '<div class="empty">Todavía no jugó ningún juego. Cuando complete una sesión aparece acá.</div>';
+        return;
+      }
+      // Agregar juegos no jugados como filas extras
+      var played = new Set(rows.map(function (r) { return r.gameId; }));
+      var notPlayed = registry.games.filter(function (g) { return !played.has(g.id); });
+
+      var html = '<table>';
+      html += '<thead><tr><th>Juego</th><th>Áreas</th><th class="num">Veces</th><th class="num">Último score</th><th class="num">Dificultad</th><th>Último día</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        var g = registry.getById(r.gameId);
+        var name = g ? g.name : r.gameId;
+        var areas = g ? g.areas.join(' · ') : '—';
+        var lastDate = r.lastDate ? new Date(r.lastDate).toLocaleDateString('es-AR') : '—';
+        html += '<tr>'
+          + '<td>' + name + '</td>'
+          + '<td>' + areas + '</td>'
+          + '<td class="num">' + r.count + '</td>'
+          + '<td class="num">' + (r.lastScore != null ? r.lastScore : '—') + '</td>'
+          + '<td class="num">' + (r.lastDifficulty || '—') + '</td>'
+          + '<td>' + lastDate + '</td>'
+          + '</tr>';
+      });
+      notPlayed.forEach(function (g) {
+        html += '<tr style="opacity:0.55;"><td>' + g.name + '</td><td>' + g.areas.join(' · ') + '</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td>—</td></tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('gamesTable').innerHTML = html;
+    }
+
+    function download(filename, text) {
+      var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 200);
+    }
+
+    function exportJson() {
+      var s = store.getState();
+      download('la-granja-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(s, null, 2));
+    }
+    function exportCsv() {
+      var s = store.getState();
+      var rows = [['fecha', 'juego', 'dificultad', 'accuracy', 'reaccion_ms', 'omisiones', 'comisiones', 'duracion_seg']];
+      s.sessions.forEach(function (sess) {
+        rows.push([
+          sess.date,
+          sess.gameId,
+          sess.difficulty,
+          sess.metrics.accuracy != null ? sess.metrics.accuracy.toFixed(3) : '',
+          sess.metrics.avgReactionMs != null ? sess.metrics.avgReactionMs : '',
+          sess.metrics.errors.omission,
+          sess.metrics.errors.commission,
+          sess.metrics.durationSec,
+        ]);
+      });
+      var csv = rows.map(function (r) { return r.join(','); }).join('\n');
+      download('la-granja-' + new Date().toISOString().slice(0, 10) + '.csv', csv);
+    }
+
+    document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+    document.getElementById('resetBtn').addEventListener('click', function () {
+      if (confirm('¿Borrar todos los datos del corral? Esta acción no se puede deshacer.')) {
+        store.reset();
+        location.reload();
+      }
+    });
+
+    document.querySelectorAll('.pill').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.pill').forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        currentRange = parseInt(b.dataset.range, 10);
+        renderChart();
+      });
+    });
+
+    renderAreaCards();
+    renderChart();
+    renderGamesTable();
+  })();
+  </script>
+</body>
+</html>

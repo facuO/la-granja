@@ -1,0 +1,227 @@
+import type { FastifyPluginAsync } from "fastify";
+import { query } from "../db.js";
+import { setSofiCookie } from "../auth/cookies.js";
+import { requireSofi } from "../auth/middleware.js";
+import { getSubjectsForSofi } from "../services/subjects.js";
+import { startSession, nextBlock, finishSession } from "../services/sessions.js";
+import { askTutor, type ChatMessage } from "../services/real-chat.js";
+import { getAllStubBlocks } from "../services/stub-tutor.js";
+import { getDailyFlavor } from "../services/daily-flavor.js";
+
+export const sofiRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get<{ Params: { token: string } }>("/s/:token", async (req, reply) => {
+    const { rows } = await query<{ id: string; revoked_at: Date | null }>(
+      `SELECT id, revoked_at FROM sofi_tokens WHERE token = $1`,
+      [req.params.token]
+    );
+
+    if (rows.length === 0 || rows[0].revoked_at) {
+      return reply.code(401).type("text/html").send(`
+        <html><body>
+          <p>Este link no funciona. Pedile a Papá uno nuevo.</p>
+        </body></html>
+      `);
+    }
+
+    setSofiCookie(reply, req.params.token);
+    return reply.redirect("/sofi.html");
+  });
+
+  fastify.get(
+    "/api/sofi/subjects",
+    { preHandler: requireSofi },
+    async () => {
+      const subjects = await getSubjectsForSofi({ difficultMode: false });
+      return { subjects };
+    }
+  );
+
+  fastify.post<{ Body: { topic_id: string } }>(
+    "/api/sofi/sessions",
+    {
+      preHandler: requireSofi,
+      schema: {
+        body: {
+          type: "object",
+          required: ["topic_id"],
+          properties: { topic_id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const result = await startSession({ topicId: req.body.topic_id });
+        return reply.code(201).send({
+          ok: true,
+          session_id: result.sessionId,
+          steps_planned: result.stepsPlanned,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "unknown";
+        return reply.code(400).send({ ok: false, reason: msg });
+      }
+    }
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    "/api/sofi/sessions/:id/next-block",
+    {
+      preHandler: requireSofi,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const result = await nextBlock(req.params.id);
+        return reply.send(result);
+      } catch {
+        return reply.code(404).send({ ok: false, reason: "session_not_found" });
+      }
+    }
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    "/api/sofi/sessions/:id/finish",
+    {
+      preHandler: requireSofi,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const result = await finishSession(req.params.id);
+      return reply.send(result);
+    }
+  );
+
+  // Devuelve los blocks de un topic para el generador de actividades
+  // imprimibles. Accesible con la cookie sofi (Papá/AT/Sofi). Cae al stub
+  // hand-crafted si no hay generated_blocks.
+  fastify.get<{ Params: { id: string } }>(
+    "/api/sofi/topics/:id/blocks",
+    {
+      preHandler: requireSofi,
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: { id: { type: "string", format: "uuid" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { rows } = await query<{
+        title: string;
+        subject_name: string;
+        generated_blocks: unknown[] | null;
+      }>(
+        `SELECT t.title, s.name AS subject_name, t.generated_blocks
+           FROM topics t
+           JOIN blocks b ON b.id = t.block_id
+           JOIN subjects s ON s.id = b.subject_id
+          WHERE t.id = $1`,
+        [req.params.id],
+      );
+      if (rows.length === 0) {
+        return reply.code(404).send({ ok: false, reason: "topic_not_found" });
+      }
+      const row = rows[0];
+      let blocks = row.generated_blocks;
+      if (!Array.isArray(blocks) || blocks.length === 0) {
+        blocks = getAllStubBlocks(req.params.id) ?? [];
+      }
+      return reply.send({
+        ok: true,
+        title: row.title,
+        subject_name: row.subject_name,
+        blocks,
+      });
+    },
+  );
+
+  // Chat conversacional con el tutor. Acepta history (turnos previos) + el
+  // mensaje nuevo. Devuelve { text, phrase } con la respuesta tokenizada y
+  // con pictogramas ARASAAC asignados.
+  fastify.post<{ Body: { history?: ChatMessage[]; message: string } }>(
+    "/api/sofi/chat",
+    {
+      preHandler: requireSofi,
+      schema: {
+        body: {
+          type: "object",
+          required: ["message"],
+          properties: {
+            message: { type: "string", minLength: 1, maxLength: 1000 },
+            history: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["role", "content"],
+                properties: {
+                  role: { type: "string", enum: ["user", "assistant"] },
+                  content: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const result = await askTutor({
+          history: req.body.history ?? [],
+          message: req.body.message,
+        });
+        return reply.send(result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "unknown";
+        req.log.error({ err }, "chat failed");
+        return reply.code(500).send({ ok: false, reason: msg });
+      }
+    }
+  );
+
+  fastify.get<{ Querystring: { date?: string } }>(
+    "/api/sofi/daily-flavor",
+    {
+      preHandler: requireSofi,
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const dateStr = req.query.date;
+      let date: Date;
+      if (dateStr) {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        date = new Date(y, m - 1, d);
+        // Strict check: reject overflows como 2026-13-99 o 2026-02-30 que JS reinterpreta.
+        if (
+          isNaN(date.getTime()) ||
+          date.getFullYear() !== y ||
+          date.getMonth() + 1 !== m ||
+          date.getDate() !== d
+        ) {
+          return reply.code(400).send({ ok: false, reason: "invalid date" });
+        }
+      } else {
+        date = new Date();
+      }
+      const flavor = await getDailyFlavor(date);
+      return reply.send(flavor);
+    },
+  );
+};

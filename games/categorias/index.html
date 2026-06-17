@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Categorías · La granja de Sofi</title>
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .category-card { background: var(--granja-blanco); border-radius: var(--r-lg); padding: var(--sp-6); box-shadow: var(--shadow-md); border: 1px solid rgba(212, 163, 115, 0.20); }
+    .category-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--granja-marron-dark); margin-bottom: var(--sp-3); }
+    .category-card .text { font-size: clamp(24px, 3.5vw, 36px); font-weight: 800; color: var(--granja-ink); margin: 0; line-height: 1.2; }
+    .category-card small { font-size: 14px; color: var(--granja-ink-soft); font-weight: 600; display: block; margin-top: var(--sp-3); }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <a class="hud__back" href="../../index.html">← Volver</a>
+      <h1 class="hud__title">Categorías</h1>
+      <span class="hud__counter">Decí cosas en voz alta</span>
+    </header>
+
+    <section class="arena" aria-label="Categorías">
+      <div class="stage">
+        <div class="category-card">
+          <div class="label">Decí cosas que sean</div>
+          <p class="text" id="categoryLabel">—</p>
+          <small id="targetLabel">Objetivo: —</small>
+        </div>
+
+        <div class="recorder">
+          <button class="mic-button" id="micBtn" aria-label="Grabar">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"/>
+              <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"/>
+            </svg>
+          </button>
+          <strong id="micLabel">Grabar</strong>
+          <div class="timer-bar"><div class="timer-bar__fill" id="timerBarFill"></div></div>
+          <p class="hint" id="hint">Tocá grabar y empezá a nombrar cosas.</p>
+          <p class="error-banner hidden" id="errorBanner"></p>
+        </div>
+
+        <div class="playback hidden" id="playbackBlock">
+          <strong>Escuchate:</strong>
+          <audio id="playbackAudio" controls></audio>
+        </div>
+
+        <div class="report hidden" id="reportBlock">
+          <div class="report__q">¿Cuántas dijiste?</div>
+          <input class="count-input" id="countInput" type="text" inputmode="numeric" placeholder="0" aria-label="Cantidad">
+          <div class="report__actions">
+            <button class="btn btn--primary" id="finishBtn" disabled>Listo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="overlay__card">
+          <h2 class="overlay__title">¡Bien hecho!</h2>
+          <p class="overlay__sub" id="endMessage"></p>
+          <div class="overlay__actions" id="endActions">
+            <a class="btn btn--primary" href="../../index.html">Volver al corral</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="game.js" defer></script>
+</body>
+</html>
